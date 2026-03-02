@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid
 import os
 import json
-from auth_client import login_required_video
+
 
 app = Flask(__name__,
             static_folder='static',
@@ -252,7 +252,12 @@ def handle_disconnect():
                 'sid': request.sid
             }, room=f"video_{room_id}")
 
+
+def run():
+    """Main function"""
+    socketio.run(app, debug=True, port=app.config['PORT'])
+
 if __name__ == '__main__':
     print(f"🚀 Video server starting on port {app.config['PORT']}")
     print(f"📡 WebSocket endpoint: http://localhost:{app.config['PORT']}")
-    socketio.run(app, debug=True, port=app.config['PORT'])
+    run()

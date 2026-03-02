@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import secrets
 
+
 load_dotenv()
 
 db = SQLAlchemy()
@@ -51,7 +52,8 @@ def create_app():
         from app.routes.files import files_bp
         from app.routes.api import api_bp
         from app.routes.search import search_bp
-        from app.routes.status import status_bp  # NEW
+        from app.routes.status import status_bp
+        from app.routes.video_integration import video_int_bp # New
 
         app.register_blueprint(auth_bp)
         app.register_blueprint(chats_bp)
@@ -60,7 +62,8 @@ def create_app():
         app.register_blueprint(files_bp)
         app.register_blueprint(api_bp)
         app.register_blueprint(search_bp)
-        app.register_blueprint(status_bp)  # NEW
+        app.register_blueprint(status_bp)
+        app.register_blueprint(video_int_bp) # New
 
     except ImportError as e:
         print(f"Error importing blueprints: {e}")
@@ -73,5 +76,5 @@ def create_app():
     except ImportError:
         print("Warning: highlight_text filter not available")
 
-    app.register_blueprint(video_int_bp)
+
     return app
