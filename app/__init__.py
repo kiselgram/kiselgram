@@ -73,4 +73,5 @@ def create_app():
     except ImportError:
         print("Warning: highlight_text filter not available")
 
+    app.register_blueprint(video_int_bp)
     return app

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiselgram Video - Room {{ room_id }}</title>
+    <link rel="stylesheet" href="/static/css/video.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .room-info h1 {
+            font-size: 1.8rem;
+        }
+
+        .user-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-control {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-control:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-control.danger {
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+        .btn-control.danger:hover {
+            background: rgba(239, 68, 68, 1);
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            background: #1a1a2e;
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .audio-only-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            border: 2px solid #667eea;
+            backdrop-filter: blur(10px);
+        }
+
+        .device-select {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 15px;
+            border-radius: 30px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+
+        .device-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .room-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn-control {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="room-header">
+            <div class="room-info">
+                <h1>🎥 Room: {{ room_id }}</h1>
+                <span class="user-badge">👤 {{ username }}</span>
+            </div>
+            <div>
+                <button onclick="copyRoomId()" class="btn-control">📋 Copy Room ID</button>
+                <a href="http://localhost:5000/chat_list" class="back-link">← Back to Kiselgram</a>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="toggleVideo()" id="videoBtn" class="btn-control">📹 Stop Video</button>
+            <button onclick="toggleAudio()" id="audioBtn" class="btn-control">🎤 Mute</button>
+            <button onclick="toggleScreenShare()" id="screenBtn" class="btn-control">🖥️ Share Screen</button>
+            <button onclick="toggleAudioOnly()" id="audioOnlyBtn" class="btn-control">🔊 Audio Only</button>
+            <button onclick="getParticipants()" id="participantsBtn" class="btn-control">👥 Participants</button>
+        </div>
+
+        <div id="videoGrid" class="video-grid">
+            <!-- Videos will be added here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const roomId = "{{ room_id }}";
+        const username = "{{ username }}";
+        const userId = "{{ user_id }}";
+        const serverPort = {{ server_port }};
+
+        // Connect to video server
+        const socket = io(`http://localhost:${serverPort}`);
+
+        let localStream;
+        let peers = {};
+        let videoEnabled = true;
+        let audioEnabled = true;
+        let audioOnlyMode = false;
+        let screenStream = null;
+        let availableCameras = [];
+        let availableMicrophones = [];
+
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        window.onload = async () => {
+            try {
+                await enumerateDevices();
+                await initializeMedia();
+
+                socket.emit('join', {
+                    room: roomId,
+                    username: username,
+                    user_id: userId,
+                    audio_only: audioOnlyMode
+                });
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                alert('Could not access camera/microphone. Please make sure you have granted permissions.');
+            }
+        };
+
+        async function enumerateDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(device => device.kind === 'videoinput');
+                availableMicrophones = devices.filter(device => device.kind === 'audioinput');
+
+                createDeviceSelector();
+            } catch (error) {
+                console.error('Error enumerating devices:', error);
+            }
+        }
+
+        function createDeviceSelector() {
+            const controls = document.querySelector('.controls');
+
+            if (availableCameras.length > 1) {
+                const cameraSelect = document.createElement('select');
+                cameraSelect.id = 'cameraSelect';
+                cameraSelect.className = 'device-select';
+                cameraSelect.innerHTML = '<option value="">Select Camera</option>';
+
+                availableCameras.forEach(camera => {
+                    const option = document.createElement('option');
+                    option.value = camera.deviceId;
+                    option.text = camera.label || `Camera ${camera.deviceId.slice(0,5)}...`;
+                    cameraSelect.appendChild(option);
+                });
+
+                cameraSelect.onchange = (e) => switchCamera(e.target.value);
+
+                controls.appendChild(cameraSelect);
+            }
+
+            if (availableMicrophones.length > 1) {
+                const micSelect = document.createElement('select');
+                micSelect.id = 'micSelect';
+                micSelect.className = 'device-select';
+                micSelect.innerHTML = '<option value="">Select Microphone</option>';
+
+                availableMicrophones.forEach(mic => {
+                    const option = document.createElement('option');
+                    option.value = mic.deviceId;
+                    option.text = mic.label || `Microphone ${mic.deviceId.slice(0,5)}...`;
+                    micSelect.appendChild(option);
+                });
+
+                micSelect.onchange = (e) => switchMicrophone(e.target.value);
+
+                controls.appendChild(micSelect);
+            }
+        }
+
+        async function initializeMedia(deviceId = null) {
+            const constraints = {
+                video: deviceId ? { deviceId: { exact: deviceId } } : true,
+                audio: true
+            };
+
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                const localVideo = document.querySelector('#local-video video');
+                if (localVideo) {
+                    localVideo.srcObject = localStream;
+                } else {
+                    addLocalVideo();
+                }
+
+                updatePeersTracks();
+
+            } catch (error) {
+                console.error('Error initializing media:', error);
+                throw error;
+            }
+        }
+
+        function addLocalVideo() {
+            const videoGrid = document.getElementById('videoGrid');
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-container';
+            videoContainer.id = 'local-video';
+
+            const video = document.createElement('video');
+            video.srcObject = localStream;
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = 'You';
+
+            videoContainer.appendChild(video);
+            videoContainer.appendChild(label);
+            videoGrid.appendChild(videoContainer);
+        }
+
+        function addRemoteVideo(sid, remoteUsername, audioOnly = false) {
+            const videoGrid = document.getElementById('videoGrid');
+
+            if (document.getElementById(`remote-${sid}`)) return;
+
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-container';
+            videoContainer.id = `remote-${sid}`;
+
+            const video = document.createElement('video');
+            video.id = `video-${sid}`;
+            video.autoplay = true;
+            video.playsInline = true;
+
+            if (audioOnly) {
+                video.style.display = 'none';
+                const audioOnlyIndicator = document.createElement('div');
+                audioOnlyIndicator.className = 'audio-only-indicator';
+                audioOnlyIndicator.textContent = '🎤 Audio Only';
+                videoContainer.appendChild(audioOnlyIndicator);
+            }
+
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = remoteUsername;
+
+            videoContainer.appendChild(video);
+            videoContainer.appendChild(label);
+            videoGrid.appendChild(videoContainer);
+        }
+
+        socket.on('user-joined', (data) => {
+            console.log('User joined:', data);
+            addRemoteVideo(data.sid, data.username, data.audio_only);
+            createPeerConnection(data.sid, true);
+        });
+
+        socket.on('existing-users', (data) => {
+            console.log('Existing users:', data);
+            data.users.forEach(user => {
+                addRemoteVideo(user.sid, user.username, user.audio_only);
+                createPeerConnection(user.sid, false);
+            });
+        });
+
+        socket.on('user-left', (data) => {
+            console.log('User left:', data);
+            if (peers[data.sid]) {
+                peers[data.sid].close();
+                delete peers[data.sid];
+            }
+            const videoElement = document.getElementById(`remote-${data.sid}`);
+            if (videoElement) videoElement.remove();
+        });
+
+        socket.on('offer', async (data) => {
+            const peer = createPeerConnection(data.from, false);
+            await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+
+            socket.emit('answer', {
+                to: data.from,
+                answer: answer
+            });
+        });
+
+        socket.on('answer', async (data) => {
+            const peer = peers[data.from];
+            if (peer) {
+                await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+        });
+
+        socket.on('ice-candidate', (data) => {
+            const peer = peers[data.from];
+            if (peer) {
+                peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        });
+
+        socket.on('user-mode-changed', (data) => {
+            const videoContainer = document.getElementById(`remote-${data.sid}`);
+            if (videoContainer) {
+                const video = videoContainer.querySelector('video');
+                if (data.audio_only) {
+                    if (video) video.style.display = 'none';
+                    if (!videoContainer.querySelector('.audio-only-indicator')) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'audio-only-indicator';
+                        indicator.textContent = '🎤 Audio Only';
+                        videoContainer.appendChild(indicator);
+                    }
+                } else {
+                    if (video) video.style.display = 'block';
+                    const indicator = videoContainer.querySelector('.audio-only-indicator');
+                    if (indicator) indicator.remove();
+                }
+            }
+        });
+
+        function createPeerConnection(sid, isInitiator) {
+            const peer = new RTCPeerConnection(configuration);
+            peers[sid] = peer;
+
+            localStream.getTracks().forEach(track => {
+                peer.addTrack(track, localStream);
+            });
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('ice-candidate', {
+                        to: sid,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            peer.ontrack = (event) => {
+                const video = document.getElementById(`video-${sid}`);
+                if (video) {
+                    video.srcObject = event.streams[0];
+                }
+            };
+
+            if (isInitiator) {
+                peer.createOffer()
+                    .then(offer => peer.setLocalDescription(offer))
+                    .then(() => {
+                        socket.emit('offer', {
+                            to: sid,
+                            offer: peer.localDescription
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error creating offer:', error);
+                    });
+            }
+
+            return peer;
+        }
+
+        function updatePeersTracks() {
+            Object.values(peers).forEach(peer => {
+                const senders = peer.getSenders();
+
+                const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                if (videoSender) {
+                    videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+                }
+
+                const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+                if (audioSender) {
+                    audioSender.replaceTrack(localStream.getAudioTracks()[0]);
+                }
+            });
+        }
+
+        async function switchCamera(deviceId) {
+            if (!deviceId) return;
+
+            try {
+                await initializeMedia(deviceId);
+
+                socket.emit('switch-camera', {
+                    room: roomId,
+                    device_id: deviceId
+                });
+
+                console.log('Switched to camera:', deviceId);
+            } catch (error) {
+                console.error('Error switching camera:', error);
+                alert('Failed to switch camera');
+            }
+        }
+
+        async function switchMicrophone(deviceId) {
+            if (!deviceId) return;
+
+            try {
+                const constraints = {
+                    video: true,
+                    audio: { deviceId: { exact: deviceId } }
+                };
+
+                const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                const oldAudioTrack = localStream.getAudioTracks()[0];
+                const newAudioTrack = newStream.getAudioTracks()[0];
+
+                localStream.removeTrack(oldAudioTrack);
+                localStream.addTrack(newAudioTrack);
+                oldAudioTrack.stop();
+
+                updatePeersTracks();
+
+                console.log('Switched to microphone:', deviceId);
+
+            } catch (error) {
+                console.error('Error switching microphone:', error);
+                alert('Failed to switch microphone');
+            }
+        }
+
+        function toggleVideo() {
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoEnabled = !videoEnabled;
+                videoTrack.enabled = videoEnabled;
+                document.getElementById('videoBtn').textContent = videoEnabled ? '📹 Stop Video' : '📹 Start Video';
+            }
+        }
+
+        function toggleAudio() {
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioEnabled = !audioEnabled;
+                audioTrack.enabled = audioEnabled;
+                document.getElementById('audioBtn').textContent = audioEnabled ? '🎤 Mute' : '🎤 Unmute';
+            }
+        }
+
+        async function toggleScreenShare() {
+            if (!screenStream) {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    const videoTrack = screenStream.getVideoTracks()[0];
+
+                    Object.values(peers).forEach(peer => {
+                        const sender = peer.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if (sender) sender.replaceTrack(videoTrack);
+                    });
+
+                    videoTrack.onended = () => {
+                        stopScreenShare();
+                    };
+
+                    document.getElementById('screenBtn').textContent = '🖥️ Stop Sharing';
+                } catch (error) {
+                    console.error('Screen share error:', error);
+                }
+            } else {
+                stopScreenShare();
+            }
+        }
+
+        function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+
+                const videoTrack = localStream.getVideoTracks()[0];
+                Object.values(peers).forEach(peer => {
+                    const sender = peer.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) sender.replaceTrack(videoTrack);
+                });
+
+                document.getElementById('screenBtn').textContent = '🖥️ Share Screen';
+            }
+        }
+
+        function toggleAudioOnly() {
+            audioOnlyMode = !audioOnlyMode;
+
+            const btn = document.getElementById('audioOnlyBtn');
+            btn.textContent = audioOnlyMode ? '🔊 Video Mode' : '🔊 Audio Only';
+
+            socket.emit('toggle-audio-only', {
+                room: roomId,
+                audio_only: audioOnlyMode
+            });
+
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !audioOnlyMode;
+            }
+
+            const localVideo = document.querySelector('#local-video video');
+            if (localVideo) {
+                localVideo.style.display = audioOnlyMode ? 'none' : 'block';
+            }
+
+            const localContainer = document.getElementById('local-video');
+            let indicator = localContainer.querySelector('.audio-only-indicator');
+
+            if (audioOnlyMode) {
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'audio-only-indicator';
+                    indicator.textContent = '🎤 Audio Only (You)';
+                    localContainer.appendChild(indicator);
+                }
+            } else {
+                if (indicator) indicator.remove();
+            }
+        }
+
+        function getParticipants() {
+            socket.emit('get-participants', { room: roomId });
+        }
+
+        function copyRoomId() {
+            navigator.clipboard.writeText(roomId).then(() => {
+                alert('Room ID copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy room ID');
+            });
+        }
+
+        window.onbeforeunload = () => {
+            socket.emit('leave', { room: roomId });
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    </script>
+</body>
+</html>
