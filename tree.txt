@@ -1,0 +1,50 @@
+.
+├── app
+│   ├── __init__.py
+│   ├── models.py
+│   ├── routes
+│   │   ├── __init__.py
+│   │   ├── api.py
+│   │   ├── auth.py
+│   │   ├── channels.py
+│   │   ├── chats.py
+│   │   ├── files.py
+│   │   ├── groups.py
+│   │   ├── search.py
+│   │   └── status.py
+│   ├── utils
+│   │   ├── __init__.py
+│   │   ├── bot_utils.py
+│   │   └── helpers.py
+│   └── utils.py
+├── instance
+│   └── kiselgram.db
+├── main.py
+├── manage.py
+├── requirements.txt
+├── restart.sh
+├── static
+│   ├── css
+│   │   ├── animations.css
+│   │   ├── desktop.css
+│   │   └── mobile.css
+│   ├── manifest.json
+│   └── sw.js
+├── templates
+│   ├── base.html
+│   ├── channel.html
+│   ├── chat.html
+│   ├── chat_list.html
+│   ├── create_channel.html
+│   ├── create_group.html
+│   ├── group.html
+│   ├── login.html
+│   ├── menu.html
+│   ├── search.html
+│   ├── settings.html
+│   └── users_list.html
+├── tmp_runner.py
+└── uploads
+    ├── documents
+    ├── images
+    └── media

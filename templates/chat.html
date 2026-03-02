@@ -1,59 +1,7 @@
 <!-- templates/direct_chat.html -->
 {% extends "base.html" %}
 
-{% block content %}
-<div class="mobile-app">
-    <!-- Header -->
-    <div class="header safe-area-top">
-        <button class="header-button ripple" onclick="goBack()">←</button>
-        <div class="chat-user-info" style="flex: 1; display: flex; align-items: center; gap: 12px;">
-            <div class="chat-avatar" style="width: 40px; height: 40px; font-size: 16px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                {{ receiver.username[0]|upper }}
-            </div>
-            <div>
-                <div class="chat-name" style="font-size: 16px; font-weight: 500;">{{ receiver.username }}</div>
-                <div class="chat-status" id="userStatus" style="font-size: 13px; color: var(--text-secondary);">Checking status...</div>
-            </div>
-        </div>
-        <button class="header-button ripple" onclick="showUserMenu()">⋮</button>
-    </div>
-
-    <!-- Messages -->
-    <div class="chat-view">
-        <div class="messages-container" id="messagesContainer">
-            <div class="loading">
-                <div class="spinner"></div>
-            </div>
-        </div>
-
-        <!-- File Upload Area -->
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <div id="uploadFileName">No file selected</div>
-            <div class="upload-buttons">
-                <button type="button" class="upload-button secondary ripple" onclick="document.getElementById('fileInput').click()">Choose File</button>
-                <button type="button" class="upload-button primary ripple" onclick="uploadFile()" id="uploadBtn">Upload</button>
-                <button type="button" class="upload-button cancel ripple" onclick="cancelUpload()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- Input Area -->
-        <div class="input-area safe-area-bottom">
-            <form class="input-form" id="messageForm">
-                <div class="input-row">
-                    <button type="button" class="attachment-button ripple" onclick="toggleUploadArea()" id="attachmentBtn">📎</button>
-                    <textarea class="message-input" placeholder="Message" id="messageInput" rows="1"></textarea>
-                    <button type="submit" class="send-button ripple" id="sendButton" disabled>➤</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Hidden file input -->
-<input type="file" id="fileInput" class="file-input" onchange="handleFileSelect(this.files)">
-<input type="hidden" id="receiverId" value="{{ receiver.id }}">
-{% endblock %}
+{% block title %}Chat with {{ receiver.username }} - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
@@ -719,9 +667,69 @@
 </style>
 {% endblock %}
 
+{% block content %}
+<div class="mobile-app">
+    <!-- Header -->
+    <div class="header safe-area-top">
+        <button class="header-button ripple" onclick="goBack()">←</button>
+        <div class="chat-user-info" style="flex: 1; display: flex; align-items: center; gap: 12px;">
+            <div class="chat-avatar" style="width: 40px; height: 40px; font-size: 16px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                {{ receiver.username[0]|upper }}
+            </div>
+            <div>
+                <div class="chat-name" style="font-size: 16px; font-weight: 500;">{{ receiver.username }}</div>
+                <div class="chat-status" id="userStatus" style="font-size: 13px; color: var(--text-secondary);">Checking status...</div>
+            </div>
+        </div>
+        <button class="header-button ripple" onclick="showUserMenu()">⋮</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-view">
+        <div class="messages-container" id="messagesContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- File Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div id="uploadFileName">No file selected</div>
+            <div class="upload-buttons">
+                <button type="button" class="upload-button secondary ripple" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                <button type="button" class="upload-button primary ripple" onclick="uploadFile()" id="uploadBtn">Upload</button>
+                <button type="button" class="upload-button cancel ripple" onclick="cancelUpload()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area safe-area-bottom">
+            <form class="input-form" id="messageForm">
+                <div class="input-row">
+                    <button type="button" class="attachment-button ripple" onclick="toggleUploadArea()" id="attachmentBtn">📎</button>
+                    <textarea class="message-input" placeholder="Message" id="messageInput" rows="1"></textarea>
+                    <button type="submit" class="send-button ripple" id="sendButton" disabled>➤</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" class="file-input" onchange="handleFileSelect(this.files)">
+<input type="hidden" id="receiverId" value="{{ receiver.id }}">
+
+<!-- Image Preview Modal -->
+<div class="image-modal" id="imageModal">
+    <button class="modal-close" onclick="closeImagePreview()">×</button>
+    <img id="modalImage" src="" alt="Preview">
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
-// Utility functions - define these first
+// Utility functions
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -745,6 +753,7 @@ function scrollToBottom() {
     }, 100);
 }
 
+// Global variables
 const receiverId = {{ receiver.id }};
 let isSending = false;
 let lastMessageId = 0;
@@ -877,10 +886,11 @@ async function checkUserStatus() {
     }
 }
 
+// Message input setup
 function setupMessageInput() {
     const input = document.getElementById('messageInput');
     const form = document.getElementById('messageForm');
-    const container = document.getElementById('messagesContainer');
+    const sendButton = document.getElementById('sendButton');
 
     // Auto-resize textarea
     input.addEventListener('input', function() {
@@ -890,38 +900,12 @@ function setupMessageInput() {
     });
 
     // Form submission
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
-
-        if (isSending) return;
-
-        const content = input.value.trim();
-        if (!content) return;
-
-        isSending = true;
-
-        // Create optimistic UI update
-        const tempId = 'temp-' + Date.now();
-        const tempMessage = {
-            id: tempId,
-            content: content,
-            sender_name: 'You',
-            timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            is_own: true,
-            is_read: false
-        };
-
-        // Add message immediately to UI
-        addMessageToUI(tempMessage, true);
-        input.value = '';
-        input.style.height = 'auto';
-
-        // Then send to server
-        await sendMessage(content, tempId);
-        isSending = false;
+        sendTextMessage();
     });
 
-    // Enter key to send (Shift+Enter for new line)
+    // Enter key handling (Shift+Enter for new line)
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -930,7 +914,42 @@ function setupMessageInput() {
     });
 }
 
-async function sendMessage(content, tempId) {
+function updateSendButton() {
+    const input = document.getElementById('messageInput');
+    const button = document.getElementById('sendButton');
+    if (input && button) {
+        button.disabled = input.value.trim().length === 0;
+    }
+}
+
+// Send text message
+async function sendTextMessage() {
+    if (isSending) return;
+
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+
+    if (!content) return;
+
+    isSending = true;
+
+    // Create optimistic UI update
+    const tempId = 'temp-' + Date.now();
+    const tempMessage = {
+        id: tempId,
+        content: content,
+        sender_name: 'You',
+        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        is_own: true,
+        is_read: false
+    };
+
+    // Add message immediately to UI
+    addMessageToUI(tempMessage, true);
+    input.value = '';
+    input.style.height = 'auto';
+    updateSendButton();
+
     try {
         const response = await fetch('/api/send_message', {
             method: 'POST',
@@ -957,6 +976,8 @@ async function sendMessage(content, tempId) {
     } catch (error) {
         console.error('Error sending message:', error);
         showMessageError(tempId);
+    } finally {
+        isSending = false;
     }
 }
 
@@ -981,14 +1002,6 @@ function showMessageError(tempId) {
             bubble.style.background = '';
             bubble.style.color = '';
         }, 2000);
-    }
-}
-
-function updateSendButton() {
-    const input = document.getElementById('messageInput');
-    const button = document.getElementById('sendButton');
-    if (input && button) {
-        button.disabled = input.value.trim().length === 0;
     }
 }
 
@@ -1079,17 +1092,7 @@ async function uploadFile() {
     }
 }
 
-function setupFileUpload() {
-    // Add image preview modal to body
-    const modalHTML = `
-        <div class="image-modal" id="imageModal">
-            <button class="modal-close" onclick="closeImagePreview()">×</button>
-            <img id="modalImage" src="" alt="Preview">
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
+// Image preview functions
 function openImagePreview(imageUrl) {
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');
@@ -1243,9 +1246,10 @@ function addMessageToUI(message, animate = false) {
     scrollToBottom();
 }
 
+// Load messages
 async function loadMessages() {
     try {
-        const response = await fetch(`/api/messages/${receiverId}`);
+        const response = await fetch(`/api/messages/${receiverId}?after=${lastMessageId}`);
         const data = await response.json();
 
         const container = document.getElementById('messagesContainer');
@@ -1283,7 +1287,7 @@ async function loadMessages() {
     }
 }
 
-// Poll for new messages (only load unseen ones)
+// Poll for new messages
 function startMessagePolling() {
     setInterval(async () => {
         try {
@@ -1325,18 +1329,12 @@ async function markMessagesAsRead() {
     }
 }
 
-// Initialize everything
+// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Define utility functions first
-    if (typeof escapeHtml === 'undefined') {
-        window.escapeHtml = escapeHtml;
-    }
-
     // Setup all components
     setupMessageInput();
-    setupFileUpload();
 
-    // Load messages
+    // Load initial messages
     loadMessages();
 
     // Check user status
@@ -1354,43 +1352,49 @@ document.addEventListener('DOMContentLoaded', function() {
     if (input) {
         input.focus();
     }
+
+    // Setup event listeners
+    setupEventListeners();
 });
 
-// Add click outside to close modal
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('imageModal');
-    if (modal && modal.classList.contains('active') && e.target === modal) {
-        closeImagePreview();
-    }
-});
+// Setup additional event listeners
+function setupEventListeners() {
+    // Close image preview when clicking outside
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('imageModal');
+        if (modal && modal.classList.contains('active') && e.target === modal) {
+            closeImagePreview();
+        }
+    });
 
-// Add escape key to close modal
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeImagePreview();
-    }
-});
+    // Close image preview with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeImagePreview();
+        }
+    });
 
-// Handle page visibility changes
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        // Page became visible, mark messages as read
-        markMessagesAsRead();
-        // Reload messages to update read status
-        loadMessages();
-    }
-});
+    // Close upload area when clicking outside
+    document.addEventListener('click', function(e) {
+        const uploadArea = document.getElementById('uploadArea');
+        const attachmentBtn = document.getElementById('attachmentBtn');
 
-// Close upload area when clicking outside
-document.addEventListener('click', function(e) {
-    const uploadArea = document.getElementById('uploadArea');
-    const attachmentBtn = document.getElementById('attachmentBtn');
+        if (uploadArea && uploadArea.classList.contains('active') &&
+            attachmentBtn && !uploadArea.contains(e.target) &&
+            e.target !== attachmentBtn && !attachmentBtn.contains(e.target)) {
+            cancelUpload();
+        }
+    });
 
-    if (uploadArea && uploadArea.classList.contains('active') &&
-        attachmentBtn && !uploadArea.contains(e.target) &&
-        e.target !== attachmentBtn && !attachmentBtn.contains(e.target)) {
-        cancelUpload();
-    }
-});
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            // Page became visible, mark messages as read
+            markMessagesAsRead();
+            // Reload messages to update read status
+            loadMessages();
+        }
+    });
+}
 </script>
 {% endblock %}

@@ -1,385 +1,1029 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chats - Kiselgram</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<!-- templates/chat_list.html -->
+{% extends "base.html" %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
+{% block title %}Chats - Kiselgram{% endblock %}
 
-        .header {
-            background: #007bff;
-            color: white;
-            padding: 20px 15px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+{% block styles %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-        .header h1 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-        }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #f5f5f5;
+        color: #333;
+    }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
+    .header {
+        background: #007bff;
+        color: white;
+        padding: 20px 15px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
 
-        .nav-tabs {
-            display: flex;
-            background: white;
-            border-bottom: 1px solid #eee;
-            position: sticky;
-            top: 80px;
-            z-index: 90;
-        }
+    .header h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+    }
 
-        .nav-tab {
-            flex: 1;
-            text-align: center;
-            padding: 15px;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 500;
-        }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9em;
+        opacity: 0.9;
+    }
 
-        .nav-tab.active {
-            border-bottom-color: #007bff;
-            color: #007bff;
-        }
+    .nav-tabs {
+        display: flex;
+        background: white;
+        border-bottom: 1px solid #eee;
+        position: sticky;
+        top: 80px;
+        z-index: 90;
+    }
 
-        .chat-list {
-            padding-bottom: 80px;
-        }
+    .nav-tab {
+        flex: 1;
+        text-align: center;
+        padding: 15px;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 500;
+    }
 
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: white;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: background 0.2s;
-            gap: 15px;
-        }
+    .nav-tab.active {
+        border-bottom-color: #007bff;
+        color: #007bff;
+    }
 
-        .chat-item:hover {
-            background: #f8f9fa;
-        }
+    .chat-list {
+        padding-bottom: 80px;
+    }
 
-        .chat-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2em;
-            color: white;
-        }
+    .chat-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.2s;
+        gap: 15px;
+    }
 
-        .avatar-personal {
-            background: #007bff;
-        }
+    .chat-item:hover {
+        background: #f8f9fa;
+    }
 
-        .avatar-group {
-            background: #28a745;
-        }
+    .chat-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+        color: white;
+    }
 
-        .avatar-channel {
-            background: #dc3545;
-        }
+    .avatar-personal {
+        background: #007bff;
+    }
 
-        .chat-info {
-            flex: 1;
-            min-width: 0;
-        }
+    .avatar-group {
+        background: #28a745;
+    }
 
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
+    .avatar-channel {
+        background: #dc3545;
+    }
 
-        .chat-name {
-            font-weight: 600;
-            font-size: 1.1em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    .chat-info {
+        flex: 1;
+        min-width: 0;
+    }
 
-        .chat-time {
-            font-size: 0.8em;
-            color: #666;
-            white-space: nowrap;
-        }
+    .chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
 
-        .chat-preview {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .chat-name {
+        font-weight: 600;
+        font-size: 1.1em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-        .chat-message {
-            font-size: 0.9em;
-            color: #666;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-            margin-right: 10px;
-        }
+    .chat-time {
+        font-size: 0.8em;
+        color: #666;
+        white-space: nowrap;
+    }
 
-        .chat-badge {
-            background: #007bff;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7em;
-            font-weight: bold;
-        }
+    .chat-preview {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
+    .chat-message {
+        font-size: 0.9em;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 10px;
+    }
 
-        .empty-state .icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
+    .chat-badge {
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7em;
+        font-weight: bold;
+    }
 
-        .fab {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: #007bff;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            cursor: pointer;
-            z-index: 1000;
-        }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
 
-        .fab-menu {
-            position: fixed;
-            bottom: 150px;
-            right: 20px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            overflow: hidden;
-            z-index: 1000;
-            display: none;
-        }
+    .empty-state .icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
 
-        .fab-item {
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-        }
+    .fab {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5em;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 1000;
+    }
 
-        .fab-item:last-child {
-            border-bottom: none;
-        }
+    .fab-menu {
+        position: fixed;
+        bottom: 150px;
+        right: 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        overflow: hidden;
+        z-index: 1000;
+        display: none;
+    }
 
-        .fab-item:hover {
-            background: #f8f9fa;
-        }
+    .fab-item {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
 
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            border-top: 1px solid #eee;
-            z-index: 1000;
-        }
+    .fab-item:last-child {
+        border-bottom: none;
+    }
 
-        .nav-item {
-            flex: 1;
-            text-align: center;
-            padding: 15px 10px;
-            color: #666;
-            text-decoration: none;
-            font-size: 0.8em;
-        }
+    .fab-item:hover {
+        background: #f8f9fa;
+    }
 
-        .nav-item.active {
-            color: #007bff;
-        }
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        display: flex;
+        border-top: 1px solid #eee;
+        z-index: 1000;
+    }
 
-        .nav-icon {
-            font-size: 1.5em;
-            margin-bottom: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Kiselgram</h1>
-        <div class="user-info">
-            <span>👋 Hello, {{ current_user }}</span>
-        </div>
+    .nav-item {
+        flex: 1;
+        text-align: center;
+        padding: 15px 10px;
+        color: #666;
+        text-decoration: none;
+        font-size: 0.8em;
+    }
+
+    .nav-item.active {
+        color: #007bff;
+    }
+
+    .nav-icon {
+        font-size: 1.5em;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Kiselgram</h1>
+    <div class="user-info">
+        <span>👋 Hello, {{ current_user }}</span>
     </div>
+</div>
 
-    <div class="nav-tabs">
-        <div class="nav-tab active">All Chats</div>
-    </div>
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('all')">All Chats</div>
+    <div class="nav-tab" onclick="showTab('personal')">Personal</div>
+    <div class="nav-tab" onclick="showTab('groups')">Groups</div>
+    <div class="nav-tab" onclick="showTab('channels')">Channels</div>
+</div>
 
-    <div class="chat-list">
-        {% if chats %}
-            {% for chat in chats %}
-            <div class="chat-item"
-                 onclick="openChat('{{ chat.type }}', {{ chat.id }})">
-                <div class="chat-avatar
-                    {% if chat.type == 'personal' %}avatar-personal
-                    {% elif chat.type == 'group' %}avatar-group
-                    {% else %}avatar-channel{% endif %}">
-                    {% if chat.type == 'personal' %}
-                        {{ chat.name[0].upper() }}
-                    {% elif chat.type == 'group' %}
-                        G
-                    {% else %}
-                        C
-                    {% endif %}
+<div class="chat-list" id="chatList">
+    {% if chats %}
+        {% for chat in chats %}
+        <div class="chat-item"
+             onclick="openChat('{{ chat.type }}', {{ chat.id }})">
+            <div class="chat-avatar
+                {% if chat.type == 'personal' %}avatar-personal
+                {% elif chat.type == 'group' %}avatar-group
+                {% else %}avatar-channel{% endif %}">
+                {% if chat.type == 'personal' %}
+                    {{ chat.name[0].upper() }}
+                {% elif chat.type == 'group' %}
+                    G
+                {% else %}
+                    C
+                {% endif %}
+            </div>
+
+            <div class="chat-info">
+                <div class="chat-header">
+                    <div class="chat-name">{{ chat.name }}</div>
+                    <div class="chat-time">{{ chat.timestamp }}</div>
                 </div>
 
-                <div class="chat-info">
-                    <div class="chat-header">
-                        <div class="chat-name">{{ chat.name }}</div>
-                        <div class="chat-time">{{ chat.timestamp }}</div>
-                    </div>
-
-                    <div class="chat-preview">
-                        <div class="chat-message">
-                            {% if chat.last_message %}
-                                {% if chat.last_message.sender_id == session.user_id %}
-                                    You: {{ chat.last_message.content }}
-                                {% else %}
-                                    {{ chat.last_message.sender.username }}: {{ chat.last_message.content }}
-                                {% endif %}
+                <div class="chat-preview">
+                    <div class="chat-message">
+                        {% if chat.last_message %}
+                            {% if chat.last_message.sender_id == session.user_id %}
+                                You: {{ chat.last_message.content }}
                             {% else %}
-                                No messages yet
+                                {{ chat.last_message.sender.username }}: {{ chat.last_message.content }}
                             {% endif %}
-                        </div>
-
-                        {% if chat.unread_count > 0 %}
-                        <div class="chat-badge">
-                            {{ chat.unread_count }}
-                        </div>
+                        {% else %}
+                            No messages yet
                         {% endif %}
                     </div>
+
+                    {% if chat.unread_count > 0 %}
+                    <div class="chat-badge">
+                        {{ chat.unread_count }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state">
-                <div class="icon">💬</div>
-                <h3>No chats yet</h3>
-                <p>Start a conversation by searching for users or creating a group</p>
-            </div>
-        {% endif %}
-    </div>
-
-    <!-- Floating Action Button -->
-    <div class="fab" onclick="toggleFabMenu()">
-        +
-    </div>
-
-    <div class="fab-menu" id="fabMenu">
-        <div class="fab-item" onclick="createGroup()">
-            <span>👥</span>
-            <span>New Group</span>
         </div>
-        <div class="fab-item" onclick="createChannel()">
-            <span>📢</span>
-            <span>New Channel</span>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">💬</div>
+            <h3>No chats yet</h3>
+            <p>Start a conversation by searching for users or creating a group</p>
         </div>
-        <div class="fab-item" onclick="searchUsers()">
-            <span>🔍</span>
-            <span>Search</span>
-        </div>
+    {% endif %}
+</div>
+
+<!-- Floating Action Button -->
+<div class="fab" onclick="toggleFabMenu()">
+    +
+</div>
+
+<div class="fab-menu" id="fabMenu">
+    <div class="fab-item" onclick="createGroup()">
+        <span>👥</span>
+        <span>New Group</span>
     </div>
+    <div class="fab-item" onclick="createChannel()">
+        <span>📢</span>
+        <span>New Channel</span>
+    </div>
+    <div class="fab-item" onclick="searchUsers()">
+        <span>🔍</span>
+        <span>Search Users</span>
+    </div>
+</div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+    let currentTab = 'all';
 
+    function showTab(tab) {
+        currentTab = tab;
 
-    <script>
-        function openChat(type, id) {
-            if (type === 'personal') {
-                window.location.href = `/chat/${id}`;
-            } else if (type === 'group') {
-                window.location.href = `/group/${id}`;
-            } else if (type === 'channel') {
-                window.location.href = `/channel/${id}`;
-            }
+        // Update active tab UI
+        document.querySelectorAll('.nav-tab').forEach(t => {
+            t.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Filter chats based on tab
+        filterChats(tab);
+    }
+
+    function filterChats(tab) {
+        const chatItems = document.querySelectorAll('.chat-item');
+        const emptyState = document.querySelector('.empty-state');
+
+        if (tab === 'all') {
+            chatItems.forEach(item => item.style.display = 'flex');
+        } else {
+            chatItems.forEach(item => {
+                const avatarClass = item.querySelector('.chat-avatar').className;
+                if (tab === 'personal' && avatarClass.includes('avatar-personal')) {
+                    item.style.display = 'flex';
+                } else if (tab === 'groups' && avatarClass.includes('avatar-group')) {
+                    item.style.display = 'flex';
+                } else if (tab === 'channels' && avatarClass.includes('avatar-channel')) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
 
-        function toggleFabMenu() {
-            const menu = document.getElementById('fabMenu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        // Check if any chats are visible
+        const visibleChats = Array.from(chatItems).some(item => item.style.display !== 'none');
+
+        if (!visibleChats) {
+            showEmptyState(tab);
+        } else if (emptyState) {
+            emptyState.remove();
+        }
+    }
+
+    function showEmptyState(tab) {
+        const chatList = document.getElementById('chatList');
+        let message = '';
+
+        switch(tab) {
+            case 'personal':
+                message = 'No personal chats yet. Start chatting with friends!';
+                break;
+            case 'groups':
+                message = 'No group chats yet. Create or join a group!';
+                break;
+            case 'channels':
+                message = 'No channels yet. Create or subscribe to channels!';
+                break;
+            default:
+                message = 'No chats yet. Start a conversation!';
         }
 
-        function createGroup() {
-            window.location.href = '/create_group';
+        // Remove existing empty state
+        const existingState = chatList.querySelector('.empty-state');
+        if (existingState) {
+            existingState.remove();
         }
 
-        function createChannel() {
-            window.location.href = '/create_channel';
-        }
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+        emptyState.innerHTML = `
+            <div class="icon">💬</div>
+            <h3>No ${tab === 'all' ? 'chats' : tab} yet</h3>
+            <p>${message}</p>
+        `;
 
-        function searchUsers() {
-            window.location.href = '/search';
-        }
-
-        // Close FAB menu when clicking outside
-        document.addEventListener('click', function(e) {
-            const fabMenu = document.getElementById('fabMenu');
-            const fab = document.querySelector('.fab');
-            if (fabMenu.style.display === 'block' && !fab.contains(e.target) && !fabMenu.contains(e.target)) {
-                fabMenu.style.display = 'none';
-            }
+        // Hide all chat items
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.style.display = 'none';
         });
 
-        // Load chats periodically for updates
-        setInterval(() => {
-            // In a real app, you'd fetch updates via API
-            console.log('Checking for new messages...');
-        }, 30000);
-    </script>
-</body>
-</html>
+        chatList.appendChild(emptyState);
+    }
+
+    function openChat(type, id) {
+        if (type === 'personal') {
+            window.location.href = `/direct/${id}`;
+        } else if (type === 'group') {
+            window.location.href = `/group/${id}`;
+        } else if (type === 'channel') {
+            window.location.href = `/channel/${id}`;
+        }
+    }
+
+    function toggleFabMenu() {
+        const menu = document.getElementById('fabMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function createGroup() {
+        window.location.href = '/create_group';
+        toggleFabMenu();
+    }
+
+    function createChannel() {
+        window.location.href = '/create_channel';
+        toggleFabMenu();
+    }
+
+    function searchUsers() {
+        window.location.href = '/search';
+        toggleFabMenu();
+    }
+
+    // Close FAB menu when clicking outside
+    document.addEventListener('click', function(e) {
+        const fabMenu = document.getElementById('fabMenu');
+        const fab = document.querySelector('.fab');
+        if (fabMenu.style.display === 'block' && !fab.contains(e.target) && !fabMenu.contains(e.target)) {
+            fabMenu.style.display = 'none';
+        }
+    });
+
+    // Load chats periodically for updates
+    function updateChats() {
+        fetch('/api/chats/updates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.updated && data.chats) {
+                    // In a real app, update the chat list UI
+         <!-- templates/chat_list.html -->
+{% extends "base.html" %}
+
+{% block title %}Chats - Kiselgram{% endblock %}
+
+{% block styles %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #f5f5f5;
+        color: #333;
+    }
+
+    .header {
+        background: #007bff;
+        color: white;
+        padding: 20px 15px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9em;
+        opacity: 0.9;
+    }
+
+    .nav-tabs {
+        display: flex;
+        background: white;
+        border-bottom: 1px solid #eee;
+        position: sticky;
+        top: 80px;
+        z-index: 90;
+    }
+
+    .nav-tab {
+        flex: 1;
+        text-align: center;
+        padding: 15px;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .nav-tab.active {
+        border-bottom-color: #007bff;
+        color: #007bff;
+    }
+
+    .chat-list {
+        padding-bottom: 80px;
+    }
+
+    .chat-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.2s;
+        gap: 15px;
+    }
+
+    .chat-item:hover {
+        background: #f8f9fa;
+    }
+
+    .chat-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+        color: white;
+    }
+
+    .avatar-personal {
+        background: #007bff;
+    }
+
+    .avatar-group {
+        background: #28a745;
+    }
+
+    .avatar-channel {
+        background: #dc3545;
+    }
+
+    .chat-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .chat-name {
+        font-weight: 600;
+        font-size: 1.1em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-time {
+        font-size: 0.8em;
+        color: #666;
+        white-space: nowrap;
+    }
+
+    .chat-preview {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-message {
+        font-size: 0.9em;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    .chat-badge {
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7em;
+        font-weight: bold;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .empty-state .icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .fab {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5em;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 1000;
+    }
+
+    .fab-menu {
+        position: fixed;
+        bottom: 150px;
+        right: 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        overflow: hidden;
+        z-index: 1000;
+        display: none;
+    }
+
+    .fab-item {
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .fab-item:last-child {
+        border-bottom: none;
+    }
+
+    .fab-item:hover {
+        background: #f8f9fa;
+    }
+
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        display: flex;
+        border-top: 1px solid #eee;
+        z-index: 1000;
+    }
+
+    .nav-item {
+        flex: 1;
+        text-align: center;
+        padding: 15px 10px;
+        color: #666;
+        text-decoration: none;
+        font-size: 0.8em;
+    }
+
+    .nav-item.active {
+        color: #007bff;
+    }
+
+    .nav-icon {
+        font-size: 1.5em;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Kiselgram</h1>
+    <div class="user-info">
+        <span>👋 Hello, {{ current_user }}</span>
+    </div>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('all')">All Chats</div>
+    <div class="nav-tab" onclick="showTab('personal')">Personal</div>
+    <div class="nav-tab" onclick="showTab('groups')">Groups</div>
+    <div class="nav-tab" onclick="showTab('channels')">Channels</div>
+</div>
+
+<div class="chat-list" id="chatList">
+    {% if chats %}
+        {% for chat in chats %}
+        <div class="chat-item"
+             onclick="openChat('{{ chat.type }}', {{ chat.id }})">
+            <div class="chat-avatar
+                {% if chat.type == 'personal' %}avatar-personal
+                {% elif chat.type == 'group' %}avatar-group
+                {% else %}avatar-channel{% endif %}">
+                {% if chat.type == 'personal' %}
+                    {{ chat.name[0].upper() }}
+                {% elif chat.type == 'group' %}
+                    G
+                {% else %}
+                    C
+                {% endif %}
+            </div>
+
+            <div class="chat-info">
+                <div class="chat-header">
+                    <div class="chat-name">{{ chat.name }}</div>
+                    <div class="chat-time">{{ chat.timestamp }}</div>
+                </div>
+
+                <div class="chat-preview">
+                    <div class="chat-message">
+                        {% if chat.last_message %}
+                            {% if chat.last_message.sender_id == session.user_id %}
+                                You: {{ chat.last_message.content }}
+                            {% else %}
+                                {{ chat.last_message.sender.username }}: {{ chat.last_message.content }}
+                            {% endif %}
+                        {% else %}
+                            No messages yet
+                        {% endif %}
+                    </div>
+
+                    {% if chat.unread_count > 0 %}
+                    <div class="chat-badge">
+                        {{ chat.unread_count }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">💬</div>
+            <h3>No chats yet</h3>
+            <p>Start a conversation by searching for users or creating a group</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Floating Action Button -->
+<div class="fab" onclick="toggleFabMenu()">
+    +
+</div>
+
+<div class="fab-menu" id="fabMenu">
+    <div class="fab-item" onclick="createGroup()">
+        <span>👥</span>
+        <span>New Group</span>
+    </div>
+    <div class="fab-item" onclick="createChannel()">
+        <span>📢</span>
+        <span>New Channel</span>
+    </div>
+    <div class="fab-item" onclick="searchUsers()">
+        <span>🔍</span>
+        <span>Search Users</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTab = 'all';
+
+    function showTab(tab) {
+        currentTab = tab;
+
+        // Update active tab UI
+        document.querySelectorAll('.nav-tab').forEach(t => {
+            t.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Filter chats based on tab
+        filterChats(tab);
+    }
+
+    function filterChats(tab) {
+        const chatItems = document.querySelectorAll('.chat-item');
+        const emptyState = document.querySelector('.empty-state');
+
+        if (tab === 'all') {
+            chatItems.forEach(item => item.style.display = 'flex');
+        } else {
+            chatItems.forEach(item => {
+                const avatarClass = item.querySelector('.chat-avatar').className;
+                if (tab === 'personal' && avatarClass.includes('avatar-personal')) {
+                    item.style.display = 'flex';
+                } else if (tab === 'groups' && avatarClass.includes('avatar-group')) {
+                    item.style.display = 'flex';
+                } else if (tab === 'channels' && avatarClass.includes('avatar-channel')) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Check if any chats are visible
+        const visibleChats = Array.from(chatItems).some(item => item.style.display !== 'none');
+
+        if (!visibleChats) {
+            showEmptyState(tab);
+        } else if (emptyState) {
+            emptyState.remove();
+        }
+    }
+
+    function showEmptyState(tab) {
+        const chatList = document.getElementById('chatList');
+        let message = '';
+
+        switch(tab) {
+            case 'personal':
+                message = 'No personal chats yet. Start chatting with friends!';
+                break;
+            case 'groups':
+                message = 'No group chats yet. Create or join a group!';
+                break;
+            case 'channels':
+                message = 'No channels yet. Create or subscribe to channels!';
+                break;
+            default:
+                message = 'No chats yet. Start a conversation!';
+        }
+
+        // Remove existing empty state
+        const existingState = chatList.querySelector('.empty-state');
+        if (existingState) {
+            existingState.remove();
+        }
+
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+        emptyState.innerHTML = `
+            <div class="icon">💬</div>
+            <h3>No ${tab === 'all' ? 'chats' : tab} yet</h3>
+            <p>${message}</p>
+        `;
+
+        // Hide all chat items
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.style.display = 'none';
+        });
+
+        chatList.appendChild(emptyState);
+    }
+
+    function openChat(type, id) {
+        if (type === 'personal') {
+            window.location.href = `/direct/${id}`;
+        } else if (type === 'group') {
+            window.location.href = `/group/${id}`;
+        } else if (type === 'channel') {
+            window.location.href = `/channel/${id}`;
+        }
+    }
+
+    function toggleFabMenu() {
+        const menu = document.getElementById('fabMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function createGroup() {
+        window.location.href = '/create_group';
+        toggleFabMenu();
+    }
+
+    function createChannel() {
+        window.location.href = '/create_channel';
+        toggleFabMenu();
+    }
+
+    function searchUsers() {
+        window.location.href = '/search';
+        toggleFabMenu();
+    }
+
+    // Close FAB menu when clicking outside
+    document.addEventListener('click', function(e) {
+        const fabMenu = document.getElementById('fabMenu');
+        const fab = document.querySelector('.fab');
+        if (fabMenu.style.display === 'block' && !fab.contains(e.target) && !fabMenu.contains(e.target)) {
+            fabMenu.style.display = 'none';
+        }
+    });
+
+    // Load chats periodically for updates
+    function updateChats() {
+        fetch('/api/chats/updates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.updated && data.chats) {
+                    // In a real app, update the chat list UI
+                    console.log('Chats updated:', data.chats);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating chats:', error);
+            });
+    }
+
+    // Update every 30 seconds
+    setInterval(updateChats, 30000);
+
+    // Mark as read when leaving the page
+    window.addEventListener('beforeunload', function() {
+        // Mark all as read when leaving
+        fetch('/api/mark_all_read', {
+            method: 'POST'
+        }).catch(console.error);
+    });
+
+    // Initialize tab filtering
+    document.addEventListener('DOMContentLoaded', function() {
+        // Default to all tab
+        showTab('all');
+
+        // Add click handlers to chat items for touch devices
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.background = '#f8f9fa';
+            });
+
+            item.addEventListener('touchend', function() {
+                this.style.background = '';
+            });
+        });
+    });
+</script>
+{% endblock %}           console.log('Chats updated:', data.chats);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating chats:', error);
+            });
+    }
+
+    // Update every 30 seconds
+    setInterval(updateChats, 30000);
+
+    // Mark as read when leaving the page
+    window.addEventListener('beforeunload', function() {
+        // Mark all as read when leaving
+        fetch('/api/mark_all_read', {
+            method: 'POST'
+        }).catch(console.error);
+    });
+
+    // Initialize tab filtering
+    document.addEventListener('DOMContentLoaded', function() {
+        // Default to all tab
+        showTab('all');
+
+        // Add click handlers to chat items for touch devices
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.background = '#f8f9fa';
+            });
+
+            item.addEventListener('touchend', function() {
+                this.style.background = '';
+            });
+        });
+    });
+</script>
+{% endblock %}

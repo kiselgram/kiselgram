@@ -489,7 +489,7 @@ def group_chat(group_id):
     if not membership:
         return redirect('/join_group/' + group.invite_link)
 
-    return render_template('group_chat.html', current_user=get_current_user(), group=group)
+    return render_template('group.html', current_user=get_current_user(), group=group)
 
 
 @app.route('/channel/<int:channel_id>')
@@ -1361,4 +1361,4 @@ if __name__ == '__main__':
     print("👥 Groups and Channels enabled")
     print("📁 File upload support enabled")
     print("🤖 Bot simulation running")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

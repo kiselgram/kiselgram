@@ -56,7 +56,7 @@ def group_chat(group_id):
     if not membership:
         return redirect('/join_group/' + group.invite_link)
 
-    return render_template('group_chat.html', current_user=get_current_user(), group=group)
+    return render_template('group.html', current_user=get_current_user(), group=group)
 
 @groups_bp.route('/join_group/<invite_link>')
 def join_group(invite_link):
