@@ -4,7 +4,7 @@
 
 A complete messaging platform with groups, channels, file sharing, and real-time video chat. Built with Flask and SocketIO.
 
-## ✨ Features
+# ✨ Features
 
 ### 💬 Messaging
 - **Personal Chats**: Direct messaging between users
@@ -36,7 +36,7 @@ A complete messaging platform with groups, channels, file sharing, and real-time
 - **Auto-responses**: Simulated bot interactions
 - **Extensible**: Easy to add new bot functionality
 
-## 🛠️ Tech Stack
+# 🛠️ Tech Stack
 
 - **Backend**: Python 3.7+, Flask
 - **Database**: SQLAlchemy with SQLite
@@ -46,7 +46,7 @@ A complete messaging platform with groups, channels, file sharing, and real-time
 - **File Processing**: Pillow for images
 - **Optional**: OpenCV for video processing
 
-## 📁 Project Structure
+# 📁 Project Structure
 ````
 kiselgram/
 ├── app/ # Main application
@@ -77,7 +77,7 @@ kiselgram/
 ````
 
 
-## 🚀 Installation
+# 🚀 Installation
 
 ### Prerequisites
 - Python 3.7 or higher
@@ -87,75 +87,83 @@ kiselgram/
 ### Step-by-Step Setup
 
 1. **Clone the repository**
-   ``` bash
+   ```bash
    git clone https://github.com/kiselgram/kiselgram.git
    cd kiselgram
    ```
-2. Create and activate virtual environment
 
-``` bash
-# On macOS/Linux
-python -m venv venv
-source venv/bin/activate
+2. **Create and activate virtual environment**
+   ```bash
+   # On macOS/Linux
+   python -m venv venv
+   source venv/bin/activate
+   
+   # On Windows
+   python -m venv venv
+   venv\Scripts\activate
+   ```
 
-# On Windows
-python -m venv venv
-venv\Scripts\activate
-```
-Install dependencies
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-``` bash
-pip install -r requirements.txt
-```
-Set up environment
+4. **Set up environment**
 
-``` bash
-# Auto-setup directories and config
-python manage.py setup
-```
-Or manually create .env file:
+   **Option A: Auto-setup**
+   ```bash
+   # Auto-setup directories and config
+   python manage.py setup
+   ```
 
-``` dotenv
-# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-
-# Flask Configuration
-SECRET_KEY=your-secret-key-change-in-production
-DATABASE_URL=sqlite:///kiselgram.db
-
-# Server Configuration
-HOST=0.0.0.0
-PORT=5000
-DEBUG=True
-
-# Video Server Configuration
-VIDEO_PORT=5001
-VIDEO_HOST=0.0.0.0
-VIDEO_AUTO_START=True
-
-```
+   **Option B: Manual setup**
+   
+   Create `.env` file:
+   ```dotenv
+   # Telegram Bot Configuration
+   TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+   
+   # Flask Configuration
+   SECRET_KEY=your-secret-key-change-in-production
+   DATABASE_URL=sqlite:///kiselgram.db
+   
+   # Server Configuration
+   HOST=0.0.0.0
+   PORT=5000
+   DEBUG=True
+   
+   # Video Server Configuration
+   VIDEO_PORT=5001
+   VIDEO_HOST=0.0.0.0
+   VIDEO_AUTO_START=True
+   ```
 ## 🎯 Usage
-# Starting the Application
-Quick start (main app + video server):
+## Starting the Application
 
-``` bash
+### Quick Start
+Start main app + video server:
+```bash
 python manage.py start
 ```
-Start with custom ports:
 
-``` bash
+### Advanced Options
+
+**Start with custom ports:**
+```bash
 python manage.py start --port 3000 --video-port 3001
-Start without video server:
-
-``` bash
-python manage.py start --no-video
-Start only video server:
-
-``` bash
-python manage.py video start --port 5001
-
 ```
-Management Commands
+
+**Start without video server:**
+```bash
+python manage.py start --no-video
+```
+
+**Start only video server:**
+```bash
+python manage.py video start --port 5001
+```
+
+## Management Commands
 
 | Command | Description |
 |---------|-------------|
@@ -169,14 +177,14 @@ Management Commands
 | `python manage.py clean` | Clean temporary files |
 | `python manage.py reset-db` | Reset database (⚠️ deletes data) |
 | `python manage.py test` | Run basic tests |
-Access Points
-Main Application: http://localhost:5000
 
-Video Server: http://localhost:5001
+## Access Points
 
-Video Chat Rooms: http://localhost:5000/video/
+- **Main Application:** http://localhost:5000
+- **Video Server:** http://localhost:5001
+- **Video Chat Rooms:** http://localhost:5000/video/
 
-## 📱 Features in Detail
+# 📱 Features in Detail
 Creating a Channel
 ``` http request
 # Channel routes handle:
@@ -195,7 +203,7 @@ GET /join_group/<link>    # Join via invite link
 GET /group_info/<id>      # View group info
 GET /leave_group/<id>     # Leave group
 ```
-Video Chat Features
+## Video Chat Features
 Create Room: Click "Start Video Chat" to create a room
 
 Join Room: Use invite link or room ID to join
@@ -231,7 +239,7 @@ File Upload Support
 | `/api/user_status/<id>` | GET | Get user online status |
 | `/api/mark_read/<id>` | POST | Mark messages as read |
 
-## 🤝 Contributing
+# 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -239,21 +247,21 @@ File Upload Support
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+# 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👥 Authors
+# 👥 Authors
 
 - **DANILKISEL** - Initial work
 
-## 🙏 Acknowledgments
+# 🙏 Acknowledgments
 
 - Flask and Flask-SocketIO communities
 - WebRTC for video capabilities
 - All contributors and users
 
-## 📞 Support
+# 📞 Support
 
 - GitHub Issues: [kiselgram/kiselgram/issues](https://github.com/kiselgram/kiselgram/issues)
 - Project Link: [kiselgram/kiselgram](https://github.com/kiselgram/kiselgram)
