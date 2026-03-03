@@ -255,7 +255,7 @@ def handle_disconnect():
 
 def run():
     """Main function"""
-    socketio.run(app, debug=True, port=app.config['PORT'])
+    socketio.run(app, debug=True, port=app.config['PORT'], host="0.0.0.0")
 
 if __name__ == '__main__':
     print(f"🚀 Video server starting on port {app.config['PORT']}")
