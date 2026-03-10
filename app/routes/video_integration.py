@@ -1,13 +1,23 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, session
 import requests
 import os
+import dotenv
 
 video_int_bp = Blueprint('video_int', __name__, url_prefix='/video')
 
-VIDEO_SERVER_URL = "http://" + os.environ["VIDEO_HOST"] + ":" + os.environ["VIDEO_PORT"]
+dotenv.load_dotenv()
+
+def get_video_url():
+    try:
+        return "http://" + os.environ["VIDEO_HOST"] + ":" + os.environ["VIDEO_PORT"]
+    except KeyError as e:
+        return ""
+
+
 
 @video_int_bp.route('/')
 def video_index():
+
     """Video chat landing page"""
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
@@ -19,12 +29,15 @@ def video_index():
 @video_int_bp.route('/create-room')
 def create_room():
     """Create a video room on the video server"""
+    if get_video_url() == "":
+        return jsonify({'error': 'Video server not running'}), 503
+
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
     try:
         response = requests.post(
-            f"{VIDEO_SERVER_URL}/api/rooms/create",
+            f"{get_video_url()}/api/rooms/create",
             json={
                 'username': session.get('username'),
                 'user_id': session.get('user_id')
@@ -36,22 +49,26 @@ def create_room():
 
 @video_int_bp.route('/rooms')
 def list_rooms():
+    if get_video_url() == "":
+        return jsonify({'error': 'Video server not running'}), 503
     """List active video rooms"""
     if 'user_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
     try:
-        response = requests.get(f"{VIDEO_SERVER_URL}/api/rooms")
+        response = requests.get(f"{get_video_url()}/api/rooms")
         return response.json()
     except requests.exceptions.ConnectionError:
         return jsonify({'error': 'Video server not running'}), 503
 
 @video_int_bp.route('/join/<room_id>')
 def join_room(room_id):
+    if get_video_url() == "":
+        return jsonify({'error': 'Video server not running'}), 503
     """Redirect to video room with auth"""
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
     return redirect(
-        f"{VIDEO_SERVER_URL}/room/{room_id}?username={session.get('username')}&user_id={session.get('user_id')}"
+        f"{get_video_url()}/room/{room_id}?username={session.get('username')}&user_id={session.get('user_id')}"
     )

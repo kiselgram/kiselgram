@@ -173,6 +173,11 @@ def start_bot_simulation(app):
 if __name__ == '__main__':
     init_database()
     start_bot_simulation(app)
+    # Get video server settings from environment
+    video_port = os.environ.get('VIDEO_PORT', '5001')
+    video_host = os.environ.get('VIDEO_HOST', '0.0.0.0')
+    os.environ['VIDEO_PORT'] = video_port
+    os.environ['VIDEO_HOST'] = video_host
     app.run(host='{host}', port={port}, debug={debug})
 '''
 
@@ -560,6 +565,9 @@ def show_help():
     print("  # Start with custom video port")
     print("  python manage.py start --video-port 8080")
     print("")
+    print("  # Start with custom video host")
+    print("  python manage.py start --video-host 127.0.0.1")
+    print("")
     print("  # Start both services on different ports")
     print("  python manage.py start --port 3000 --video-port 3001")
     print("")
@@ -741,15 +749,18 @@ def video_command(args):
             print(f"❌ Port {port} is already in use!")
             return
 
+        # Get host - either from args or default
+        host = args.host if hasattr(args, 'host') and args.host else '0.0.0.0'
+
         print(f"🚀 Starting video server...")
         print(f"   Port: {port}")
-        print(f"   Host: {args.host if hasattr(args, 'host') else '0.0.0.0'}")
+        print(f"   Host: {host}")
         print("-" * 40)
 
         # Start video server in a separate thread
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(port, args.host if hasattr(args, 'host') else '0.0.0.0'),
+            args=(port, host),
             daemon=True
         )
         video_thread.start()
@@ -761,7 +772,7 @@ def video_command(args):
             print("\n⚠️ Video server may not have started properly. Check logs above.")
         else:
             print("\n✅ Video server started!")
-            print(f"🌐 Access at: http://localhost:{port}")
+            print(f"🌐 Access at: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
             print("🛑 To stop: python manage.py video stop")
 
             try:
@@ -784,16 +795,22 @@ def video_command(args):
         stop_application('video')
         time.sleep(2)
 
-        # Start again
+        # Get port and host
         port = args.port if hasattr(args, 'port') and args.port else 5001
+        host = args.host if hasattr(args, 'host') and args.host else '0.0.0.0'
+
+        # Start again
         if not check_port_available(port):
             print(f"❌ Port {port} is still in use!")
             return
 
         print(f"\n🚀 Starting video server...")
+        print(f"   Port: {port}")
+        print(f"   Host: {host}")
+
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(port, args.host if hasattr(args, 'host') else '0.0.0.0'),
+            args=(port, host),
             daemon=True
         )
         video_thread.start()
@@ -803,6 +820,7 @@ def video_command(args):
             print("\n⚠️ Video server may not have started properly.")
         else:
             print("\n✅ Video server restarted successfully!")
+            print(f"🌐 Access at: http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
 
     elif args.video_command == 'status':
         print_header()
@@ -847,6 +865,7 @@ def start_all_services(args):
     # Check video port if video is enabled
     video_enabled = not args.no_video
     video_port = args.video_port if hasattr(args, 'video_port') else 5001
+    video_host = args.video_host if hasattr(args, 'video_host') else '0.0.0.0'
 
     if video_enabled:
         if not check_port_available(video_port):
@@ -868,17 +887,21 @@ def start_all_services(args):
     print(f"\n🚀 Starting Kiselgram services...")
     print(f"   Main App: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")
     if video_enabled:
-        print(f"   Video Server: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{video_port}")
+        print(f"   Video Server: http://{video_host if video_host != '0.0.0.0' else 'localhost'}:{video_port}")
     else:
-        print(f"   Video Server: DISABLED (use --no-video to disable, or remove flag to enable)")
+        print(f"   Video Server: DISABLED")
     print(f"   Debug: {args.debug}")
     print(f"   Open Browser: {not args.no_browser}")
     print("-" * 40)
 
-    # Start Flask in a separate thread - PASS THE NO_BROWSER FLAG
+    # Set environment variables for video server settings
+    os.environ['VIDEO_PORT'] = str(video_port)
+    os.environ['VIDEO_HOST'] = video_host
+
+    # Start Flask in a separate thread
     flask_thread = threading.Thread(
         target=run_flask_app,
-        args=(args.host, args.port, args.debug, args.no_browser),  # Added no_browser parameter
+        args=(args.host, args.port, args.debug, args.no_browser),
         daemon=True
     )
     flask_thread.start()
@@ -889,7 +912,7 @@ def start_all_services(args):
         time.sleep(1)
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(video_port, args.host),
+            args=(video_port, video_host),
             daemon=True
         )
         video_thread.start()
@@ -913,13 +936,13 @@ def start_all_services(args):
     if video_enabled:
         if video_started:
             print("✅ Video server started successfully!")
-            print(f"🎥 Video Server: http://localhost:{video_port}")
+            print(f"🎥 Video Server: http://{video_host if video_host != '0.0.0.0' else 'localhost'}:{video_port}")
         else:
             print("⚠️  Video server may not have started properly. Check logs above.")
 
     print("\n🛑 To stop all services: python manage.py stop")
     print("   To stop only video: python manage.py video stop")
-    print("Press Ctrl+C to exit this script (services will continue running)")
+    print("Press Ctrl+C to exit this script (services will continue running)\n")
 
     try:
         # Keep script alive
@@ -960,6 +983,7 @@ def main():
     restart_parser.add_argument('--no-browser', action='store_true', help="Don't open browser automatically")
     restart_parser.add_argument('--no-video', action='store_true', help='Disable video server auto-start')
     restart_parser.add_argument('--video-port', type=int, default=5001, help='Video server port (default: 5001)')
+    restart_parser.add_argument('--video-host', default='0.0.0.0', help='Video server host (default: 0.0.0.0)')
 
     status_parser = subparsers.add_parser('status', help='Check service status')
     status_parser.add_argument('--all', action='store_true', help='Check all services')

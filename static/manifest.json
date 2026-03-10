@@ -1,7 +1,7 @@
 {
     "name": "Kiselgram",
     "short_name": "Kiselgram",
-    "description": "Secure messaging app with Telegram integration",
+    "description": "Secure messaging app",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0088cc",
