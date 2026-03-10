@@ -2,114 +2,70 @@
 
 {% block styles %}
 <style>
+    /* Full Page Background with Tint */
     body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+                    url('{{ url_for('static', filename='kiselgram-banner.jpg') }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
         min-height: 100vh;
+        margin: 0;
+        font-family: sans-serif;
     }
+
+    /* Login Card & Circular Logo */
     .login-container {
         background: white;
-        border-radius: 16px;
-        padding: 30px 25px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        width: 100%;
+        border-radius: 20px;
+        padding: 40px;
         max-width: 400px;
         text-align: center;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     }
-    .logo {
-        font-size: 2.5rem;
-        font-weight: 300;
-        color: #0088cc;
-        margin-bottom: 2rem;
-        letter-spacing: -1px;
+
+    .logo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #0088cc;
+        margin-bottom: 15px;
     }
-    .input-group {
-        margin-bottom: 1.5rem;
-        text-align: left;
-    }
+
+    /* Inputs & Buttons */
     .mobile-input {
         width: 100%;
-        padding: 1rem 1.25rem;
-        border: 2px solid #e1e5e9;
+        padding: 12px;
+        margin-bottom: 15px;
+        border: 2px solid #ddd;
         border-radius: 12px;
-        font-size: 1rem;
-        background: #f8f9fa;
-        transition: all 0.3s ease;
+        box-sizing: border-box;
     }
-    .mobile-input:focus {
-        outline: none;
-        border-color: #0088cc;
-        background: white;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,136,204,0.1);
-    }
+
     .mobile-btn {
         width: 100%;
-        padding: 1rem;
+        padding: 12px;
         border: none;
         border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
         background: #0088cc;
         color: white;
-    }
-    .mobile-btn:active {
-        transform: scale(0.98);
-        background: #0077b3;
-    }
-    .error-message {
-        color: #e74c3c;
-        margin-top: 1rem;
-        font-size: 0.9rem;
-        padding: 0.75rem;
-        background: #ffeaea;
-        border-radius: 8px;
-    }
-
-    /* Mobile optimizations */
-    @media (max-width: 768px) {
-        .login-container {
-            margin: 0;
-            border-radius: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .logo {
-            font-size: 2rem;
-        }
-    }
-
-    /* Safe area insets for notch phones */
-    @supports(padding: max(0px)) {
-        .login-container {
-            padding-left: max(25px, env(safe-area-inset-left));
-            padding-right: max(25px, env(safe-area-inset-right));
-        }
+        font-weight: 600;
+        cursor: pointer;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="login-container">
-    <div class="logo">Kiselgram</div>
+    <img src="{{ url_for('static', filename='favicon.ico') }}" class="logo-img" alt="Logo">
     <form method="POST">
-        <div class="input-group">
-            <input type="text" name="username" placeholder="Username" required class="mobile-input">
-        </div>
-        <div class="input-group">
-            <input type="password" name="password" placeholder="Password" required class="mobile-input">
-        </div>
+        <input type="text" name="username" placeholder="Username" required class="mobile-input">
+        <input type="password" name="password" placeholder="Password" required class="mobile-input">
         <button type="submit" class="mobile-btn">Login / Register</button>
     </form>
-    {% if error %}
-        <div class="error-message">{{ error }}</div>
-    {% endif %}
 </div>
 {% endblock %}
