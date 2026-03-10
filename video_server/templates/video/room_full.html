@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Room Full - Kiselgram Video{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    body {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+                    url('{{ url_for('static', filename='kiselgram-banner.jpg') }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        font-family: sans-serif;
+    }
+
+    .room-full-container {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 40px 30px;
+        max-width: 450px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .logo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #ffc107;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .warning-icon {
+        margin-bottom: 20px;
+    }
+
+    .warning-icon svg {
+        width: 70px;
+        height: 70px;
+        stroke: #ffc107;
+        stroke-width: 1.5;
+        fill: none;
+    }
+
+    h2 {
+        color: #333;
+        font-size: 28px;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .room-id {
+        background: #fff3cd;
+        padding: 12px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        color: #856404;
+        margin: 15px 0;
+        border: 2px solid #ffc107;
+    }
+
+    .capacity-badge {
+        display: inline-block;
+        background: #ffc107;
+        color: #333;
+        padding: 5px 15px;
+        border-radius: 50px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .lead {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    .participant-counter {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+        color: white;
+    }
+
+    .counter-number {
+        font-size: 48px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .counter-label {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 5px;
+    }
+
+    .waiting-room {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
+
+    .waiting-title {
+        color: #333;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .waiting-title:before {
+        content: '⏳';
+        font-size: 18px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: #0088cc;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+    }
+
+    .btn-primary:hover {
+        background: #006699;
+        transform: translateY(-2px);
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #0088cc;
+        border: 2px solid #0088cc;
+    }
+
+    .btn-outline:hover {
+        background: #0088cc;
+        color: white;
+    }
+
+    .notify-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .notify-btn:hover:not(:disabled) {
+        background: #218838;
+        transform: translateY(-2px);
+    }
+
+    .notify-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .participant-avatars {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #495057;
+        border: 2px solid #dee2e6;
+    }
+
+    .avatar.more {
+        background: #0088cc;
+        color: white;
+    }
+
+    @media (max-width: 480px) {
+        .room-full-container {
+            padding: 30px 20px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="room-full-container">
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='favicon.ico') }}" class="logo-img" alt="Kiselgram Logo">
+
+    <!-- Warning Icon -->
+    <div class="warning-icon">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" 
+                  stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+    </div>
+
+    <!-- Room Full Message -->
+    <h2>Room is Full</h2>
+    
+    <!-- Room ID -->
+    <div class="room-id">
+        {{ room_id }}
+    </div>
+
+    <!-- Capacity Badge -->
+    <div class="capacity-badge">
+        Max Participants: {{ max_participants|default(10) }}
+    </div>
+
+    <p class="lead">
+        This video room has reached its maximum capacity.
+    </p>
+
+    <!-- Current Participants Counter -->
+    <div class="participant-counter">
+        <div class="counter-number">{{ max_participants|default(10) }}/{{ max_participants|default(10) }}</div>
+        <div class="counter-label">Current Participants</div>
+    </div>
+
+    <!-- Waiting Room Options -->
+    <div class="waiting-room">
+        <div class="waiting-title">What would you like to do?</div>
+        
+        <div style="margin: 15px 0;">
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="radio" name="waiting-option" value="notify" checked>
+                <span style="color: #333;">Notify me when someone leaves</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="radio" name="waiting-option" value="new">
+                <span style="color: #333;">Create my own room instead</span>
+            </label>
+        </div>
+
+        <button class="notify-btn" id="actionBtn" onclick="handleAction()">
+            🔔 Notify Me
+        </button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button onclick="window.location.href='{{ url_for('video_int.video_index') }}'" class="btn btn-outline">
+            ← All Rooms
+        </button>
+        <button onclick="window.location.reload()" class="btn btn-primary">
+            ⟳ Check Again
+        </button>
+    </div>
+
+    <!-- Join Request Status -->
+    <div id="requestStatus" style="display: none; margin-top: 15px; padding: 10px; border-radius: 8px; background: #d4edda; color: #155724;">
+        ✓ You'll be notified when a spot opens up
+    </div>
+</div>
+
+<script>
+    let notificationRequested = false;
+
+    function handleAction() {
+        const selectedOption = document.querySelector('input[name="waiting-option"]:checked').value;
+        const btn = document.getElementById('actionBtn');
+        
+        if (selectedOption === 'notify') {
+            if (!notificationRequested) {
+                // Request notification permission
+                if ('Notification' in window) {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            requestJoinNotification();
+                        } else {
+                            showNotification('Please enable notifications to be notified', 'info');
+                        }
+                    });
+                } else {
+                    showNotification('Your browser does not support notifications', 'info');
+                }
+            }
+        } else {
+            // Create new room
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+            
+            fetch('/video/create-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/video/join/${data.room_id}`;
+                } else {
+                    showNotification('Failed to create room', 'error');
+                    btn.textContent = 'Create New Room';
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                showNotification('Error creating room', 'error');
+                btn.textContent = 'Create New Room';
+                btn.disabled = false;
+            });
+        }
+    }
+
+    function requestJoinNotification() {
+        const btn = document.getElementById('actionBtn');
+        notificationRequested = true;
+        
+        // Show status
+        document.getElementById('requestStatus').style.display = 'block';
+        btn.textContent = '✓ Request Sent';
+        btn.disabled = true;
+        
+        // Here you would typically make an API call to join a waiting list
+        // For now, we'll simulate checking every 30 seconds
+        startWaitingListCheck();
+        
+        showNotification('You\'ve been added to the waiting list!', 'success');
+    }
+
+    function startWaitingListCheck() {
+        // Check every 30 seconds if room has space
+        const checkInterval = setInterval(() => {
+            fetch(`/video/room/{{ room_id }}/info`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.room && data.room.participants < {{ max_participants|default(10) }}) {
+                        clearInterval(checkInterval);
+                        
+                        // Show notification
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Room Space Available!', {
+                                body: 'Someone left the room. Click to join!',
+                                icon: '/static/favicon.ico'
+                            });
+                        }
+                        
+                        // Update UI
+                        showNotification('Space available! You can now join the room.', 'success');
+                        
+                        // Add join button
+                        const btn = document.getElementById('actionBtn');
+                        btn.textContent = 'Join Room Now!';
+                        btn.disabled = false;
+                        btn.onclick = () => {
+                            window.location.href = '/video/join/{{ room_id }}';
+                        };
+                    }
+                })
+                .catch(() => {});
+        }, 30000);
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#17a2b8'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}

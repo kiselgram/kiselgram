@@ -64,30 +64,79 @@
         background: #f7fafc;
         border-color: #667eea;
     }
+    .error-message {
+        color: #e53e3e;
+        background: #fff5f5;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    .success-message {
+        color: #38a169;
+        background: #f0fff4;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
 </style>
 
 <script>
     async function createRoom() {
+        const button = event.target;
+        const originalText = button.textContent;
+
+        // Show loading state
+        button.textContent = 'Creating...';
+        button.disabled = true;
+
         try {
-            const response = await fetch('/video/create-room');
+            // FIX: Changed to POST request with proper headers
+            const response = await fetch('/video/create-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    // You can add optional room name here
+                    room_name: `${document.getElementById('username')?.value || 'User'}'s Room`
+                })
+            });
+
             const data = await response.json();
 
             if (data.success) {
-                window.location.href = `/video/join/${data.room_id}`;
+                showMessage('Room created successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = `/video/join/${data.room_id}`;
+                }, 1000);
             } else {
-                alert('Error creating room: ' + data.error);
+                showMessage('Error creating room: ' + (data.error || 'Unknown error'), 'error');
+                button.textContent = originalText;
+                button.disabled = false;
             }
         } catch (error) {
-            alert('Video server not running. Ask administrator for assistance');
+            console.error('Error:', error);
+            showMessage('Video server not running. Please start the video server first.', 'error');
+            button.textContent = originalText;
+            button.disabled = false;
         }
     }
 
     async function joinRoom() {
-        const roomId = document.getElementById('roomIdInput').value;
+        const roomId = document.getElementById('roomIdInput').value.trim();
         if (!roomId) {
-            alert('Please enter a room ID');
+            showMessage('Please enter a room ID', 'error');
             return;
         }
+
+        // Validate room ID format (alphanumeric, 8 chars)
+        if (!/^[a-zA-Z0-9]{8}$/.test(roomId)) {
+            showMessage('Invalid room ID format. Room ID should be 8 characters alphanumeric.', 'error');
+            return;
+        }
+
         window.location.href = `/video/join/${roomId}`;
     }
 
@@ -102,10 +151,14 @@
                 roomsList.innerHTML = data.rooms.map(room => `
                     <div class="room-item">
                         <div>
-                            <strong style="font-size: 1.1rem;">Room: ${room.room_id}</strong>
+                            <strong style="font-size: 1.1rem;">${room.room_name || `Room ${room.room_id}`}</strong>
                             <div style="color: #666; margin-top: 5px;">
-                                <span>Created by: ${room.created_by}</span>
-                                <span style="margin-left: 15px;">👥 ${room.participants} participants</span>
+                                <span>ID: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${room.room_id}</code></span>
+                                <span style="margin-left: 15px;">👤 Created by: ${room.created_by}</span>
+                                <span style="margin-left: 15px;">👥 ${room.participants} participant${room.participants !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div style="color: #999; font-size: 0.9rem; margin-top: 5px;">
+                                🕒 Created: ${new Date(room.created_at).toLocaleString()}
                             </div>
                         </div>
                         <button onclick="window.location.href='/video/join/${room.room_id}'"
@@ -118,14 +171,59 @@
                 roomsList.innerHTML = '<p style="color: #999; text-align: center;">No active rooms</p>';
             }
         } catch (error) {
-            document.getElementById('roomsList').innerHTML = '<p style="color: #999; text-align: center;">Video server not running</p>';
+            console.error('Error loading rooms:', error);
+            document.getElementById('roomsList').innerHTML = `
+                <div style="text-align: center;">
+                    <p style="color: #e53e3e;">⚠️ Video server not running</p>
+                    <button onclick="loadRooms()" style="background: #667eea; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; margin-top: 10px;">
+                        ⟳ Retry
+                    </button>
+                </div>
+            `;
         }
     }
+
+    function showMessage(message, type) {
+        // Remove any existing messages
+        const existingMessages = document.querySelectorAll('.error-message, .success-message');
+        existingMessages.forEach(msg => msg.remove());
+
+        // Create new message
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        messageDiv.textContent = message;
+
+        // Insert at the top of the container
+        const container = document.querySelector('.container');
+        container.insertBefore(messageDiv, container.firstChild);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 5000);
+    }
+
+    // Add keyboard shortcut for room ID input (Enter key)
+    document.getElementById('roomIdInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            joinRoom();
+        }
+    });
 
     // Load rooms on page load
     loadRooms();
 
     // Refresh every 10 seconds
     setInterval(loadRooms, 10000);
+
+    // Get username from template if available
+    document.addEventListener('DOMContentLoaded', function() {
+        // You can add a hidden username field if needed
+        const usernameInput = document.createElement('input');
+        usernameInput.type = 'hidden';
+        usernameInput.id = 'username';
+        usernameInput.value = '{{ username|default("User") }}';
+        document.body.appendChild(usernameInput);
+    });
 </script>
 {% endblock %}

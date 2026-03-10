@@ -558,8 +558,7 @@ def run():
     socketio.run(app,
                  debug=True,
                  port=app.config['PORT'],
-                 host=app.config['HOST'],
-                 allow_unsafe_werkzeug=True)
+                 host=app.config['HOST'])
 
 
 if __name__ == '__main__':

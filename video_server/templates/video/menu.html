@@ -1,0 +1,55 @@
+<style>
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        display: flex;
+        border-top: 1px solid #eee;
+        z-index: 1000;
+    }
+
+    .nav-item {
+        flex: 1;
+        text-align: center;
+        padding: 15px 10px;
+        color: #666;
+        text-decoration: none;
+        font-size: 0.8em;
+        transition: all 0.3s ease;
+    }
+
+    .nav-item:hover {
+        background: #f8f9fa;
+    }
+
+    .nav-item.active {
+        color: #007bff;
+    }
+
+    .nav-icon {
+        font-size: 1.5em;
+        margin-bottom: 5px;
+    }
+</style>
+
+<!-- Bottom Navigation with Video Tab (4 tabs) -->
+<div class="bottom-nav">
+    <a href="/chat_list" class="nav-item {% if request.path == '/chat_list' %}active{% endif %}">
+        <div class="nav-icon">💬</div>
+        <div>Chats</div>
+    </a>
+    <a href="/video" class="nav-item {% if request.path == '/video' %}active{% endif %}">
+        <div class="nav-icon">🎥</div>
+        <div>Video</div>
+    </a>
+    <a href="/search" class="nav-item {% if request.path == '/search' %}active{% endif %}">
+        <div class="nav-icon">🔍</div>
+        <div>Search</div>
+    </a>
+    <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+        <div class="nav-icon">⚙️</div>
+        <div>Settings</div>
+    </a>
+</div>

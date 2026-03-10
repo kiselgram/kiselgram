@@ -1,0 +1,74 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Kiselgram{% endblock %}</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#0088cc">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    {% if request.endpoint != 'auth.login' %}
+        {% include "menu.html" %}
+    {% endif %}
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Prevent zoom on double-tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Add to home screen prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(() => console.log('SW registered'))
+                .catch(err => console.log('SW registration failed'));
+        }
+
+        // Ripple effect
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('ripple')) {
+                const ripple = document.createElement('span');
+                const rect = e.target.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.touches[0].clientX - rect.left - size / 2;
+                const y = e.touches[0].clientY - rect.top - size / 2;
+
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple-effect');
+
+                e.target.appendChild(ripple);
+
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            }
+        });
+    </script>
+</body>
+</html>

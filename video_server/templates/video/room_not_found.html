@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Room Not Found - Kiselgram Video{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    body {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+                    url('{{ url_for('static', filename='kiselgram-banner.jpg') }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        font-family: sans-serif;
+    }
+
+    .not-found-container {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 40px 30px;
+        max-width: 450px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        animation: fadeInScale 0.5s ease;
+    }
+
+    @keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .logo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #dc3545;
+        margin-bottom: 20px;
+        animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    .error-icon {
+        margin-bottom: 20px;
+    }
+
+    .error-icon svg {
+        width: 70px;
+        height: 70px;
+        stroke: #dc3545;
+        stroke-width: 1.5;
+        fill: none;
+    }
+
+    h2 {
+        color: #333;
+        font-size: 32px;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .room-id {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        color: #dc3545;
+        margin: 15px 0;
+        border: 2px dashed #dc3545;
+    }
+
+    .lead {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    .info-box {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
+
+    .info-title {
+        color: #333;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-title:before {
+        content: 'ℹ️';
+        font-size: 18px;
+    }
+
+    .reason-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .reason-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #dee2e6;
+        color: #555;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reason-item:last-child {
+        border-bottom: none;
+    }
+
+    .reason-bullet {
+        width: 6px;
+        height: 6px;
+        background: #dc3545;
+        border-radius: 50%;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: #0088cc;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+    }
+
+    .btn-primary:hover {
+        background: #006699;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,136,204,0.4);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #0088cc;
+        border: 2px solid #0088cc;
+    }
+
+    .btn-outline:hover {
+        background: #0088cc;
+        color: white;
+    }
+
+    .create-new-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .create-new-btn:hover {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(40,167,69,0.3);
+    }
+
+    @media (max-width: 480px) {
+        .not-found-container {
+            padding: 30px 20px;
+        }
+
+        h2 {
+            font-size: 28px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="not-found-container">
+    <!-- Logo with Shake Animation -->
+    <img src="{{ url_for('static', filename='favicon.ico') }}" class="logo-img" alt="Kiselgram Logo">
+
+    <!-- 404 Icon -->
+    <div class="error-icon">
+        <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9 9l6 6M15 9l-6 6" stroke-linecap="round"/>
+        </svg>
+    </div>
+
+    <!-- Error Message -->
+    <h2>404</h2>
+    <h3 style="color: #666; margin-bottom: 15px;">Room Not Found</h3>
+    
+    <!-- Room ID Display -->
+    <div class="room-id">
+        "{{ room_id }}"
+    </div>
+
+    <p class="lead">
+        The video room you're looking for doesn't exist or has been closed.
+    </p>
+
+    <!-- Possible Reasons -->
+    <div class="info-box">
+        <div class="info-title">Possible reasons:</div>
+        <ul class="reason-list">
+            <li class="reason-item">
+                <span class="reason-bullet"></span>
+                The room ID might be incorrect or misspelled
+            </li>
+            <li class="reason-item">
+                <span class="reason-bullet"></span>
+                The room may have expired (rooms auto-delete after 1 hour)
+            </li>
+            <li class="reason-item">
+                <span class="reason-bullet"></span>
+                The creator might have closed the room
+            </li>
+            <li class="reason-item">
+                <span class="reason-bullet"></span>
+                All participants left and the room was cleaned up
+            </li>
+        </ul>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="action-buttons">
+        <a href="{{ url_for('video_int.video_index') }}" class="btn btn-primary">
+            ← Back to Video
+        </a>
+        <button onclick="window.location.reload()" class="btn btn-secondary">
+            ⟳ Retry
+        </button>
+    </div>
+
+    <!-- Create New Room Button -->
+    <button class="create-new-btn" onclick="createNewRoom()">
+        ✨ Create New Video Room
+    </button>
+
+    <!-- Help Text -->
+    <p style="color: #999; font-size: 12px; margin-top: 20px;">
+        Need help? Contact support or check the room ID with the person who shared it
+    </p>
+</div>
+
+<script>
+    function createNewRoom() {
+        // Show loading state
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Creating...';
+        btn.disabled = true;
+
+        // Create new room via API
+        fetch('/video/create-room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to new room
+                window.location.href = `/video/join/${data.room_id}`;
+            } else {
+                showNotification('Failed to create room', 'error');
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            showNotification('Error creating room', 'error');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === 'error' ? '#dc3545' : '#28a745'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
