@@ -134,7 +134,7 @@ def clear_status(service='main'):
         os.remove(status_file)
 
 
-def run_flask_app(host, port, debug):
+def run_flask_app(host, port, debug, no_browser=False):
     """Run Flask application in a subprocess"""
     global flask_process, process_pid, is_running
 
@@ -204,7 +204,8 @@ if __name__ == '__main__':
                 line = line.rstrip()
                 if line:  # Skip empty lines
                     print(f"[App] {line}")
-                    if "Running on" in line and "http://" in line:
+                    # Only open browser if --no-browser is False
+                    if not no_browser and "Running on" in line and "http://" in line:
                         # Try to open browser
                         try:
                             time.sleep(2)
@@ -561,6 +562,9 @@ def show_help():
     print("")
     print("  # Start both services on different ports")
     print("  python manage.py start --port 3000 --video-port 3001")
+    print("")
+    print("  # Start without opening browser")
+    print("  python manage.py start --no-browser")
 
     return True
 
@@ -871,10 +875,10 @@ def start_all_services(args):
     print(f"   Open Browser: {not args.no_browser}")
     print("-" * 40)
 
-    # Start Flask in a separate thread
+    # Start Flask in a separate thread - PASS THE NO_BROWSER FLAG
     flask_thread = threading.Thread(
         target=run_flask_app,
-        args=(args.host, args.port, args.debug),
+        args=(args.host, args.port, args.debug, args.no_browser),  # Added no_browser parameter
         daemon=True
     )
     flask_thread.start()
