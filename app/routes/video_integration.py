@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, session
 import requests
+import os
 
 video_int_bp = Blueprint('video_int', __name__, url_prefix='/video')
 
-VIDEO_SERVER_URL = "http://localhost:5001"
+VIDEO_SERVER_URL = "http://" + os.environ["VIDEO_HOST"] + ":" + os.environ["VIDEO_PORT"]
 
 @video_int_bp.route('/')
 def video_index():
