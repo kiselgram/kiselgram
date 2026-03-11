@@ -45,7 +45,9 @@ def allowed_file(filename, file_type='all'):
 
 def get_file_type(filename):
     """Determine file type from extension"""
-    from app import app
+    from app import create_app
+
+    app = create_app()
 
     ext = filename.rsplit('.', 1)[1].lower()
 
@@ -61,6 +63,8 @@ def get_file_type(filename):
         return 'archive'
     else:
         return 'unknown'
+
+    app = None
 
 
 def create_thumbnail(image_path, thumbnail_path, size=(200, 200)):
