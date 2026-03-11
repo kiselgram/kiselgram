@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 
 from datetime import datetime
 from app import db
@@ -141,3 +141,8 @@ def users_list():
     users = User.query.all()
     bots = TelegramBot.query.filter_by(is_active=True).all()
     return render_template('users_list.html', current_user=get_current_user(), users=users, bots=bots)
+
+
+@chats_bp.route('/direct/<int:user_id>')
+def direct(user_id):
+    return redirect(url_for("chats.chat", user_id=user_id))
