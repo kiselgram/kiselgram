@@ -53,7 +53,6 @@
         display: flex;
         flex-direction: column;
         background: var(--surface-variant);
-        padding-bottom: 70pt;
     }
 
     /* Header */
@@ -61,6 +60,9 @@
         background: var(--primary-color);
         color: white;
         padding: 12px 15px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
         position: relative;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         z-index: 1000;
@@ -118,11 +120,52 @@
         cursor: pointer;
         border-radius: 50%;
         transition: background-color 0.2s;
+        flex-shrink: 0;
     }
 
     .header-button:hover,
     .header-button:active {
         background: rgba(255, 255, 255, 0.1);
+    }
+
+    .chat-user-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .chat-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-weight: 500;
+    }
+
+    .chat-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .chat-name {
+        font-size: 16px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-status {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
     }
 
     /* Messages Container */
@@ -132,6 +175,7 @@
         flex-direction: column;
         position: relative;
         overflow: hidden;
+        background: var(--surface-variant);
     }
 
     .messages-container {
@@ -145,22 +189,25 @@
 
     /* Message Styles */
     .message {
-        margin: 12px 0;
+        margin: 8px 0;
         max-width: 85%;
         position: relative;
+        clear: both;
     }
 
     .message.outgoing {
+        float: right;
         margin-left: auto;
     }
 
     .message.incoming {
+        float: left;
         margin-right: auto;
     }
 
     .message-bubble {
         border-radius: 18px;
-        padding: 12px 16px;
+        padding: 10px 14px;
         position: relative;
         word-wrap: break-word;
         animation: fadeIn 0.3s ease-in;
@@ -215,23 +262,23 @@
     .message-text {
         font-size: 16px;
         line-height: 1.4;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         white-space: pre-wrap;
-        text-align: right;
     }
 
     .message-time {
         font-size: 11px;
         opacity: 0.7;
-        text-align: right;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
         gap: 4px;
     }
 
+    .message.outgoing .message-time {
+        justify-content: flex-end;
+    }
+
     .message.incoming .message-time {
-        text-align: left;
         justify-content: flex-start;
     }
 
@@ -242,7 +289,7 @@
 
     /* File Attachment Styles in Messages */
     .file-attachment {
-        margin: 8px 0;
+        margin: 4px 0 8px 0;
         border-radius: 12px;
         overflow: hidden;
         background: var(--surface-variant);
@@ -257,6 +304,7 @@
     .file-preview {
         text-align: center;
         padding: 12px;
+        background: rgba(0, 0, 0, 0.02);
     }
 
     .file-preview img {
@@ -265,6 +313,7 @@
         border-radius: 8px;
         cursor: pointer;
         transition: transform 0.2s ease;
+        border: 1px solid var(--border-color);
     }
 
     .file-preview img:hover {
@@ -279,7 +328,7 @@
     }
 
     .attachment-icon {
-        font-size: 2.5em;
+        font-size: 3em;
         margin-bottom: 8px;
         opacity: 0.7;
         color: var(--text-secondary);
@@ -319,20 +368,23 @@
         font-size: 12px;
         font-weight: 500;
         transition: background 0.2s ease;
+        border: none;
+        cursor: pointer;
     }
 
     .file-download:hover {
         background: var(--primary-dark);
     }
 
-    .message-content {
-        margin-top: 8px;
+    .file-download:active {
+        transform: scale(0.98);
     }
 
     /* File Upload Styles */
     .upload-area {
         background: var(--surface-color);
         border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
         padding: 15px;
         display: none;
         transition: all 0.3s ease;
@@ -375,16 +427,18 @@
         display: flex;
         gap: 10px;
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .upload-button {
-        padding: 8px 16px;
+        padding: 10px 20px;
         border-radius: 20px;
         border: none;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
+        min-width: 80px;
     }
 
     .upload-button.primary {
@@ -395,6 +449,7 @@
     .upload-button.secondary {
         background: var(--surface-variant);
         color: var(--text-primary);
+        border: 1px solid var(--border-color);
     }
 
     .upload-button.cancel {
@@ -467,7 +522,7 @@
     .attachment-button {
         background: none;
         border: none;
-        font-size: 20px;
+        font-size: 24px;
         width: 44px;
         height: 44px;
         display: flex;
@@ -477,6 +532,7 @@
         color: var(--text-secondary);
         border-radius: 50%;
         transition: all 0.2s;
+        flex-shrink: 0;
     }
 
     .attachment-button:hover,
@@ -496,7 +552,7 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-size: 18px;
+        font-size: 20px;
         transition: all 0.2s;
         flex-shrink: 0;
     }
@@ -621,6 +677,54 @@
         animation: shake 0.5s ease-in-out;
     }
 
+    /* Error message */
+    .error-message {
+        background: var(--error-color);
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    /* Debug panel (hidden by default) */
+    .debug-panel {
+        position: fixed;
+        bottom: 80px;
+        right: 10px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        max-width: 300px;
+        max-height: 200px;
+        overflow: auto;
+        z-index: 3000;
+        display: none;
+    }
+
+    .debug-panel.active {
+        display: block;
+    }
+
+    .debug-toggle {
+        position: fixed;
+        bottom: 80px;
+        right: 10px;
+        background: var(--primary-color);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 3001;
+        font-size: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
         :root {
@@ -630,7 +734,6 @@
             --text-primary: #ffffff;
             --text-secondary: #aaaaaa;
             --text-disabled: #666666;
-            --text-muted: wheat;
         }
 
         body {
@@ -674,17 +777,25 @@
 <div class="mobile-app">
     <!-- Header -->
     <div class="header safe-area-top">
-        <button class="header-button ripple" onclick="goBack()">←</button>
-        <div class="chat-user-info" style="flex: 1; display: flex; align-items: center; gap: 12px;">
-            <div class="chat-avatar" style="width: 40px; height: 40px; font-size: 16px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <button class="header-button ripple" onclick="goBack()" aria-label="Go back">←</button>
+        <div class="chat-user-info">
+            <div class="chat-avatar">
                 {{ receiver.username[0]|upper }}
             </div>
-            <div>
-                <div class="chat-name" style="font-size: 16px; font-weight: 500;">{{ receiver.username }}</div>
-                <div class="chat-status" id="userStatus" style="font-size: 13px; color: var(--text-secondary);">Checking status...</div>
+            <div class="chat-info">
+                <div class="chat-name">{{ receiver.username }}</div>
+                <div class="chat-status" id="userStatus">Checking status...</div>
             </div>
         </div>
-        <button class="header-button ripple" onclick="showUserMenu()">⋮</button>
+        <button class="header-button ripple" onclick="showUserMenu()" aria-label="Menu">⋮</button>
+    </div>
+
+    <!-- Debug toggle button -->
+    <div class="debug-toggle" onclick="toggleDebugPanel()" id="debugToggle">🐛</div>
+
+    <!-- Debug panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div id="debugContent">Debug info will appear here</div>
     </div>
 
     <!-- Messages -->
@@ -692,6 +803,7 @@
         <div class="messages-container" id="messagesContainer">
             <div class="loading">
                 <div class="spinner"></div>
+                <div>Loading messages...</div>
             </div>
         </div>
 
@@ -710,9 +822,9 @@
         <div class="input-area safe-area-bottom">
             <form class="input-form" id="messageForm">
                 <div class="input-row">
-                    <button type="button" class="attachment-button ripple" onclick="toggleUploadArea()" id="attachmentBtn">📎</button>
+                    <button type="button" class="attachment-button ripple" onclick="toggleUploadArea()" id="attachmentBtn" aria-label="Attach file">📎</button>
                     <textarea class="message-input" placeholder="Message" id="messageInput" rows="1"></textarea>
-                    <button type="submit" class="send-button ripple" id="sendButton" disabled>➤</button>
+                    <button type="submit" class="send-button ripple" id="sendButton" disabled aria-label="Send message">➤</button>
                 </div>
             </form>
         </div>
@@ -725,13 +837,39 @@
 
 <!-- Image Preview Modal -->
 <div class="image-modal" id="imageModal">
-    <button class="modal-close" onclick="closeImagePreview()">×</button>
+    <button class="modal-close" onclick="closeImagePreview()" aria-label="Close">×</button>
     <img id="modalImage" src="" alt="Preview">
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// Debug utility
+function debugLog(...args) {
+    console.log('🔍', ...args);
+    const debugContent = document.getElementById('debugContent');
+    if (debugContent) {
+        const timestamp = new Date().toLocaleTimeString();
+        const message = args.map(arg => {
+            if (typeof arg === 'object') {
+                return JSON.stringify(arg, null, 2);
+            }
+            return arg;
+        }).join(' ');
+        debugContent.innerHTML = `<div>[${timestamp}] ${message}</div>` + debugContent.innerHTML;
+        if (debugContent.children.length > 10) {
+            debugContent.removeChild(debugContent.lastChild);
+        }
+    }
+}
+
+function toggleDebugPanel() {
+    const panel = document.getElementById('debugPanel');
+    panel.classList.toggle('active');
+    const toggle = document.getElementById('debugToggle');
+    toggle.style.opacity = panel.classList.contains('active') ? '1' : '0.5';
+}
+
 // Utility functions
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -752,6 +890,7 @@ function scrollToBottom() {
     setTimeout(() => {
         if (container) {
             container.scrollTop = container.scrollHeight;
+            debugLog('Scrolled to bottom');
         }
     }, 100);
 }
@@ -799,7 +938,7 @@ function handleUserAction(action) {
             })
             .catch(error => {
                 alert('Failed to block user');
-                console.error('Error:', error);
+                debugLog('Error blocking user:', error);
             });
         }
     } else if (lowerAction.includes('clear')) {
@@ -818,7 +957,7 @@ function handleUserAction(action) {
             })
             .catch(error => {
                 alert('Failed to clear chat');
-                console.error('Error:', error);
+                debugLog('Error clearing chat:', error);
             });
         }
     } else if (lowerAction.includes('report')) {
@@ -841,7 +980,7 @@ function handleUserAction(action) {
             })
             .catch(error => {
                 alert('Failed to report user');
-                console.error('Error:', error);
+                debugLog('Error reporting user:', error);
             });
         }
     }
@@ -852,6 +991,7 @@ async function checkUserStatus() {
     try {
         const response = await fetch(`/api/user_status/${receiverId}`);
         const data = await response.json();
+        debugLog('User status:', data);
 
         const statusElement = document.getElementById('userStatus');
         if (statusElement && data.status) {
@@ -885,7 +1025,7 @@ async function checkUserStatus() {
             }
         }
     } catch (error) {
-        console.error('Error checking user status:', error);
+        debugLog('Error checking user status:', error);
     }
 }
 
@@ -915,6 +1055,8 @@ function setupMessageInput() {
             form.dispatchEvent(new Event('submit'));
         }
     });
+
+    debugLog('Message input setup complete');
 }
 
 function updateSendButton() {
@@ -935,6 +1077,7 @@ async function sendTextMessage() {
     if (!content) return;
 
     isSending = true;
+    debugLog('Sending text message:', content);
 
     // Create optimistic UI update
     const tempId = 'temp-' + Date.now();
@@ -966,6 +1109,7 @@ async function sendTextMessage() {
         });
 
         const data = await response.json();
+        debugLog('Send message response:', data);
 
         if (data.success) {
             // Remove temporary message and add the real one
@@ -977,7 +1121,7 @@ async function sendTextMessage() {
             showMessageError(tempId);
         }
     } catch (error) {
-        console.error('Error sending message:', error);
+        debugLog('Error sending message:', error);
         showMessageError(tempId);
     } finally {
         isSending = false;
@@ -988,6 +1132,7 @@ function removeTempMessage(tempId) {
     const tempMessage = document.querySelector(`[data-message-id="${tempId}"]`);
     if (tempMessage) {
         tempMessage.remove();
+        debugLog('Removed temporary message:', tempId);
     }
 }
 
@@ -1017,8 +1162,10 @@ function toggleUploadArea() {
     const attachmentBtn = document.getElementById('attachmentBtn');
     if (isActive) {
         attachmentBtn.style.color = 'var(--primary-color)';
+        debugLog('Upload area opened');
     } else {
         attachmentBtn.style.color = '';
+        debugLog('Upload area closed');
     }
 }
 
@@ -1032,12 +1179,19 @@ function cancelUpload() {
     // Reset attachment button color
     const attachmentBtn = document.getElementById('attachmentBtn');
     if (attachmentBtn) attachmentBtn.style.color = '';
+
+    debugLog('Upload cancelled');
 }
 
 function handleFileSelect(files) {
     if (files.length > 0) {
         selectedFile = files[0];
         document.getElementById('uploadFileName').textContent = selectedFile.name;
+        debugLog('File selected:', {
+            name: selectedFile.name,
+            size: selectedFile.size,
+            type: selectedFile.type
+        });
 
         // Check file size (16MB limit)
         if (selectedFile.size > 16 * 1024 * 1024) {
@@ -1067,6 +1221,13 @@ async function uploadFile() {
         formData.append('message', messageText);
     }
 
+    debugLog('Uploading file:', {
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        messageText: messageText,
+        receiverId: receiverId
+    });
+
     try {
         const response = await fetch('/upload_file', {
             method: 'POST',
@@ -1074,8 +1235,9 @@ async function uploadFile() {
         });
 
         const data = await response.json();
+        debugLog('Upload response:', data);
 
-        if (data.success) {
+        if (data.success && data.message) {
             // Add the message to chat
             addMessageToUI(data.message, true);
             scrollToBottom();
@@ -1083,12 +1245,15 @@ async function uploadFile() {
             // Clear inputs
             document.getElementById('messageInput').value = '';
             cancelUpload();
+
+            debugLog('File uploaded successfully:', data.message);
         } else {
-            alert('Upload failed: ' + data.error);
+            alert('Upload failed: ' + (data.error || 'Unknown error'));
+            debugLog('Upload failed:', data);
         }
     } catch (error) {
         alert('Upload failed. Please try again.');
-        console.error('Error:', error);
+        debugLog('Upload error:', error);
     } finally {
         uploadBtn.disabled = false;
         uploadBtn.textContent = 'Upload';
@@ -1097,6 +1262,7 @@ async function uploadFile() {
 
 // Image preview functions
 function openImagePreview(imageUrl) {
+    debugLog('Opening image preview:', imageUrl);
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');
     modalImage.src = imageUrl;
@@ -1108,10 +1274,13 @@ function closeImagePreview() {
     const modal = document.getElementById('imageModal');
     modal.classList.remove('active');
     document.body.style.overflow = '';
+    debugLog('Closed image preview');
 }
 
 // Message display functions
 function createMessageElement(message, animate = false) {
+    debugLog('Creating message element:', message);
+
     const div = document.createElement('div');
     div.className = `message ${message.is_own ? 'outgoing' : 'incoming'}`;
     div.dataset.messageId = message.id;
@@ -1134,7 +1303,7 @@ function createMessageElement(message, animate = false) {
 
     messageHTML += `
             <div class="message-time">
-                ${message.timestamp}
+                ${message.timestamp || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 ${message.is_own ? `<span class="message-status">${message.is_read ? '✓✓' : '✓'}</span>` : ''}
             </div>
         </div>
@@ -1151,70 +1320,79 @@ function renderFileAttachment(message) {
     const fileSize = message.file_size || 0;
     const thumbnailUrl = message.thumbnail_url || fileUrl;
 
+    // Debug log
+    debugLog('Rendering file attachment:', {
+        fileType,
+        fileName,
+        fileUrl,
+        thumbnailUrl,
+        fileSize,
+        fullMessage: message
+    });
+
+    // Check if URL is valid
+    if (fileUrl) {
+        if (fileUrl.startsWith('http')) {
+            debugLog('File URL is absolute:', fileUrl);
+        } else if (fileUrl.startsWith('/')) {
+            debugLog('File URL is relative (starts with /):', fileUrl);
+            // Construct full URL for debugging
+            const fullUrl = window.location.origin + fileUrl;
+            debugLog('Full URL would be:', fullUrl);
+        } else {
+            debugLog('⚠️ File URL has unexpected format:', fileUrl);
+        }
+    } else {
+        debugLog('⚠️ No file URL provided');
+    }
+
     let previewHTML = '';
 
-    switch(fileType.toLowerCase()) {
-        case 'image':
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-        case 'webp':
-            previewHTML = `
-                <div class="file-preview">
-                    <img src="${thumbnailUrl}" alt="${fileName}"
-                         onclick="openImagePreview('${fileUrl}')"
-                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNFNUU1RTUiLz48cGF0aCBkPSJNNzAgODBDNzAgNzIuMjM4MSA3Ni4yMzgxIDY2IDg0IDY2QzkxLjc2MTkgNjYgOTggNzIuMjM4MSA5OCA4MEM5OCA4Ny43NjE5IDkxLjc2MTkgOTQgODQgOTRDNzYuMjM4MSA5NCA3MCA4Ny43NjE5IDcwIDgwWiIgZmlsbD0iI0NDQyIvPjxwYXRoIGQ9Ik02NCAxMTRMMzYgMTQyVjE2NEgxNjRWMTE0TDEzNiA4NkwxMDQgMTE0TDg0IDk0TDY0IDExNFoiIGZpbGw9IiNDQ0MiLz48L3N2Zz4='">
-                </div>
-            `;
-            break;
-        case 'document':
-        case 'pdf':
-        case 'doc':
-        case 'docx':
-        case 'txt':
-            previewHTML = `
-                <div class="file-preview">
-                    <div class="attachment-icon">📄</div>
-                    <div style="font-size: 14px; color: var(--text-secondary);">Document</div>
-                </div>
-            `;
-            break;
-        case 'audio':
-        case 'mp3':
-        case 'wav':
-        case 'ogg':
-            previewHTML = `
-                <div class="file-preview">
-                    <div class="attachment-icon">🎵</div>
-                    <audio controls>
-                        <source src="${fileUrl}" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-            `;
-            break;
-        case 'video':
-        case 'mp4':
-        case 'webm':
-        case 'mov':
-            previewHTML = `
-                <div class="file-preview">
-                    <div class="attachment-icon">🎬</div>
-                    <video controls style="max-height: 200px;">
-                        <source src="${fileUrl}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-            `;
-            break;
-        default:
-            previewHTML = `
-                <div class="file-preview">
-                    <div class="attachment-icon">📁</div>
-                    <div style="font-size: 14px; color: var(--text-secondary);">File Attachment</div>
-                </div>
-            `;
+    // Normalize file type for comparison
+    const normalizedType = fileType.toLowerCase();
+
+    if (normalizedType === 'image' || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(normalizedType)) {
+        previewHTML = `
+            <div class="file-preview">
+                <img src="${thumbnailUrl || fileUrl}" alt="${escapeHtml(fileName)}"
+                     onclick="openImagePreview('${fileUrl}')"
+                     onerror="this.onerror=null; console.error('Failed to load image:', this.src); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNFNUU1RTUiLz48cGF0aCBkPSJNNzAgODBDNzAgNzIuMjM4MSA3Ni4yMzgxIDY2IDg0IDY2QzkxLjc2MTkgNjYgOTggNzIuMjM4MSA5OCA4MEM5OCA4Ny43NjE5IDkxLjc2MTkgOTQgODQgOTRDNzYuMjM4MSA5NCA3MCA4Ny43NjE5IDcwIDgwWiIgZmlsbD0iI0NDQyIvPjxwYXRoIGQ9Ik02NCAxMTRMMzYgMTQyVjE2NEgxNjRWMTE0TDEzNiA4NkwxMDQgMTE0TDg0IDk0TDY0IDExNFoiIGZpbGw9IiNDQ0MiLz48L3N2Zz4='; this.parentElement.innerHTML += '<div style=\"color: red; font-size: 12px; margin-top: 5px;\">Failed to load image</div>'">
+            </div>
+        `;
+    } else if (normalizedType === 'document' || ['pdf', 'doc', 'docx', 'txt'].includes(normalizedType)) {
+        previewHTML = `
+            <div class="file-preview">
+                <div class="attachment-icon">📄</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">Document</div>
+            </div>
+        `;
+    } else if (normalizedType === 'audio' || ['mp3', 'wav', 'ogg'].includes(normalizedType)) {
+        previewHTML = `
+            <div class="file-preview">
+                <div class="attachment-icon">🎵</div>
+                <audio controls>
+                    <source src="${fileUrl}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        `;
+    } else if (normalizedType === 'video' || ['mp4', 'webm', 'mov'].includes(normalizedType)) {
+        previewHTML = `
+            <div class="file-preview">
+                <div class="attachment-icon">🎬</div>
+                <video controls style="max-height: 200px;">
+                    <source src="${fileUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        `;
+    } else {
+        previewHTML = `
+            <div class="file-preview">
+                <div class="attachment-icon">📁</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">File Attachment</div>
+            </div>
+        `;
     }
 
     return `
@@ -1223,7 +1401,8 @@ function renderFileAttachment(message) {
             <div class="file-info">
                 <div class="file-name">${escapeHtml(fileName)}</div>
                 <div class="file-size">${formatFileSize(fileSize)}</div>
-                <a href="${fileUrl}" class="file-download" download="${escapeHtml(fileName)}">Download</a>
+                <a href="${fileUrl}" class="file-download" download="${escapeHtml(fileName)}" target="_blank" rel="noopener noreferrer">Download</a>
+                <button onclick="debugLog('File URL:', '${fileUrl}')" class="file-download" style="background: var(--text-secondary); margin-left: 5px;">Debug URL</button>
             </div>
         </div>
     `;
@@ -1231,6 +1410,7 @@ function renderFileAttachment(message) {
 
 function addMessageToUI(message, animate = false) {
     const container = document.getElementById('messagesContainer');
+    debugLog('Adding message to UI:', message);
 
     // Remove empty state if it exists
     const emptyState = container.querySelector('.empty-state');
@@ -1252,8 +1432,10 @@ function addMessageToUI(message, animate = false) {
 // Load messages
 async function loadMessages() {
     try {
+        debugLog('Loading messages, lastMessageId:', lastMessageId);
         const response = await fetch(`/api/messages/${receiverId}?after=${lastMessageId}`);
         const data = await response.json();
+        debugLog('Load messages response:', data);
 
         const container = document.getElementById('messagesContainer');
 
@@ -1270,6 +1452,7 @@ async function loadMessages() {
                 });
                 scrollToBottom();
                 lastMessageId = currentLastId;
+                debugLog('Updated messages, new lastMessageId:', lastMessageId);
             }
         } else {
             // Remove loading and show empty state
@@ -1284,9 +1467,10 @@ async function loadMessages() {
                     <div class="empty-state-subtext">Send a message to start the conversation!</div>
                 </div>
             `;
+            debugLog('No messages, showing empty state');
         }
     } catch (error) {
-        console.error('Error loading messages:', error);
+        debugLog('Error loading messages:', error);
     }
 }
 
@@ -1307,7 +1491,7 @@ function startMessagePolling() {
                 });
             }
         } catch (error) {
-            console.error('Error polling messages:', error);
+            debugLog('Error polling messages:', error);
         }
     }, 2000);
 }
@@ -1327,13 +1511,16 @@ async function markMessagesAsRead() {
         await fetch(`/api/mark_read/${receiverId}`, {
             method: 'POST'
         });
+        debugLog('Marked messages as read');
     } catch (error) {
-        console.error('Error marking messages as read:', error);
+        debugLog('Error marking messages as read:', error);
     }
 }
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    debugLog('DOM loaded, initializing chat');
+
     // Setup all components
     setupMessageInput();
 
@@ -1358,6 +1545,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup event listeners
     setupEventListeners();
+
+    debugLog('Chat initialization complete');
 });
 
 // Setup additional event listeners
@@ -1398,6 +1587,8 @@ function setupEventListeners() {
             loadMessages();
         }
     });
+
+    debugLog('Event listeners setup complete');
 }
 </script>
 {% endblock %}
