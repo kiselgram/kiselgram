@@ -17,8 +17,6 @@ import select
 import termios
 import struct
 import fcntl
-import pwd
-import grp
 from pathlib import Path
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_file, Response
@@ -548,7 +546,7 @@ def create_template():
         }
 
         body {
-            font-family: 'Fira Code', 'Courier New', monospace;
+            font-family: 'Courier New', 'Fira Code', monospace;
             background: #1e1e2f;
             color: #fff;
             height: 100vh;
@@ -562,7 +560,7 @@ def create_template():
 
         /* Sidebar */
         .sidebar {
-            width: 300px;
+            width: 350px;
             background: #2d2d3f;
             border-right: 1px solid #3d3d4f;
             display: flex;
@@ -644,7 +642,7 @@ def create_template():
         }
 
         .status-detail {
-            font-size: 0.8em;
+            font-size: 0.75em;
             color: #aaa;
             margin: 3px 0;
         }
@@ -659,11 +657,12 @@ def create_template():
             padding: 8px;
             background: #1a1a2a;
             border-radius: 4px;
-            font-size: 0.7em;
+            font-size: 0.65em;
             color: #0f0;
             white-space: pre-wrap;
             max-height: 150px;
             overflow-y: auto;
+            font-family: monospace;
         }
 
         .quick-actions {
@@ -726,7 +725,7 @@ def create_template():
             background: #1e1e2f;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.8em;
+            font-size: 0.75em;
             display: flex;
             justify-content: space-between;
             border: 1px solid transparent;
@@ -753,40 +752,18 @@ def create_template():
             background: #1e1e2f;
         }
 
-        .terminal-tabs {
+        .terminal-header {
             background: #2d2d3f;
             padding: 10px 20px;
             border-bottom: 1px solid #3d3d4f;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
             align-items: center;
         }
 
-        .tab {
-            padding: 5px 15px;
-            background: #1e1e2f;
-            border-radius: 4px;
-            cursor: pointer;
+        .terminal-header h3 {
+            color: #0ff;
             font-size: 0.9em;
-            border: 1px solid #3d3d4f;
-        }
-
-        .tab.active {
-            background: #0ff;
-            color: #1e1e2f;
-            border-color: #0ff;
-        }
-
-        .tab-close {
-            margin-left: 5px;
-            color: #f44;
-        }
-
-        .new-tab {
-            background: #3d3d4f;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
         }
 
         .terminal-container {
@@ -799,31 +776,36 @@ def create_template():
 
         .terminal {
             flex: 1;
-            background: #000;
+            background: #0a0a0f;
             border-radius: 8px;
             padding: 15px;
             overflow-y: auto;
-            font-family: 'Fira Code', 'Courier New', monospace;
-            font-size: 14px;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            font-size: 13px;
             line-height: 1.5;
-            white-space: pre-wrap;
-            word-wrap: break-word;
         }
 
         .terminal-output {
             color: #0f0;
             margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-output div {
+            margin: 2px 0;
         }
 
         .terminal-input-line {
             display: flex;
             align-items: center;
-            color: #0ff;
+            margin-top: 5px;
         }
 
         .terminal-prompt {
             margin-right: 10px;
             color: #0ff;
+            font-weight: bold;
         }
 
         .terminal-input {
@@ -831,8 +813,8 @@ def create_template():
             background: transparent;
             border: none;
             color: #fff;
-            font-family: 'Fira Code', 'Courier New', monospace;
-            font-size: 14px;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            font-size: 13px;
             outline: none;
         }
 
@@ -851,7 +833,7 @@ def create_template():
             color: #fff;
             padding: 10px 15px;
             border-radius: 4px;
-            font-family: 'Fira Code', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             outline: none;
         }
 
@@ -978,9 +960,11 @@ def create_template():
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1>Kiselgram Web Terminal</h1>
+                <h1>🎮 Kiselgram Web Terminal</h1>
                 <p>Interactive browser-based management</p>
-                <div style="margin-top: 10px; font-size: 0.8em; color: #0f0;" id="jsonStatus">✓ Reading from JSON files</div>
+                <div style="margin-top: 10px; font-size: 0.75em; color: #0f0;" id="jsonStatus">
+                    ✓ Reading from JSON files
+                </div>
             </div>
 
             <!-- Status Panel -->
@@ -995,14 +979,14 @@ def create_template():
             <div class="quick-actions">
                 <h3>⚡ Quick Actions</h3>
                 <div class="action-grid">
-                    <button class="action-btn success" onclick="runQuickCommand('start')">🚀 Start All</button>
-                    <button class="action-btn danger" onclick="runQuickCommand('stop')">⏹️ Stop All</button>
-                    <button class="action-btn" onclick="runQuickCommand('status')">📊 Status</button>
-                    <button class="action-btn" onclick="runQuickCommand('video start')">🎥 Start Video</button>
-                    <button class="action-btn danger" onclick="runQuickCommand('video stop')">⏹️ Stop Video</button>
-                    <button class="action-btn" onclick="runQuickCommand('clean')">🧹 Clean</button>
-                    <button class="action-btn danger" onclick="confirmResetDB()">⚠️ Reset DB</button>
-                    <button class="action-btn" onclick="refreshStatus()">🔄 Refresh</button>
+                    <button class="action-btn success" onclick="window.runQuickCommand('start')">🚀 Start All</button>
+                    <button class="action-btn danger" onclick="window.runQuickCommand('stop')">⏹️ Stop All</button>
+                    <button class="action-btn" onclick="window.runQuickCommand('status')">📊 Status</button>
+                    <button class="action-btn" onclick="window.runQuickCommand('video start')">🎥 Start Video</button>
+                    <button class="action-btn danger" onclick="window.runQuickCommand('video stop')">⏹️ Stop Video</button>
+                    <button class="action-btn" onclick="window.runQuickCommand('clean')">🧹 Clean</button>
+                    <button class="action-btn danger" onclick="window.confirmResetDB()">⚠️ Reset DB</button>
+                    <button class="action-btn" onclick="window.refreshStatus()">🔄 Refresh</button>
                 </div>
             </div>
 
@@ -1017,27 +1001,28 @@ def create_template():
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Terminal Tabs -->
-            <div class="terminal-tabs">
-                <div class="tab active" id="tab-main">
-                    Main Terminal
-                </div>
-                <div class="new-tab" onclick="newTerminal()">+ New Tab</div>
+            <!-- Terminal Header -->
+            <div class="terminal-header">
+                <h3>📟 Interactive Terminal</h3>
+                <button class="action-btn" onclick="window.clearTerminal()" style="font-size: 0.8em;">🗑️ Clear</button>
             </div>
 
             <!-- Terminal -->
             <div class="terminal-container">
-                <div class="terminal" id="terminal" onclick="focusInput()">
+                <div class="terminal" id="terminal" onclick="window.focusTerminalInput()">
                     <div id="terminal-output" class="terminal-output">
-                        <div>Kiselgram Web Terminal v1.0</div>
-                        <div>Type 'help' for available commands</div>
-                        <div>Status loaded from JSON files</div>
-                        <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+                        <div>╔══════════════════════════════════════════════════════════╗</div>
+                        <div>║         Kiselgram Web Terminal v1.0                       ║</div>
+                        <div>╠══════════════════════════════════════════════════════════╣</div>
+                        <div>║  Status loaded from JSON files                           ║</div>
+                        <div>║  Type 'python manage.py help' for commands               ║</div>
+                        <div>╚══════════════════════════════════════════════════════════╝</div>
+                        <div></div>
                     </div>
                     <div class="terminal-input-line">
                         <span class="terminal-prompt">$</span>
                         <input type="text" id="terminal-input" class="terminal-input" 
-                               autofocus placeholder="Enter command...">
+                               autofocus placeholder="Enter command..." autocomplete="off">
                     </div>
                 </div>
             </div>
@@ -1048,7 +1033,7 @@ def create_template():
                        placeholder="Quick command (e.g., status, start, stop)" 
                        list="command-datalist">
                 <datalist id="command-datalist"></datalist>
-                <button class="send-btn" onclick="sendQuickCommand()">Run</button>
+                <button class="send-btn" onclick="window.sendQuickCommand()">Run Command</button>
             </div>
         </div>
     </div>
@@ -1059,10 +1044,10 @@ def create_template():
             <h3>⚠️ Reset Database</h3>
             <p>This will DELETE ALL DATA! Are you absolutely sure?</p>
             <p>Type <strong>yes</strong> to confirm:</p>
-            <input type="text" id="resetConfirm" class="command-input" style="width: 100%;">
+            <input type="text" id="resetConfirm" class="command-input" style="width: 100%;" placeholder="yes">
             <div class="modal-actions">
-                <button class="action-btn" onclick="closeModal()">Cancel</button>
-                <button class="action-btn danger" onclick="executeResetDB()">Reset Database</button>
+                <button class="action-btn" onclick="window.closeModal()">Cancel</button>
+                <button class="action-btn danger" onclick="window.executeResetDB()">Reset Database</button>
             </div>
         </div>
     </div>
@@ -1095,7 +1080,7 @@ def create_template():
         });
 
         // Show toast
-        function showToast(message, type = 'info') {
+        window.showToast = function(message, type = 'info') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = `toast ${type}`;
@@ -1103,10 +1088,10 @@ def create_template():
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 3000);
-        }
+        };
 
         // Refresh status from JSON
-        async function refreshStatus() {
+        window.refreshStatus = async function() {
             try {
                 const response = await fetch('/api/status');
                 const data = await response.json();
@@ -1114,7 +1099,7 @@ def create_template():
             } catch (error) {
                 console.error('Error refreshing status:', error);
             }
-        }
+        };
 
         // Update status UI
         function updateStatusUI(data) {
@@ -1144,7 +1129,7 @@ def create_template():
                 }
 
                 // Show raw JSON
-                html += `<div class="status-json">${JSON.stringify(main, null, 2)}</div>`;
+                html += `<div class="status-json">${escapeHtml(JSON.stringify(main, null, 2))}</div>`;
                 html += `</div>`;
             } else {
                 html += `
@@ -1179,7 +1164,7 @@ def create_template():
                     html += `<div class="status-detail" style="color: #f44;">Error: ${video.error}</div>`;
                 }
 
-                html += `<div class="status-json">${JSON.stringify(video, null, 2)}</div>`;
+                html += `<div class="status-json">${escapeHtml(JSON.stringify(video, null, 2))}</div>`;
                 html += `</div>`;
             } else {
                 html += `
@@ -1207,6 +1192,12 @@ def create_template():
             document.getElementById('jsonStatus').innerHTML = `✓ Reading from: ${data.files?.main_status ? 'kiselgram_status.json' : 'no status file'}`;
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Load command suggestions
         async function loadSuggestions() {
             try {
@@ -1219,7 +1210,7 @@ def create_template():
 
                 commands.forEach(cmd => {
                     html += `
-                        <div class="suggestion-item" onclick="runQuickCommand('${cmd.cmd}')">
+                        <div class="suggestion-item" onclick="window.runQuickCommand('${cmd.cmd}')">
                             <span class="suggestion-cmd">${cmd.cmd}</span>
                             <span class="suggestion-desc">${cmd.desc}</span>
                         </div>
@@ -1253,9 +1244,15 @@ def create_template():
 
                     // Send initial command to set context
                     setTimeout(() => {
-                        sendToTerminal('cd ' + window.location.pathname.replace(/\/[^/]*$/, ''));
-                        sendToTerminal('echo "Kiselgram Management Terminal"');
-                        sendToTerminal('echo "Type \'python manage.py help\' for commands"');
+                        sendToTerminal('clear');
+                        sendToTerminal('echo "Kiselgram Management Terminal Ready"');
+                        sendToTerminal('echo ""');
+                        sendToTerminal('echo "Available commands:"');
+                        sendToTerminal('echo "  python manage.py status   - Check service status"');
+                        sendToTerminal('echo "  python manage.py start    - Start all services"');
+                        sendToTerminal('echo "  python manage.py stop     - Stop all services"');
+                        sendToTerminal('echo "  python manage.py help     - Show full help"');
+                        sendToTerminal('echo ""');
                     }, 500);
                 }
             } catch (error) {
@@ -1288,26 +1285,41 @@ def create_template():
         }
 
         // Send input to terminal
-        async function sendToTerminal(text) {
+        window.sendToTerminal = async function(text) {
             if (!currentSessionId) return;
 
             try {
                 await fetch(`/api/terminal/${currentSessionId}/write`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({input: text + '\n'})
+                    body: JSON.stringify({input: text + '\\n'})
                 });
             } catch (error) {
                 console.error('Error sending to terminal:', error);
             }
-        }
+        };
 
         // Append to terminal output
         function appendToTerminal(text) {
             const output = document.getElementById('terminal-output');
-            output.innerHTML += text.replace(/\n/g, '<br>');
+            // Escape HTML and handle newlines
+            const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const lines = escaped.split('\\n');
+            lines.forEach(line => {
+                if (line.trim() || line === '') {
+                    const div = document.createElement('div');
+                    div.textContent = line;
+                    output.appendChild(div);
+                }
+            });
             output.scrollTop = output.scrollHeight;
         }
+
+        // Clear terminal
+        window.clearTerminal = function() {
+            const output = document.getElementById('terminal-output');
+            output.innerHTML = '<div>Terminal cleared.</div>';
+        };
 
         // Handle input key
         function handleInputKey(e) {
@@ -1319,7 +1331,15 @@ def create_template():
                     commandHistory.push(cmd);
                     historyIndex = commandHistory.length;
 
-                    appendToTerminal('<span style="color: #0ff;">$ ' + cmd + '</span><br>');
+                    // Add to terminal output
+                    const output = document.getElementById('terminal-output');
+                    const promptDiv = document.createElement('div');
+                    promptDiv.style.color = '#0ff';
+                    promptDiv.textContent = '$ ' + cmd;
+                    output.appendChild(promptDiv);
+                    output.scrollTop = output.scrollHeight;
+
+                    // Send to terminal
                     sendToTerminal(cmd);
 
                     input.value = '';
@@ -1342,48 +1362,49 @@ def create_template():
             }
         }
 
-        // Focus input
-        function focusInput() {
+        // Focus terminal input
+        window.focusTerminalInput = function() {
             document.getElementById('terminal-input').focus();
-        }
+        };
 
         // Run quick command
-        async function runQuickCommand(cmd) {
-            appendToTerminal('<span style="color: #0ff;">$ ' + cmd + '</span><br>');
+        window.runQuickCommand = function(cmd) {
+            // Add to terminal output
+            const output = document.getElementById('terminal-output');
+            const promptDiv = document.createElement('div');
+            promptDiv.style.color = '#0ff';
+            promptDiv.textContent = '$ python manage.py ' + cmd;
+            output.appendChild(promptDiv);
+            output.scrollTop = output.scrollHeight;
+
+            // Send to terminal
             sendToTerminal('python manage.py ' + cmd);
-        }
+        };
 
         // Send quick command from input
-        function sendQuickCommand() {
+        window.sendQuickCommand = function() {
             const input = document.getElementById('quick-command');
             const cmd = input.value.trim();
             if (cmd) {
                 runQuickCommand(cmd);
                 input.value = '';
             }
-        }
-
-        // New terminal tab
-        function newTerminal() {
-            if (eventSource) {
-                eventSource.close();
-            }
-            startNewTerminal();
-        }
+        };
 
         // Confirm reset DB
-        function confirmResetDB() {
+        window.confirmResetDB = function() {
             document.getElementById('resetModal').classList.add('active');
-        }
+            document.getElementById('resetConfirm').focus();
+        };
 
         // Close modal
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('resetModal').classList.remove('active');
             document.getElementById('resetConfirm').value = '';
-        }
+        };
 
         // Execute reset DB
-        function executeResetDB() {
+        window.executeResetDB = function() {
             const confirm = document.getElementById('resetConfirm').value;
             if (confirm === 'yes') {
                 runQuickCommand('reset-db');
@@ -1391,10 +1412,20 @@ def create_template():
             } else {
                 showToast('Type "yes" to confirm', 'error');
             }
-        }
+        };
 
         // Auto-refresh status every 5 seconds
         setInterval(refreshStatus, 5000);
+
+        // Make functions globally available
+        window.refreshStatus = refreshStatus;
+        window.runQuickCommand = runQuickCommand;
+        window.sendQuickCommand = sendQuickCommand;
+        window.confirmResetDB = confirmResetDB;
+        window.closeModal = closeModal;
+        window.executeResetDB = executeResetDB;
+        window.clearTerminal = clearTerminal;
+        window.focusTerminalInput = focusTerminalInput;
     </script>
 </body>
 </html>"""
