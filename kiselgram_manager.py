@@ -17,6 +17,7 @@ import select
 import termios
 import struct
 import fcntl
+import shutil
 from pathlib import Path
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_file, Response
@@ -30,6 +31,10 @@ BASE_DIR = Path(__file__).parent.absolute()
 STATUS_FILE = BASE_DIR / '.kiselgram_status.json'
 VIDEO_STATUS_FILE = BASE_DIR / '.kiselgram_video_status.json'
 LOG_FILE = BASE_DIR / '.kiselgram_terminal.log'
+STATIC_DIR = BASE_DIR / 'static'
+
+# Create static directory if it doesn't exist
+STATIC_DIR.mkdir(exist_ok=True)
 
 # Store active terminal sessions
 active_sessions = {}
@@ -49,7 +54,7 @@ class JSONStatusReader:
                 # Verify if process is actually running
                 if 'pid' in data:
                     try:
-                        os.kill(data['pid'], 0)  # Check if process exists
+                        os.kill(data['pid'], 0)
                         data['process_exists'] = True
                     except OSError:
                         data['process_exists'] = False
@@ -68,7 +73,6 @@ class JSONStatusReader:
                 with open(VIDEO_STATUS_FILE, 'r') as f:
                     data = json.load(f)
 
-                # Verify if process is actually running
                 if 'pid' in data:
                     try:
                         os.kill(data['pid'], 0)
@@ -88,7 +92,6 @@ class JSONStatusReader:
         main_status = JSONStatusReader.read_main_status()
         video_status = JSONStatusReader.read_video_status()
 
-        # Also check ports directly
         import socket
         def check_port(port):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -127,19 +130,15 @@ class TerminalSession:
     def start(self, cmd=None):
         """Start a new terminal session"""
         try:
-            # Create pseudo-terminal
             self.master_fd, self.slave_fd = pty.openpty()
 
-            # Set terminal size
             winsize = struct.pack('HHHH', 24, 80, 0, 0)
             fcntl.ioctl(self.slave_fd, termios.TIOCSWINSZ, winsize)
 
-            # Set terminal attributes
             attrs = termios.tcgetattr(self.slave_fd)
-            attrs[3] = attrs[3] & ~termios.ECHO  # Disable echo
+            attrs[3] = attrs[3] & ~termios.ECHO
             termios.tcsetattr(self.slave_fd, termios.TCSANOW, attrs)
 
-            # Start shell or command
             if cmd:
                 shell_cmd = ['/bin/bash', '-c', cmd]
             else:
@@ -158,7 +157,6 @@ class TerminalSession:
             os.close(self.slave_fd)
             self.running = True
 
-            # Start output reader thread
             def reader():
                 while self.running and self.process.poll() is None:
                     try:
@@ -167,7 +165,6 @@ class TerminalSession:
                             data = os.read(self.master_fd, 1024)
                             if data:
                                 self.output_buffer.append(data.decode('utf-8', errors='ignore'))
-                                # Keep buffer manageable
                                 if len(self.output_buffer) > 1000:
                                     self.output_buffer = self.output_buffer[-1000:]
                     except (IOError, OSError):
@@ -236,7 +233,6 @@ class CommandRunner:
         try:
             cmd = [sys.executable, 'manage.py'] + command.split()
 
-            # Use pseudo-terminal for interactive commands
             if input_data or any(x in command for x in ['reset-db', 'delete']):
                 master, slave = pty.openpty()
 
@@ -262,7 +258,6 @@ class CommandRunner:
                             if data:
                                 output.append(data)
 
-                                # Send input if needed
                                 if input_data and 'y/n' in data.lower():
                                     time.sleep(0.5)
                                     os.write(master, (input_data + '\n').encode())
@@ -285,7 +280,6 @@ class CommandRunner:
                 }
 
             else:
-                # Simple command without interaction
                 result = subprocess.run(
                     cmd,
                     cwd=str(BASE_DIR),
@@ -386,14 +380,12 @@ def api_terminal_read(session_id):
                 yield f"data: {json.dumps({'output': output})}\n\n"
             time.sleep(0.1)
 
-        # Send final output
         output = terminal.get_output()
         if output:
             yield f"data: {json.dumps({'output': output})}\n\n"
 
         yield "data: {\"closed\": true}\n\n"
 
-        # Clean up
         if session_id in active_sessions:
             del active_sessions[session_id]
 
@@ -472,18 +464,14 @@ def api_process_kill():
     results = []
 
     if port:
-        # Kill process on port
         try:
-            import socket
             import psutil
-
             for conn in psutil.net_connections():
                 if conn.laddr.port == port and conn.status == 'LISTEN':
                     proc = psutil.Process(conn.pid)
                     proc.terminate()
                     results.append(f"Killed PID {conn.pid} on port {port}")
         except:
-            # Fallback method
             if sys.platform == 'win32':
                 subprocess.run(f'netstat -ano | findstr :{port}', shell=True)
             else:
@@ -504,12 +492,9 @@ def api_process_kill():
 def api_logs():
     """Get application logs"""
     logs = []
-
-    # Read manage.py output if available
     if LOG_FILE.exists():
         with open(LOG_FILE, 'r') as f:
-            logs = f.readlines()[-100:]  # Last 100 lines
-
+            logs = f.readlines()[-100:]
     return jsonify({'logs': logs})
 
 
@@ -538,6 +523,7 @@ def create_template():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kiselgram Web Terminal</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -546,11 +532,27 @@ def create_template():
         }
 
         body {
-            font-family: 'Courier New', 'Fira Code', monospace;
-            background: #1e1e2f;
-            color: #fff;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: #ffffff;
+            color: #000000;
             height: 100vh;
             overflow: hidden;
+            background-image: url('/static/kiselgram-banner.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Overlay for readability */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.92);
+            z-index: -1;
         }
 
         .container {
@@ -560,43 +562,46 @@ def create_template():
 
         /* Sidebar */
         .sidebar {
-            width: 350px;
-            background: #2d2d3f;
-            border-right: 1px solid #3d3d4f;
+            width: 380px;
+            background: rgba(255, 255, 255, 0.98);
+            border-right: 1px solid #ddd;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
         }
 
         .sidebar-header {
             padding: 20px;
-            border-bottom: 1px solid #3d3d4f;
+            border-bottom: 1px solid #eee;
+            text-align: center;
         }
 
         .sidebar-header h1 {
-            font-size: 1.2em;
-            color: #0ff;
+            font-size: 1.3em;
+            color: #000;
             margin-bottom: 5px;
         }
 
         .sidebar-header p {
             font-size: 0.8em;
-            color: #aaa;
+            color: #666;
         }
 
         .status-panel {
             padding: 15px;
-            border-bottom: 1px solid #3d3d4f;
+            border-bottom: 1px solid #eee;
         }
 
         .status-panel h3 {
-            color: #0ff;
+            color: #000;
             margin-bottom: 10px;
             font-size: 0.9em;
+            font-weight: 600;
         }
 
         .status-card {
-            background: #1e1e2f;
+            background: #f8f9fa;
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 10px;
@@ -604,11 +609,11 @@ def create_template():
         }
 
         .status-card.main {
-            border-left-color: #0ff;
+            border-left-color: #007bff;
         }
 
         .status-card.video {
-            border-left-color: #f0f;
+            border-left-color: #6f42c1;
         }
 
         .status-header {
@@ -620,7 +625,7 @@ def create_template():
 
         .status-title {
             font-weight: bold;
-            color: #fff;
+            color: #000;
         }
 
         .status-badge {
@@ -630,35 +635,37 @@ def create_template():
         }
 
         .badge-running {
-            background: #00ff8844;
-            color: #0f8;
-            border: 1px solid #0f8;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
         }
 
         .badge-stopped {
-            background: #ff444444;
-            color: #f44;
-            border: 1px solid #f44;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #dc3545;
         }
 
         .status-detail {
             font-size: 0.75em;
-            color: #aaa;
+            color: #555;
             margin: 3px 0;
         }
 
         .status-detail span {
-            color: #0ff;
+            color: #000;
             margin-right: 5px;
+            font-weight: 500;
         }
 
         .status-json {
             margin-top: 8px;
             padding: 8px;
-            background: #1a1a2a;
+            background: #fff;
+            border: 1px solid #eee;
             border-radius: 4px;
             font-size: 0.65em;
-            color: #0f0;
+            color: #333;
             white-space: pre-wrap;
             max-height: 150px;
             overflow-y: auto;
@@ -667,13 +674,14 @@ def create_template():
 
         .quick-actions {
             padding: 15px;
-            border-bottom: 1px solid #3d3d4f;
+            border-bottom: 1px solid #eee;
         }
 
         .quick-actions h3 {
-            color: #0ff;
+            color: #000;
             margin-bottom: 10px;
             font-size: 0.9em;
+            font-weight: 600;
         }
 
         .action-grid {
@@ -683,9 +691,9 @@ def create_template():
         }
 
         .action-btn {
-            background: #1e1e2f;
-            border: 1px solid #3d3d4f;
-            color: #fff;
+            background: #fff;
+            border: 1px solid #ddd;
+            color: #333;
             padding: 8px;
             border-radius: 4px;
             cursor: pointer;
@@ -694,18 +702,18 @@ def create_template():
         }
 
         .action-btn:hover {
-            background: #3d3d4f;
-            border-color: #0ff;
+            background: #f0f0f0;
+            border-color: #999;
         }
 
         .action-btn.danger:hover {
-            border-color: #f44;
-            color: #f44;
+            border-color: #dc3545;
+            color: #dc3545;
         }
 
         .action-btn.success:hover {
-            border-color: #0f8;
-            color: #0f8;
+            border-color: #28a745;
+            color: #28a745;
         }
 
         .command-suggestions {
@@ -714,15 +722,16 @@ def create_template():
         }
 
         .command-suggestions h3 {
-            color: #0ff;
+            color: #000;
             margin-bottom: 10px;
             font-size: 0.9em;
+            font-weight: 600;
         }
 
         .suggestion-item {
             padding: 8px;
             margin: 4px 0;
-            background: #1e1e2f;
+            background: #f8f9fa;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.75em;
@@ -732,15 +741,17 @@ def create_template():
         }
 
         .suggestion-item:hover {
-            border-color: #0ff;
+            border-color: #007bff;
+            background: #e7f1ff;
         }
 
         .suggestion-cmd {
-            color: #0f0;
+            color: #007bff;
+            font-family: monospace;
         }
 
         .suggestion-desc {
-            color: #aaa;
+            color: #666;
             font-size: 0.9em;
         }
 
@@ -749,20 +760,20 @@ def create_template():
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #1e1e2f;
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .terminal-header {
-            background: #2d2d3f;
+            background: #fff;
             padding: 10px 20px;
-            border-bottom: 1px solid #3d3d4f;
+            border-bottom: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .terminal-header h3 {
-            color: #0ff;
+            color: #000;
             font-size: 0.9em;
         }
 
@@ -776,17 +787,18 @@ def create_template():
 
         .terminal {
             flex: 1;
-            background: #0a0a0f;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
             border-radius: 8px;
             padding: 15px;
             overflow-y: auto;
-            font-family: 'Courier New', 'Fira Code', monospace;
+            font-family: 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.5;
         }
 
         .terminal-output {
-            color: #0f0;
+            color: #000;
             margin-bottom: 10px;
             white-space: pre-wrap;
             word-wrap: break-word;
@@ -800,11 +812,13 @@ def create_template():
             display: flex;
             align-items: center;
             margin-top: 5px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
         }
 
         .terminal-prompt {
             margin-right: 10px;
-            color: #0ff;
+            color: #007bff;
             font-weight: bold;
         }
 
@@ -812,25 +826,25 @@ def create_template():
             flex: 1;
             background: transparent;
             border: none;
-            color: #fff;
-            font-family: 'Courier New', 'Fira Code', monospace;
+            color: #000;
+            font-family: 'Courier New', monospace;
             font-size: 13px;
             outline: none;
         }
 
         .command-bar {
-            background: #2d2d3f;
+            background: #fff;
             padding: 15px 20px;
-            border-top: 1px solid #3d3d4f;
+            border-top: 1px solid #ddd;
             display: flex;
             gap: 10px;
         }
 
         .command-input {
             flex: 1;
-            background: #1e1e2f;
-            border: 1px solid #3d3d4f;
-            color: #fff;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #000;
             padding: 10px 15px;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
@@ -838,12 +852,12 @@ def create_template():
         }
 
         .command-input:focus {
-            border-color: #0ff;
+            border-color: #007bff;
         }
 
         .send-btn {
-            background: #0ff;
-            color: #1e1e2f;
+            background: #007bff;
+            color: #fff;
             border: none;
             padding: 10px 20px;
             border-radius: 4px;
@@ -852,7 +866,7 @@ def create_template():
         }
 
         .send-btn:hover {
-            background: #0cf;
+            background: #0056b3;
         }
 
         /* Modal */
@@ -863,7 +877,7 @@ def create_template():
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -874,21 +888,22 @@ def create_template():
         }
 
         .modal-content {
-            background: #2d2d3f;
+            background: #fff;
             padding: 30px;
             border-radius: 8px;
             max-width: 500px;
             width: 90%;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
 
         .modal-content h3 {
-            color: #0ff;
+            color: #dc3545;
             margin-bottom: 20px;
         }
 
         .modal-content p {
             margin: 15px 0;
-            color: #aaa;
+            color: #555;
         }
 
         .modal-actions {
@@ -903,21 +918,22 @@ def create_template():
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #2d2d3f;
-            border-left: 3px solid #0ff;
+            background: #fff;
+            border-left: 3px solid #007bff;
             padding: 15px 25px;
             border-radius: 4px;
-            color: #fff;
+            color: #000;
             display: none;
             z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .toast.error {
-            border-left-color: #f44;
+            border-left-color: #dc3545;
         }
 
         .toast.success {
-            border-left-color: #0f8;
+            border-left-color: #28a745;
         }
 
         /* Loading */
@@ -925,8 +941,8 @@ def create_template():
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 2px solid #3d3d4f;
-            border-top-color: #0ff;
+            border: 2px solid #ddd;
+            border-top-color: #007bff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -942,16 +958,30 @@ def create_template():
         }
 
         ::-webkit-scrollbar-track {
-            background: #1e1e2f;
+            background: #f1f1f1;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #3d3d4f;
+            background: #ccc;
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #4d4d5f;
+            background: #aaa;
+        }
+
+        /* Button styles */
+        .btn-clear {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-clear:hover {
+            background: #5a6268;
         }
     </style>
 </head>
@@ -962,7 +992,7 @@ def create_template():
             <div class="sidebar-header">
                 <h1>🎮 Kiselgram Web Terminal</h1>
                 <p>Interactive browser-based management</p>
-                <div style="margin-top: 10px; font-size: 0.75em; color: #0f0;" id="jsonStatus">
+                <div style="margin-top: 10px; font-size: 0.75em; color: #28a745;" id="jsonStatus">
                     ✓ Reading from JSON files
                 </div>
             </div>
@@ -1004,7 +1034,7 @@ def create_template():
             <!-- Terminal Header -->
             <div class="terminal-header">
                 <h3>📟 Interactive Terminal</h3>
-                <button class="action-btn" onclick="window.clearTerminal()" style="font-size: 0.8em;">🗑️ Clear</button>
+                <button class="btn-clear" onclick="window.clearTerminal()">🗑️ Clear Terminal</button>
             </div>
 
             <!-- Terminal -->
@@ -1068,11 +1098,9 @@ def create_template():
             loadSuggestions();
             startNewTerminal();
 
-            // Input handling
             const input = document.getElementById('terminal-input');
             input.addEventListener('keydown', handleInputKey);
 
-            // Quick command input
             const quickCmd = document.getElementById('quick-command');
             quickCmd.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') sendQuickCommand();
@@ -1125,10 +1153,9 @@ def create_template():
                 `;
 
                 if (main.error) {
-                    html += `<div class="status-detail" style="color: #f44;">Error: ${main.error}</div>`;
+                    html += `<div class="status-detail" style="color: #dc3545;">Error: ${main.error}</div>`;
                 }
 
-                // Show raw JSON
                 html += `<div class="status-json">${escapeHtml(JSON.stringify(main, null, 2))}</div>`;
                 html += `</div>`;
             } else {
@@ -1161,7 +1188,7 @@ def create_template():
                 `;
 
                 if (video.error) {
-                    html += `<div class="status-detail" style="color: #f44;">Error: ${video.error}</div>`;
+                    html += `<div class="status-detail" style="color: #dc3545;">Error: ${video.error}</div>`;
                 }
 
                 html += `<div class="status-json">${escapeHtml(JSON.stringify(video, null, 2))}</div>`;
@@ -1180,7 +1207,7 @@ def create_template():
 
             // Port status
             html += `
-                <div style="margin-top: 10px; padding: 10px; background: #1e1e2f; border-radius: 4px;">
+                <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
                     <div class="status-detail"><span>Port 5000:</span> ${data.ports?.main ? '🟢 In use' : '⚫ Free'}</div>
                     <div class="status-detail"><span>Port 5001:</span> ${data.ports?.video ? '🟢 In use' : '⚫ Free'}</div>
                     <div class="status-detail"><span>JSON files:</span> Main: ${data.files?.main_status ? '✅' : '❌'} Video: ${data.files?.video_status ? '✅' : '❌'}</div>
@@ -1242,7 +1269,6 @@ def create_template():
                     startEventSource();
                     showToast('Terminal session started', 'success');
 
-                    // Send initial command to set context
                     setTimeout(() => {
                         sendToTerminal('clear');
                         sendToTerminal('echo "Kiselgram Management Terminal Ready"');
@@ -1302,9 +1328,7 @@ def create_template():
         // Append to terminal output
         function appendToTerminal(text) {
             const output = document.getElementById('terminal-output');
-            // Escape HTML and handle newlines
-            const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const lines = escaped.split('\\n');
+            const lines = text.split('\\n');
             lines.forEach(line => {
                 if (line.trim() || line === '') {
                     const div = document.createElement('div');
@@ -1319,6 +1343,7 @@ def create_template():
         window.clearTerminal = function() {
             const output = document.getElementById('terminal-output');
             output.innerHTML = '<div>Terminal cleared.</div>';
+            sendToTerminal('clear');
         };
 
         // Handle input key
@@ -1331,15 +1356,13 @@ def create_template():
                     commandHistory.push(cmd);
                     historyIndex = commandHistory.length;
 
-                    // Add to terminal output
                     const output = document.getElementById('terminal-output');
                     const promptDiv = document.createElement('div');
-                    promptDiv.style.color = '#0ff';
+                    promptDiv.style.color = '#007bff';
                     promptDiv.textContent = '$ ' + cmd;
                     output.appendChild(promptDiv);
                     output.scrollTop = output.scrollHeight;
 
-                    // Send to terminal
                     sendToTerminal(cmd);
 
                     input.value = '';
@@ -1369,15 +1392,13 @@ def create_template():
 
         // Run quick command
         window.runQuickCommand = function(cmd) {
-            // Add to terminal output
             const output = document.getElementById('terminal-output');
             const promptDiv = document.createElement('div');
-            promptDiv.style.color = '#0ff';
+            promptDiv.style.color = '#007bff';
             promptDiv.textContent = '$ python manage.py ' + cmd;
             output.appendChild(promptDiv);
             output.scrollTop = output.scrollHeight;
 
-            // Send to terminal
             sendToTerminal('python manage.py ' + cmd);
         };
 
@@ -1436,6 +1457,29 @@ def create_template():
     print(f"✅ Created terminal template at {template_path}")
 
 
+def copy_static_assets():
+    """Copy static assets if they exist"""
+    # Create placeholder favicon if not exists
+    favicon_path = STATIC_DIR / 'favicon.ico'
+    if not favicon_path.exists():
+        # Create a simple 16x16 ICO file (transparent)
+        try:
+            from PIL import Image
+            img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+            img.save(favicon_path, 'ICO')
+            print(f"✅ Created placeholder favicon at {favicon_path}")
+        except:
+            print(f"⚠️ Could not create favicon. Place your favicon.ico in {STATIC_DIR}")
+
+    # Check for banner image
+    banner_path = STATIC_DIR / 'kiselgram-banner.jpg'
+    if banner_path.exists():
+        print(f"✅ Found banner image at {banner_path}")
+    else:
+        print(f"⚠️ Banner image not found. Place kiselgram-banner.jpg in {STATIC_DIR}")
+        print(f"   The terminal will work without it, using white background.")
+
+
 def main():
     """Main entry point"""
     import argparse
@@ -1459,11 +1503,13 @@ def main():
  |_|\\_\\\\___/ |_| |_____|____/____/ \\___/|_| \\_|\\___/  |_|   |_| |_| \\_|_| \\_\\
     """)
     print("=" * 60)
-    print("📟 Kiselgram Web Terminal")
+    print("📟 Kiselgram Web Terminal - Black & White Theme")
     print("📍 Reading status from: .kiselgram_status.json, .kiselgram_video_status.json")
     print(f"📍 Starting on http://{args.host}:{args.port}")
     print("=" * 60)
-    print("\n🚀 Features:")
+    print("\n🎨 Theme: Black on White with custom background")
+    print("📁 Static assets: static/kiselgram-banner.jpg, static/favicon.ico")
+    print("🚀 Features:")
     print("   • Live status from JSON files")
     print("   • Interactive browser-based terminal")
     print("   • Command history and suggestions")
@@ -1471,8 +1517,9 @@ def main():
     print("   • Raw JSON viewer")
     print("=" * 60)
 
-    # Create template
+    # Create template and copy assets
     create_template()
+    copy_static_assets()
 
     # Open browser if not disabled
     if not args.no_browser:
