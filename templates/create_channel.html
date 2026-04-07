@@ -1,57 +1,64 @@
-<!-- templates/create_channel.html -->
 {% extends "base.html" %}
 
 {% block title %}Create Channel - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: #f8f9fa;
-        color: #333;
-        margin: 0;
-        padding: 20px;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
     }
 
-    .container {
-        max-width: 500px;
-        width: 100%;
-        background: white;
-        padding: 30px;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        margin-top: 20px;
-        margin-bottom: 20px;
-        overflow-y: auto;
-        max-height: 80%;
+    .form-header {
+        margin-bottom: 24px;
     }
 
-    .back-button {
+    .back-link {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        color: #007bff;
+        color: var(--tg-text-light);
         text-decoration: none;
-        font-weight: 500;
-        margin-bottom: 20px;
-        padding: 8px 16px;
-        border-radius: 8px;
-        transition: background 0.2s;
+        font-size: 14px;
+        margin-bottom: 16px;
     }
 
-    .back-button:hover {
-        background: #f0f7ff;
+    .form-header h1 {
+        font-size: 28px;
+        font-weight: 700;
     }
 
-    h2 {
-        color: #333;
-        margin: 0 0 25px 0;
-        font-size: 1.8em;
+    .info-card {
+        background: linear-gradient(135deg, rgba(245, 54, 92, 0.1), rgba(251, 99, 64, 0.1));
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .info-card h3 {
+        font-size: 16px;
         font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .info-card ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .info-card li {
+        font-size: 14px;
+        color: var(--tg-text-light);
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+    }
+
+    .info-card li:before {
+        content: '📢';
+        position: absolute;
+        left: 0;
     }
 
     .form-group {
@@ -60,386 +67,214 @@
 
     .form-label {
         display: block;
+        font-weight: 600;
         margin-bottom: 8px;
-        font-weight: 500;
-        color: #555;
     }
 
     .form-label span {
-        color: #dc3545;
-        margin-left: 4px;
+        color: var(--tg-danger);
     }
 
-    input[type="text"],
-    textarea {
+    .form-input {
         width: 100%;
-        padding: 12px 16px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        padding: 14px 16px;
+        border: 2px solid var(--tg-border);
+        border-radius: 16px;
+        background: var(--tg-surface);
+        color: var(--tg-text);
         font-size: 16px;
-        font-family: inherit;
         transition: all 0.2s;
-        background: #f8f9fa;
-        color: #333;
     }
 
-    input[type="text"]:focus,
-    textarea:focus {
+    .form-input:focus {
         outline: none;
-        border-color: #007bff;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        border-color: var(--tg-danger);
+        box-shadow: 0 0 0 3px rgba(245, 54, 92, 0.1);
     }
 
-    textarea {
-        min-height: 120px;
+    textarea.form-input {
         resize: vertical;
+        min-height: 100px;
+    }
+
+    .char-counter {
+        text-align: right;
+        font-size: 12px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
     }
 
     .checkbox-group {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin: 20px 0;
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #eee;
+        gap: 12px;
+        padding: 16px;
+        background: var(--tg-surface);
+        border-radius: 16px;
+        margin-bottom: 20px;
     }
 
-    input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: #007bff;
-        cursor: pointer;
+    .checkbox-group input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--tg-danger);
     }
 
     .checkbox-group label {
-        font-weight: 500;
-        color: #555;
-        cursor: pointer;
         flex: 1;
+        font-weight: 500;
     }
 
     .help-text {
-        font-size: 0.85em;
-        color: #666;
-        margin-top: 5px;
-        line-height: 1.4;
+        font-size: 13px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
     }
 
-    .error {
-        background: #fee;
-        color: #dc3545;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #fcc;
-        margin-bottom: 20px;
-        font-size: 0.9em;
-    }
-
-    .success {
-        background: #d4edda;
-        color: #155724;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #c3e6cb;
-        margin-bottom: 20px;
-        font-size: 0.9em;
-    }
-
-    .channel-type-info {
-        background: #f0f7ff;
-        border: 1px solid #cce5ff;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 20px 0;
-    }
-
-    .channel-type-info h4 {
-        margin: 0 0 10px 0;
-        color: #0056b3;
-        font-size: 1em;
-    }
-
-    .channel-type-info ul {
-        margin: 0;
-        padding-left: 20px;
-        color: #555;
-    }
-
-    .channel-type-info li {
-        margin: 5px 0;
-        font-size: 0.9em;
-    }
-
-    .submit-button {
-        background: #007bff;
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--tg-danger), #fb6340);
         color: white;
         border: none;
-        padding: 14px;
-        border-radius: 8px;
+        border-radius: 28px;
         font-size: 16px;
-        font-weight: 500;
+        font-weight: 600;
         cursor: pointer;
-        width: 100%;
         transition: all 0.2s;
-        margin-top: 10px;
     }
 
-    .submit-button:hover:not(:disabled) {
-        background: #0056b3;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 54, 92, 0.3);
     }
 
-    .submit-button:active:not(:disabled) {
-        transform: translateY(0);
-    }
-
-    .submit-button:disabled {
-        background: #ccc;
+    .submit-btn:disabled {
+        opacity: 0.6;
         cursor: not-allowed;
-        opacity: 0.7;
+        transform: none;
     }
 
-    .loading {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top-color: white;
-        animation: spin 1s ease-in-out infinite;
-        margin-right: 10px;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    @media (max-width: 600px) {
-        body {
-            padding: 15px;
-            align-items: flex-start;
-        }
-
-        .container {
-            padding: 20px;
-            margin: 0;
-            border-radius: 12px;
-        }
-
-        h2 {
-            font-size: 1.5em;
-        }
-
-        input[type="text"],
-        textarea,
-        .submit-button {
-            padding: 12px;
-            font-size: 16px;
-        }
+    .error-message {
+        background: rgba(245, 54, 92, 0.1);
+        color: var(--tg-danger);
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 14px;
     }
 
     @media (max-width: 480px) {
-        body {
-            padding: 10px;
+        .form-container {
+            padding: 16px 12px 40px;
         }
 
-        .container {
-            padding: 16px;
-        }
-
-        h2 {
-            font-size: 1.3em;
+        .form-header h1 {
+            font-size: 24px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <a href="/chat_list" class="back-button">
-        ← Back to Chats
-    </a>
+<div class="form-container">
+    <div class="form-header">
+        <a href="/chat_list" class="back-link">← Back to Chats</a>
+        <h1>Create Channel</h1>
+    </div>
 
-    <h2>Create New Channel</h2>
-
-    {% if error %}
-        <div class="error">
-            {{ error }}
-        </div>
-    {% endif %}
-
-    {% if success %}
-        <div class="success">
-            {{ success }}
-        </div>
-    {% endif %}
-
-    <div class="channel-type-info">
-        <h4>What is a Channel?</h4>
+    <div class="info-card">
+        <h3>What's a Channel?</h3>
         <ul>
-            <li>Only the channel owner can post messages</li>
-            <li>Subscribers can only read and react to messages</li>
-            <li>Public channels are discoverable by everyone</li>
-            <li>Private channels require an invite link to join</li>
+            <li>Only you can post messages</li>
+            <li>Subscribers can read and react</li>
+            <li>Public channels are discoverable</li>
+            <li>Private channels need invite link</li>
         </ul>
     </div>
 
-    <form method="POST" id="channelForm" onsubmit="return validateForm()">
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" id="channelForm">
         <div class="form-group">
-            <label for="name" class="form-label">
-                Channel Name <span>*</span>
-            </label>
+            <label class="form-label">Channel Name <span>*</span></label>
             <input type="text"
-                   id="name"
                    name="name"
-                   placeholder="Enter channel name"
+                   class="form-input"
+                   placeholder="e.g., Tech News, Daily Tips"
                    maxlength="50"
                    required
                    value="{{ form_data.name if form_data else '' }}">
-            <div class="help-text">
-                Choose a descriptive name for your channel (3-50 characters)
-            </div>
+            <div class="char-counter" id="nameCounter">0/50</div>
         </div>
 
         <div class="form-group">
-            <label for="description" class="form-label">
-                Channel Description
-            </label>
-            <textarea id="description"
-                      name="description"
-                      placeholder="What is this channel about?"
-                      maxlength="200">{{ form_data.description if form_data else '' }}</textarea>
-            <div class="help-text">
-                Optional: Describe the purpose of your channel (max 200 characters)
-            </div>
+            <label class="form-label">Description</label>
+            <textarea name="description"
+                      class="form-input"
+                      placeholder="What will you share on this channel?">{{ form_data.description if form_data else '' }}</textarea>
+            <div class="char-counter" id="descCounter">0/200</div>
         </div>
 
         <div class="checkbox-group">
-            <input type="checkbox"
-                   id="is_public"
-                   name="is_public"
-                   {% if form_data and form_data.is_public %}checked{% endif %}>
-            <label for="is_public">
-                Public Channel
-            </label>
+            <input type="checkbox" name="is_public" id="isPublic">
+            <label for="isPublic">Public Channel</label>
         </div>
-        <div class="help-text" style="margin-top: -10px; margin-bottom: 20px;">
-            Public channels appear in search results and can be joined by anyone.
-            Private channels require an invite link.
-        </div>
+        <div class="help-text">Public channels appear in search results. Private channels need invite links.</div>
 
-        <button type="submit" class="submit-button" id="submitBtn">
-            Create Channel
-        </button>
+        <button type="submit" class="submit-btn" id="submitBtn">Create Channel →</button>
     </form>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    function validateForm() {
-        const nameInput = document.getElementById('name');
-        const descriptionInput = document.getElementById('description');
-        const submitBtn = document.getElementById('submitBtn');
+    // Character counters
+    const nameInput = document.querySelector('input[name="name"]');
+    const descInput = document.querySelector('textarea[name="description"]');
+    const nameCounter = document.getElementById('nameCounter');
+    const descCounter = document.getElementById('descCounter');
 
-        // Trim whitespace
-        nameInput.value = nameInput.value.trim();
-        descriptionInput.value = descriptionInput.value.trim();
-
-        // Validate name length
-        if (nameInput.value.length < 3) {
-            alert('Channel name must be at least 3 characters long');
-            nameInput.focus();
-            return false;
-        }
-
+    nameInput.addEventListener('input', () => {
+        nameCounter.textContent = `${nameInput.value.length}/50`;
         if (nameInput.value.length > 50) {
-            alert('Channel name must be less than 50 characters');
-            nameInput.focus();
-            return false;
+            nameCounter.style.color = 'var(--tg-danger)';
+        } else {
+            nameCounter.style.color = 'var(--tg-text-light)';
         }
-
-        // Validate description length
-        if (descriptionInput.value.length > 200) {
-            alert('Description must be less than 200 characters');
-            descriptionInput.focus();
-            return false;
-        }
-
-        // Disable button to prevent double submission
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="loading"></span> Creating Channel...';
-
-        return true;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('channelForm');
-        const nameInput = document.getElementById('name');
-
-        // Auto-focus on name input
-        nameInput.focus();
-
-        // Character counter for description
-        const descriptionInput = document.getElementById('description');
-        if (descriptionInput) {
-            const counter = document.createElement('div');
-            counter.className = 'help-text';
-            counter.style.textAlign = 'right';
-            counter.style.marginTop = '5px';
-            counter.style.fontSize = '0.8em';
-
-            descriptionInput.parentNode.appendChild(counter);
-
-            function updateCounter() {
-                const count = descriptionInput.value.length;
-                counter.textContent = `${count}/200 characters`;
-                counter.style.color = count > 200 ? '#dc3545' : '#666';
-            }
-
-            descriptionInput.addEventListener('input', updateCounter);
-            updateCounter();
-        }
-
-        // Character counter for name
-        if (nameInput) {
-            const nameCounter = document.createElement('div');
-            nameCounter.className = 'help-text';
-            nameCounter.style.textAlign = 'right';
-            nameCounter.style.marginTop = '5px';
-            nameCounter.style.fontSize = '0.8em';
-
-            nameInput.parentNode.appendChild(nameCounter);
-
-            function updateNameCounter() {
-                const count = nameInput.value.length;
-                nameCounter.textContent = `${count}/50 characters`;
-                nameCounter.style.color = count > 50 ? '#dc3545' : '#666';
-            }
-
-            nameInput.addEventListener('input', updateNameCounter);
-            updateNameCounter();
-        }
-
-        // Form reset on page refresh prevention
-        if (window.history.replaceState) {
-            window.history.replaceState(null, null, window.location.href);
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                window.location.href = '/chat_list';
-            }
-
-            if (e.ctrlKey && e.key === 'Enter') {
-                form.submit();
-            }
-        });
     });
+
+    descInput.addEventListener('input', () => {
+        descCounter.textContent = `${descInput.value.length}/200`;
+        if (descInput.value.length > 200) {
+            descCounter.style.color = 'var(--tg-danger)';
+        } else {
+            descCounter.style.color = 'var(--tg-text-light)';
+        }
+    });
+
+    // Form validation
+    document.getElementById('channelForm').addEventListener('submit', function(e) {
+        const name = nameInput.value.trim();
+
+        if (name.length < 3) {
+            alert('Channel name must be at least 3 characters');
+            e.preventDefault();
+            return;
+        }
+
+        if (name.length > 50) {
+            alert('Channel name must be less than 50 characters');
+            e.preventDefault();
+            return;
+        }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating Channel...';
+    });
+
+    // Auto-focus
+    nameInput.focus();
 </script>
 {% endblock %}

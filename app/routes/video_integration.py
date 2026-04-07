@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, jsonify, redirect, url_for, session
 import requests
 
-video_int_bp = Blueprint('video_int', __name__, url_prefix='/video')
+video_int_bp = Blueprint('video', __name__, url_prefix='/video')
 
 VIDEO_SERVER_URL = "http://localhost:5001"
 

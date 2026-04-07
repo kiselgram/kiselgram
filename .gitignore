@@ -1,3 +1,11 @@
 create_2.sh
 uploads
 *.sh
+.idea
+templates/.idea
+
+.kiselgram_status.json
+.kiselgram_video_status.json
+tmp_runner.py
+tmp_video_runner.py
+

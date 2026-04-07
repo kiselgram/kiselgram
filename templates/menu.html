@@ -1,56 +1,87 @@
+{% set active_page = request.endpoint %}
+
 <style>
     .bottom-nav {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: light-grey;
+        background: var(--tg-header);
+        backdrop-filter: blur(20px);
         display: flex;
-        border-top: 1px solid #eee;
+        border-top: 1px solid var(--tg-border);
+        padding: 8px 16px 12px;
         z-index: 1000;
-        opacity: 80%
+        gap: 8px;
     }
 
     .nav-item {
         flex: 1;
-        text-align: center;
-        padding: 15px 10px;
-        color: #666;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-radius: 12px;
         text-decoration: none;
-        font-size: 0.8em;
-        transition: all 0.3s ease;
-    }
-
-    .nav-item:hover {
-        background: #f8f9fa;
+        color: var(--tg-text-light);
+        transition: all 0.2s ease;
+        font-size: 12px;
+        font-weight: 500;
     }
 
     .nav-item.active {
-        color: #007bff;
+        color: var(--tg-primary);
+        background: rgba(94, 114, 228, 0.1);
     }
 
     .nav-icon {
-        font-size: 1.5em;
-        margin-bottom: 5px;
+        font-size: 24px;
+        margin-bottom: 2px;
+    }
+
+    .nav-label {
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    @media (hover: hover) {
+        .nav-item:hover {
+            background: rgba(94, 114, 228, 0.05);
+            transform: translateY(-2px);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .bottom-nav {
+            padding: 6px 12px 10px;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+        }
     }
 </style>
 
-<!-- Bottom Navigation with Video Tab (4 tabs) -->
 <div class="bottom-nav">
-    <a href="/chat_list" class="nav-item {% if request.path == '/chat_list' %}active{% endif %}">
+    <a href="{{ url_for('chats.chat_list') }}" class="nav-item {% if active_page == 'chats.chat_list' %}active{% endif %}">
         <div class="nav-icon">💬</div>
-        <div>Chats</div>
+        <div class="nav-label">Chats</div>
     </a>
-    <a href="/video" class="nav-item {% if request.path == '/video' %}active{% endif %}">
+    <a href="{{ url_for('video.video_index') }}" class="nav-item {% if active_page == 'video.video_index' %}active{% endif %}">
         <div class="nav-icon">🎥</div>
-        <div>Video</div>
+        <div class="nav-label">Video</div>
     </a>
-    <a href="/search" class="nav-item {% if request.path == '/search' %}active{% endif %}">
+    <a href="{{ url_for('search.search') }}" class="nav-item {% if active_page == 'search.search' %}active{% endif %}">
         <div class="nav-icon">🔍</div>
-        <div>Search</div>
+        <div class="nav-label">Search</div>
     </a>
-    <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+    <a href="{{ url_for('auth.settings') }}" class="nav-item {% if active_page == 'auth.settings' %}active{% endif %}">
         <div class="nav-icon">⚙️</div>
-        <div>Settings</div>
+        <div class="nav-label">Settings</div>
     </a>
 </div>

@@ -1,71 +1,160 @@
 {% extends "base.html" %}
 
+{% block title %}Sign In - Kiselgram{% endblock %}
+
 {% block styles %}
 <style>
-    /* Full Page Background with Tint */
-    body {
-        background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-                    url('{{ url_for('static', filename='kiselgram-banner.jpg') }}');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+    .auth-container {
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
-        margin: 0;
-        font-family: sans-serif;
+        padding: 20px;
+         background-image: url('{{url_for('static', filename='kiselgram-banner.jpg')}}');
+         background-size: cover;
     }
 
-    /* Login Card & Circular Logo */
-    .login-container {
-        background: white;
-        border-radius: 20px;
-        padding: 40px;
+    .auth-card {
+        background: var(--tg-header);
+        border-radius: 28px;
+        padding: 40px 32px;
         max-width: 400px;
-        text-align: center;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        width: 100%;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: fadeIn 0.4s ease-out;
     }
 
-    .logo-img {
+    .logo {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .logo-icon {
         width: 80px;
         height: 80px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #0088cc;
-        margin-bottom: 15px;
+        background-image: url("{{url_for('static', filename='favicon.ico')}}"); ;
+        border-radius: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        margin-bottom: 16px;
+        background-size: cover;
+        background-position: center;
     }
 
-    /* Inputs & Buttons */
-    .mobile-input {
-        width: 100%;
-        padding: 12px;
-        margin-bottom: 15px;
-        border: 2px solid #ddd;
-        border-radius: 12px;
-        box-sizing: border-box;
+    .logo h1 {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--tg-primary), #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
-    .mobile-btn {
+    .logo p {
+        color: var(--tg-text-light);
+        font-size: 14px;
+        margin-top: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-input {
         width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: 12px;
-        background: #0088cc;
+        padding: 14px 18px;
+        border: 2px solid var(--tg-border);
+        border-radius: 16px;
+        font-size: 16px;
+        background: var(--tg-bg);
+        color: var(--tg-text);
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--tg-primary);
+        box-shadow: 0 0 0 3px rgba(94, 114, 228, 0.1);
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--tg-primary), #764ba2);
         color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 16px;
         font-weight: 600;
         cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 12px;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(94, 114, 228, 0.3);
+    }
+
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+
+    @media (max-width: 480px) {
+        .auth-card {
+            padding: 32px 24px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            font-size: 32px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <img src="{{ url_for('static', filename='favicon.ico') }}" class="logo-img" alt="Logo">
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required class="mobile-input">
-        <input type="password" name="password" placeholder="Password" required class="mobile-input">
-        <button type="submit" class="mobile-btn">Login / Register</button>
-    </form>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <h1>Kiselgram</h1>
+            <p>Connect with the world</p>
+        </div>
+
+        <form method="POST" id="loginForm">
+            <div class="form-group">
+                <input type="text"
+                       name="username"
+                       class="form-input"
+                       placeholder="Username"
+                       required
+                       autofocus>
+            </div>
+            <div class="form-group">
+                <input type="password"
+                       name="password"
+                       class="form-input"
+                       placeholder="Password"
+                       required>
+            </div>
+            <button type="submit" class="submit-btn">Sign In / Register</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function() {
+        const btn = this.querySelector('.submit-btn');
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+    });
+</script>
 {% endblock %}

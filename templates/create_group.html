@@ -1,56 +1,65 @@
-<!-- templates/create_group.html -->
 {% extends "base.html" %}
 
 {% block title %}Create Group - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: #f8f9fa;
-        color: #333;
-        margin: 0;
-        padding: 20px;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
     }
 
-    .container {
-        max-width: 500px;
-        width: 100%;
-        background: white;
-        padding: 30px;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        margin-top: 20px;
-        margin-bottom: 20px;
-        overflow-y: auto;
-        max-height: 80%;
+    .form-header {
+        margin-bottom: 24px;
     }
 
-    .back-button {
+    .back-link {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        color: #007bff;
+        color: var(--tg-text-light);
         text-decoration: none;
-        font-weight: 500;
-        margin-bottom: 20px;
-        padding: 8px 16px;
-        border-radius: 8px;
-        transition: background 0.2s;
+        font-size: 14px;
+        margin-bottom: 16px;
     }
 
-    .back-button:hover {
-        background: #f0f7ff;
+    .form-header h1 {
+        font-size: 28px;
+        font-weight: 700;
     }
 
-    h2 {
-        color: #333;
-        margin: 0 0 25px 0;
-        font-size: 1.8em;
+    .info-card {
+        background: linear-gradient(135deg, rgba(45, 206, 137, 0.1), rgba(17, 205, 239, 0.1));
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .info-card h3 {
+        font-size: 16px;
         font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .info-card ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .info-card li {
+        font-size: 14px;
+        color: var(--tg-text-light);
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+    }
+
+    .info-card li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--tg-success);
     }
 
     .form-group {
@@ -59,187 +68,101 @@
 
     .form-label {
         display: block;
+        font-weight: 600;
         margin-bottom: 8px;
-        font-weight: 500;
-        color: #555;
     }
 
     .form-label span {
-        color: #dc3545;
-        margin-left: 4px;
+        color: var(--tg-danger);
     }
 
-    input[type="text"],
-    textarea {
+    .form-input {
         width: 100%;
-        padding: 12px 16px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        padding: 14px 16px;
+        border: 2px solid var(--tg-border);
+        border-radius: 16px;
+        background: var(--tg-surface);
+        color: var(--tg-text);
         font-size: 16px;
-        font-family: inherit;
         transition: all 0.2s;
-        background: #f8f9fa;
-        color: #333;
     }
 
-    input[type="text"]:focus,
-    textarea:focus {
+    .form-input:focus {
         outline: none;
-        border-color: #28a745;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        border-color: var(--tg-success);
+        box-shadow: 0 0 0 3px rgba(45, 206, 137, 0.1);
     }
 
-    textarea {
-        min-height: 120px;
+    textarea.form-input {
         resize: vertical;
+        min-height: 100px;
     }
 
-    .checkbox-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 20px 0;
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #eee;
+    .char-counter {
+        text-align: right;
+        font-size: 12px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
     }
 
-    input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: #28a745;
-        cursor: pointer;
-    }
-
-    .checkbox-group label {
-        font-weight: 500;
-        color: #555;
-        cursor: pointer;
-        flex: 1;
-    }
-
-    .help-text {
-        font-size: 0.85em;
-        color: #666;
-        margin-top: 5px;
-        line-height: 1.4;
-    }
-
-    .error {
-        background: #fee;
-        color: #dc3545;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #fcc;
+    .member-section {
+        background: var(--tg-surface);
+        border-radius: 20px;
+        padding: 20px;
         margin-bottom: 20px;
-        font-size: 0.9em;
     }
 
-    .success {
-        background: #d4edda;
-        color: #155724;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #c3e6cb;
-        margin-bottom: 20px;
-        font-size: 0.9em;
-    }
-
-    .group-type-info {
-        background: #f0f9f0;
-        border: 1px solid #d4edda;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 20px 0;
-    }
-
-    .group-type-info h4 {
-        margin: 0 0 10px 0;
-        color: #28a745;
-        font-size: 1em;
-    }
-
-    .group-type-info ul {
-        margin: 0;
-        padding-left: 20px;
-        color: #555;
-    }
-
-    .group-type-info li {
-        margin: 5px 0;
-        font-size: 0.9em;
-    }
-
-    .member-selection {
-        margin: 20px 0;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #eee;
-    }
-
-    .member-selection h4 {
-        margin: 0 0 15px 0;
-        color: #555;
-        font-size: 1em;
+    .member-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
     }
 
     .member-search {
-        margin-bottom: 15px;
-    }
-
-    .member-search input {
         width: 100%;
-        padding: 10px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 14px;
+        padding: 12px 16px;
+        border: 2px solid var(--tg-border);
+        border-radius: 28px;
+        background: var(--tg-bg);
+        color: var(--tg-text);
+        margin-bottom: 16px;
     }
 
     .member-list {
-        max-height: 200px;
+        max-height: 300px;
         overflow-y: auto;
-        border: 1px solid #eee;
-        border-radius: 8px;
-        background: white;
     }
 
     .member-item {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 15px;
-        border-bottom: 1px solid #f0f0f0;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
         cursor: pointer;
         transition: background 0.2s;
-    }
-
-    .member-item:last-child {
-        border-bottom: none;
+        margin-bottom: 4px;
     }
 
     .member-item:hover {
-        background: #f0f7ff;
+        background: rgba(45, 206, 137, 0.05);
     }
 
     .member-item.selected {
-        background: #e7f3ff;
-        border-left: 3px solid #007bff;
+        background: rgba(45, 206, 137, 0.1);
+        border-left: 3px solid var(--tg-success);
     }
 
     .member-avatar {
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        background: #28a745;
-        color: white;
+        background: linear-gradient(135deg, var(--tg-success), #11cdef);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        font-size: 14px;
+        color: white;
+        font-weight: 600;
     }
 
     .member-info {
@@ -248,362 +171,239 @@
 
     .member-name {
         font-weight: 500;
-        font-size: 14px;
+        margin-bottom: 2px;
     }
 
     .member-status {
         font-size: 12px;
-        color: #666;
+        color: var(--tg-text-light);
     }
 
     .member-checkbox {
         width: 20px;
         height: 20px;
-        accent-color: #28a745;
+        accent-color: var(--tg-success);
     }
 
     .selected-count {
-        font-size: 0.9em;
-        color: #28a745;
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--tg-success);
         font-weight: 500;
-        margin-top: 10px;
         text-align: right;
     }
 
-    .submit-button {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 14px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        width: 100%;
-        transition: all 0.2s;
-        margin-top: 10px;
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: var(--tg-surface);
+        border-radius: 16px;
+        margin-bottom: 20px;
     }
 
-    .submit-button:hover:not(:disabled) {
-        background: #218838;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-    }
-
-    .submit-button:active:not(:disabled) {
-        transform: translateY(0);
-    }
-
-    .submit-button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-    .loading {
-        display: inline-block;
+    .checkbox-group input {
         width: 20px;
         height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top-color: white;
-        animation: spin 1s ease-in-out infinite;
-        margin-right: 10px;
+        accent-color: var(--tg-success);
     }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    .checkbox-group label {
+        flex: 1;
+        font-weight: 500;
     }
 
-    @media (max-width: 600px) {
-        body {
-            padding: 15px;
-            align-items: flex-start;
-        }
+    .help-text {
+        font-size: 13px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
+    }
 
-        .container {
-            padding: 20px;
-            margin: 0;
-            border-radius: 12px;
-        }
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--tg-success), #11cdef);
+        color: white;
+        border: none;
+        border-radius: 28px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
 
-        h2 {
-            font-size: 1.5em;
-        }
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(45, 206, 137, 0.3);
+    }
 
-        input[type="text"],
-        textarea,
-        .submit-button {
-            padding: 12px;
-            font-size: 16px;
-        }
+    .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .error-message {
+        background: rgba(245, 54, 92, 0.1);
+        color: var(--tg-danger);
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-size: 14px;
     }
 
     @media (max-width: 480px) {
-        body {
-            padding: 10px;
+        .form-container {
+            padding: 16px 12px 40px;
         }
 
-        .container {
-            padding: 16px;
-        }
-
-        h2 {
-            font-size: 1.3em;
+        .form-header h1 {
+            font-size: 24px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <a href="/chat_list" class="back-button">
-        ← Back to Chats
-    </a>
+<div class="form-container">
+    <div class="form-header">
+        <a href="/chat_list" class="back-link">← Back to Chats</a>
+        <h1>Create Group</h1>
+    </div>
 
-    <h2>Create New Group</h2>
-
-    {% if error %}
-        <div class="error">
-            {{ error }}
-        </div>
-    {% endif %}
-
-    {% if success %}
-        <div class="success">
-            {{ success }}
-        </div>
-    {% endif %}
-
-    <div class="group-type-info">
-        <h4>What is a Group?</h4>
+    <div class="info-card">
+        <h3>What's a Group?</h3>
         <ul>
-            <li>All group members can send messages</li>
-            <li>Group admins can manage members and settings</li>
-            <li>Public groups are discoverable by everyone</li>
-            <li>Private groups require an invite link to join</li>
+            <li>All members can send messages</li>
+            <li>Admins can manage members</li>
+            <li>Public groups are discoverable</li>
+            <li>Private groups need invite link</li>
         </ul>
     </div>
 
-    <form method="POST" id="groupForm" onsubmit="return validateForm()">
+    {% if error %}
+    <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" id="groupForm">
         <div class="form-group">
-            <label for="name" class="form-label">
-                Group Name <span>*</span>
-            </label>
+            <label class="form-label">Group Name <span>*</span></label>
             <input type="text"
-                   id="name"
                    name="name"
-                   placeholder="Enter group name"
+                   class="form-input"
+                   placeholder="e.g., Book Club, Gaming Squad"
                    maxlength="50"
                    required
                    value="{{ form_data.name if form_data else '' }}">
-            <div class="help-text">
-                Choose a descriptive name for your group (3-50 characters)
-            </div>
+            <div class="char-counter" id="nameCounter">0/50</div>
         </div>
 
         <div class="form-group">
-            <label for="description" class="form-label">
-                Group Description
-            </label>
-            <textarea id="description"
-                      name="description"
-                      placeholder="What is this group about? What will you discuss?"
-                      maxlength="200">{{ form_data.description if form_data else '' }}</textarea>
-            <div class="help-text">
-                Optional: Describe the purpose of your group (max 200 characters)
-            </div>
+            <label class="form-label">Description</label>
+            <textarea name="description"
+                      class="form-input"
+                      placeholder="What's this group about?">{{ form_data.description if form_data else '' }}</textarea>
+            <div class="char-counter" id="descCounter">0/200</div>
         </div>
 
-        <div class="member-selection">
-            <h4>Add Members</h4>
-            <div class="member-search">
-                <input type="text"
-                       id="memberSearch"
-                       placeholder="Search users..."
-                       oninput="searchMembers(this.value)">
-            </div>
+        <div class="member-section">
+            <h3>Add Members</h3>
+            <input type="text"
+                   id="memberSearch"
+                   class="member-search"
+                   placeholder="Search users...">
             <div class="member-list" id="memberList">
-                <!-- Member list will be populated by JavaScript -->
-                <div class="member-item">
-                    <div class="member-avatar">L</div>
-                    <div class="member-info">
-                        <div class="member-name">Loading users...</div>
-                    </div>
-                </div>
+                <div style="text-align: center; padding: 20px;">Loading users...</div>
             </div>
-            <div class="selected-count" id="selectedCount">
-                Select users to add to your group
-            </div>
-            <input type="hidden" name="members" id="membersInput" value="">
+            <div class="selected-count" id="selectedCount">No members selected</div>
+            <input type="hidden" name="members" id="membersInput">
         </div>
 
         <div class="checkbox-group">
-            <input type="checkbox"
-                   id="is_public"
-                   name="is_public"
-                   {% if form_data and form_data.is_public %}checked{% endif %}>
-            <label for="is_public">
-                Public Group
-            </label>
+            <input type="checkbox" name="is_public" id="isPublic">
+            <label for="isPublic">Public Group</label>
         </div>
-        <div class="help-text" style="margin-top: -10px; margin-bottom: 20px;">
-            Public groups appear in search results and can be joined by anyone.
-            Private groups require an invite link.
-        </div>
+        <div class="help-text">Public groups appear in search results. Private groups need invite links.</div>
 
-        <button type="submit" class="submit-button" id="submitBtn">
-            Create Group
-        </button>
+        <button type="submit" class="submit-btn" id="submitBtn">Create Group →</button>
     </form>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
     let allUsers = [];
     let selectedMembers = new Set();
 
-    function validateForm() {
-        const nameInput = document.getElementById('name');
-        const descriptionInput = document.getElementById('description');
-        const submitBtn = document.getElementById('submitBtn');
-        const membersInput = document.getElementById('membersInput');
+    // Character counters
+    const nameInput = document.querySelector('input[name="name"]');
+    const descInput = document.querySelector('textarea[name="description"]');
+    const nameCounter = document.getElementById('nameCounter');
+    const descCounter = document.getElementById('descCounter');
 
-        // Trim whitespace
-        nameInput.value = nameInput.value.trim();
-        descriptionInput.value = descriptionInput.value.trim();
+    nameInput.addEventListener('input', () => {
+        nameCounter.textContent = `${nameInput.value.length}/50`;
+    });
 
-        // Validate name length
-        if (nameInput.value.length < 3) {
-            alert('Group name must be at least 3 characters long');
-            nameInput.focus();
-            return false;
-        }
+    descInput.addEventListener('input', () => {
+        descCounter.textContent = `${descInput.value.length}/200`;
+    });
 
-        if (nameInput.value.length > 50) {
-            alert('Group name must be less than 50 characters');
-            nameInput.focus();
-            return false;
-        }
-
-        // Validate description length
-        if (descriptionInput.value.length > 200) {
-            alert('Description must be less than 200 characters');
-            descriptionInput.focus();
-            return false;
-        }
-
-        // Convert selected members set to comma-separated string
-        membersInput.value = Array.from(selectedMembers).join(',');
-
-        // Disable button to prevent double submission
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="loading"></span> Creating Group...';
-
-        return true;
-    }
-
+    // Load users
     async function loadUsers() {
         try {
             const response = await fetch('/api/users');
             const data = await response.json();
 
             if (data.success && data.users) {
-                allUsers = data.users;
+                allUsers = data.users.filter(u => u.username !== '{{ current_user.username }}');
                 renderMembers(allUsers);
-                updateSelectedCount();
             }
         } catch (error) {
-            console.error('Error loading users:', error);
-            document.getElementById('memberList').innerHTML =
-                '<div class="member-item"><div class="member-info">Failed to load users</div></div>';
+            document.getElementById('memberList').innerHTML = '<div style="text-align: center; padding: 20px;">Failed to load users</div>';
         }
     }
 
     function renderMembers(users) {
-        const memberList = document.getElementById('memberList');
+        const container = document.getElementById('memberList');
+
         if (!users || users.length === 0) {
-            memberList.innerHTML =
-                '<div class="member-item"><div class="member-info">No users found</div></div>';
+            container.innerHTML = '<div style="text-align: center; padding: 20px;">No users found</div>';
             return;
         }
 
-        let html = '';
-        users.forEach(user => {
-            const isSelected = selectedMembers.has(user.id.toString());
-            const initials = user.username.charAt(0).toUpperCase();
-
-            html += `
-                <div class="member-item ${isSelected ? 'selected' : ''}"
-                     onclick="toggleMember(${user.id})">
-                    <div class="member-avatar">${initials}</div>
-                    <div class="member-info">
-                        <div class="member-name">${escapeHtml(user.username)}</div>
-                        <div class="member-status">${user.status || 'Active'}</div>
-                    </div>
-                    <input type="checkbox"
-                           class="member-checkbox"
-                           ${isSelected ? 'checked' : ''}
-                           onclick="toggleMember(${user.id}); event.stopPropagation();">
+        container.innerHTML = users.map(user => `
+            <div class="member-item ${selectedMembers.has(user.id) ? 'selected' : ''}" onclick="toggleMember(${user.id})">
+                <div class="member-avatar">${user.username[0].toUpperCase()}</div>
+                <div class="member-info">
+                    <div class="member-name">${escapeHtml(user.username)}</div>
+                    <div class="member-status">${user.status || 'Active'}</div>
                 </div>
-            `;
-        });
-
-        memberList.innerHTML = html;
-    }
-
-    function searchMembers(query) {
-        if (!query || query.trim() === '') {
-            renderMembers(allUsers);
-            return;
-        }
-
-        const searchTerm = query.toLowerCase().trim();
-        const filteredUsers = allUsers.filter(user =>
-            user.username.toLowerCase().includes(searchTerm)
-        );
-
-        renderMembers(filteredUsers);
+                <input type="checkbox" class="member-checkbox" ${selectedMembers.has(user.id) ? 'checked' : ''} onclick="event.stopPropagation(); toggleMember(${user.id})">
+            </div>
+        `).join('');
     }
 
     function toggleMember(userId) {
-        const userIdStr = userId.toString();
-
-        if (selectedMembers.has(userIdStr)) {
-            selectedMembers.delete(userIdStr);
+        if (selectedMembers.has(userId)) {
+            selectedMembers.delete(userId);
         } else {
-            selectedMembers.add(userIdStr);
+            selectedMembers.add(userId);
         }
 
-        // Update UI
-        const memberItems = document.querySelectorAll('.member-item');
-        memberItems.forEach(item => {
-            const checkbox = item.querySelector('.member-checkbox');
-            const id = checkbox ? checkbox.closest('.member-item').onclick.toString().match(/\d+/)[0] : null;
-
-            if (id === userIdStr) {
-                item.classList.toggle('selected');
-                checkbox.checked = !checkbox.checked;
-            }
-        });
-
+        renderMembers(allUsers);
         updateSelectedCount();
     }
 
     function updateSelectedCount() {
-        const countElement = document.getElementById('selectedCount');
         const count = selectedMembers.size;
+        const counter = document.getElementById('selectedCount');
 
         if (count === 0) {
-            countElement.textContent = 'Select users to add to your group';
-            countElement.style.color = '#666';
+            counter.textContent = 'No members selected';
         } else if (count === 1) {
-            countElement.textContent = '1 user selected';
-            countElement.style.color = '#28a745';
+            counter.textContent = '1 member selected';
         } else {
-            countElement.textContent = `${count} users selected`;
-            countElement.style.color = '#28a745';
+            counter.textContent = `${count} members selected`;
         }
     }
 
@@ -613,72 +413,30 @@
         return div.innerHTML;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('groupForm');
-        const nameInput = document.getElementById('name');
-
-        // Load users list
-        loadUsers();
-
-        // Auto-focus on name input
-        nameInput.focus();
-
-        // Character counter for description
-        const descriptionInput = document.getElementById('description');
-        if (descriptionInput) {
-            const counter = document.createElement('div');
-            counter.className = 'help-text';
-            counter.style.textAlign = 'right';
-            counter.style.marginTop = '5px';
-            counter.style.fontSize = '0.8em';
-
-            descriptionInput.parentNode.appendChild(counter);
-
-            function updateCounter() {
-                const count = descriptionInput.value.length;
-                counter.textContent = `${count}/200 characters`;
-                counter.style.color = count > 200 ? '#dc3545' : '#666';
-            }
-
-            descriptionInput.addEventListener('input', updateCounter);
-            updateCounter();
-        }
-
-        // Character counter for name
-        if (nameInput) {
-            const nameCounter = document.createElement('div');
-            nameCounter.className = 'help-text';
-            nameCounter.style.textAlign = 'right';
-            nameCounter.style.marginTop = '5px';
-            nameCounter.style.fontSize = '0.8em';
-
-            nameInput.parentNode.appendChild(nameCounter);
-
-            function updateNameCounter() {
-                const count = nameInput.value.length;
-                nameCounter.textContent = `${count}/50 characters`;
-                nameCounter.style.color = count > 50 ? '#dc3545' : '#666';
-            }
-
-            nameInput.addEventListener('input', updateNameCounter);
-            updateNameCounter();
-        }
-
-        // Form reset on page refresh prevention
-        if (window.history.replaceState) {
-            window.history.replaceState(null, null, window.location.href);
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                window.location.href = '/chat_list';
-            }
-
-            if (e.ctrlKey && e.key === 'Enter') {
-                form.submit();
-            }
-        });
+    // Search filter
+    document.getElementById('memberSearch').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = allUsers.filter(u => u.username.toLowerCase().includes(query));
+        renderMembers(filtered);
     });
+
+    // Form validation
+    document.getElementById('groupForm').addEventListener('submit', function(e) {
+        const name = nameInput.value.trim();
+
+        if (name.length < 3) {
+            alert('Group name must be at least 3 characters');
+            e.preventDefault();
+            return;
+        }
+
+        document.getElementById('membersInput').value = Array.from(selectedMembers).join(',');
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating Group...';
+    });
+
+    loadUsers();
 </script>
 {% endblock %}

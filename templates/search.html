@@ -1,171 +1,125 @@
-<!-- templates/search.html -->
 {% extends "base.html" %}
 
 {% block title %}Search - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+    .search-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 80px;
     }
 
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: #f5f5f5;
-        color: #333;
-        line-height: 1.6;
-    }
-
-    .header {
-        background: #007bff;
-        color: white;
-        padding: 15px;
+    .search-header {
         position: sticky;
         top: 0;
+        background: var(--tg-header);
+        padding-bottom: 16px;
         z-index: 100;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .header h1 {
-        font-size: 1.3em;
-        margin-bottom: 10px;
+    .search-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 16px;
     }
 
     .search-box {
-        background: white;
-        border-radius: 25px;
-        padding: 10px 15px;
         display: flex;
-        align-items: center;
-        gap: 10px;
+        gap: 12px;
+        margin-bottom: 16px;
     }
 
-    .search-box input {
-        border: none;
-        outline: none;
+    .search-input {
         flex: 1;
+        padding: 12px 18px;
+        border: 2px solid var(--tg-border);
+        border-radius: 28px;
+        background: var(--tg-surface);
+        color: var(--tg-text);
         font-size: 16px;
-        background: transparent;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--tg-primary);
     }
 
     .search-types {
         display: flex;
-        gap: 5px;
-        margin-top: 10px;
+        gap: 8px;
         overflow-x: auto;
-        padding-bottom: 5px;
-        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
 
     .search-types::-webkit-scrollbar {
         display: none;
     }
 
-    .search-type {
-        padding: 8px 15px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 15px;
-        font-size: 0.9em;
-        white-space: nowrap;
-        cursor: pointer;
-        transition: background 0.3s;
-        flex-shrink: 0;
-    }
-
-    .search-type.active {
-        background: white;
-        color: #007bff;
+    .type-tab {
+        padding: 8px 20px;
+        background: var(--tg-surface);
+        border-radius: 20px;
+        font-size: 14px;
         font-weight: 500;
+        color: var(--tg-text-light);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
     }
 
-    .container {
-        padding: 15px;
-        max-width: 600px;
-        margin: 0 auto;
-        padding-bottom: 80px;
+    .type-tab.active {
+        background: var(--tg-primary);
+        color: white;
     }
 
-    .section {
-        background: white;
-        border-radius: 15px;
-        margin-bottom: 15px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        animation: fadeIn 0.3s ease;
+    .result-section {
+        margin-top: 24px;
+        animation: fadeIn 0.3s ease-out;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .section-header {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
+    .section-title {
+        font-size: 14px;
         font-weight: 600;
-        color: #666;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .section-header h3 {
-        font-size: 1.1em;
-        font-weight: 600;
+        color: var(--tg-text-light);
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        padding-left: 4px;
     }
 
     .result-item {
-        padding: 15px;
-        border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
         gap: 12px;
+        padding: 12px;
+        background: var(--tg-surface);
+        border-radius: 16px;
+        margin-bottom: 8px;
         cursor: pointer;
-        transition: background 0.2s;
-        position: relative;
-    }
-
-    .result-item:last-child {
-        border-bottom: none;
+        transition: all 0.2s;
     }
 
     .result-item:hover {
-        background: #f8f9fa;
+        transform: translateX(4px);
+        background: rgba(94, 114, 228, 0.05);
     }
 
-    .result-item:active {
-        background: #f0f2f5;
-    }
-
-    .avatar {
-        width: 50px;
-        height: 50px;
+    .result-avatar {
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
-        background: #007bff;
-        color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        font-size: 1.2em;
+        font-size: 18px;
+        font-weight: 600;
+        color: white;
         flex-shrink: 0;
     }
 
-    .avatar.group {
-        background: #28a745;
-    }
-
-    .avatar.channel {
-        background: #dc3545;
-    }
+    .avatar-user { background: linear-gradient(135deg, var(--tg-primary), #764ba2); }
+    .avatar-group { background: linear-gradient(135deg, var(--tg-success), #11cdef); }
+    .avatar-channel { background: linear-gradient(135deg, var(--tg-danger), #fb6340); }
 
     .result-info {
         flex: 1;
@@ -174,640 +128,278 @@
 
     .result-name {
         font-weight: 600;
-        margin-bottom: 5px;
-        font-size: 1em;
-        color: #333;
+        font-size: 16px;
+        margin-bottom: 4px;
     }
 
     .result-meta {
-        font-size: 0.85em;
-        color: #666;
-        line-height: 1.4;
+        font-size: 13px;
+        color: var(--tg-text-light);
     }
 
     .message-content {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 10px;
-        margin-top: 5px;
-        font-size: 0.9em;
-        color: #444;
-        line-height: 1.4;
-        max-height: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 13px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
-    .message-context {
-        font-size: 0.8em;
-        color: #007bff;
-        margin-top: 5px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
+    .highlight {
+        background: rgba(94, 114, 228, 0.2);
+        color: var(--tg-primary);
+        font-weight: 500;
+        padding: 0 2px;
+        border-radius: 4px;
     }
 
     .empty-state {
         text-align: center;
-        padding: 40px 20px;
-        color: #666;
-    }
-
-    .empty-state .icon {
-        font-size: 3em;
-        margin-bottom: 15px;
-        opacity: 0.5;
-    }
-
-    .empty-state h3 {
-        margin-bottom: 10px;
-        font-size: 1.2em;
-        color: #333;
-    }
-
-    .empty-state p {
-        font-size: 0.95em;
-        max-width: 300px;
-        margin: 0 auto;
-        line-height: 1.5;
-    }
-
-    .action-button {
-        padding: 8px 15px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 15px;
-        font-size: 0.9em;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .action-button:hover {
-        background: #0056b3;
-        transform: translateY(-1px);
-    }
-
-    .highlight {
-        background: #fff3cd;
-        padding: 2px 4px;
-        border-radius: 3px;
-        color: #856404;
-        font-weight: 500;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 40px 20px;
-        color: #666;
-    }
-
-    .loading-spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 15px;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .recent-searches {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 10px 15px;
-    }
-
-    .recent-tag {
-        background: #e9ecef;
-        color: #495057;
-        padding: 6px 12px;
-        border-radius: 15px;
-        font-size: 0.85em;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .recent-tag:hover {
-        background: #dee2e6;
-    }
-
-    .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #28a745;
-        display: inline-block;
-        margin-right: 5px;
-    }
-
-    .status-dot.offline {
-        background: #6c757d;
-    }
-
-    .status-dot.away {
-        background: #ffc107;
+        padding: 60px 20px;
+        color: var(--tg-text-light);
     }
 
     .quick-actions {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        padding: 15px;
+        gap: 12px;
+        margin-top: 24px;
     }
 
     .quick-action {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 10px;
-        padding: 15px;
-        text-align: center;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: var(--tg-surface);
+        border-radius: 16px;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .quick-action:hover {
-        background: #e9ecef;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateX(4px);
     }
 
-    .quick-action-icon {
-        font-size: 2em;
-        margin-bottom: 10px;
-        color: #007bff;
+    .quick-icon {
+        font-size: 32px;
     }
 
-    .quick-action-title {
+    .quick-info h4 {
+        font-size: 16px;
         font-weight: 600;
-        margin-bottom: 5px;
-        font-size: 0.95em;
-        color: #333;
+        margin-bottom: 4px;
     }
 
-    .quick-action-desc {
-        font-size: 0.8em;
-        color: #666;
-        line-height: 1.3;
+    .quick-info p {
+        font-size: 13px;
+        color: var(--tg-text-light);
     }
 
     @media (max-width: 480px) {
-        .container {
-            padding: 10px;
-            padding-bottom: 70px;
+        .search-container {
+            padding: 16px 12px 80px;
         }
 
-        .result-item {
-            padding: 12px;
+        .search-header h1 {
+            font-size: 24px;
         }
 
-        .avatar {
-            width: 45px;
-            height: 45px;
-            font-size: 1.1em;
-        }
-
-        .quick-actions {
-            grid-template-columns: 1fr;
-        }
-
-        .header {
-            padding: 12px;
-        }
-
-        .search-box {
-            padding: 8px 12px;
-        }
-
-        .search-type {
-            padding: 6px 12px;
-            font-size: 0.85em;
-        }
-    }
-
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        body {
-            background: #121212;
-            color: #ffffff;
-        }
-
-        .header {
-            background: #0d6efd;
-        }
-
-        .search-box {
-            background: #2d2d2d;
-        }
-
-        .search-box input {
-            color: #ffffff;
-            background: transparent;
-        }
-
-        .search-type {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .search-type.active {
-            background: #ffffff;
-            color: #0d6efd;
-        }
-
-        .section {
-            background: #1e1e1e;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .section-header {
-            border-bottom: 1px solid #333;
-            color: #aaa;
-        }
-
-        .result-item {
-            border-bottom: 1px solid #333;
-        }
-
-        .result-item:hover {
-            background: #2d2d2d;
-        }
-
-        .result-item:active {
-            background: #3d3d3d;
-        }
-
-        .result-name {
-            color: #ffffff;
-        }
-
-        .result-meta {
-            color: #aaa;
-        }
-
-        .message-content {
-            background: #2d2d2d;
-            color: #ccc;
-        }
-
-        .highlight {
-            background: #856404;
-            color: #fff3cd;
-        }
-
-        .empty-state {
-            color: #aaa;
-        }
-
-        .empty-state h3 {
-            color: #ffffff;
-        }
-
-        .recent-tag {
-            background: #2d2d2d;
-            color: #ccc;
-        }
-
-        .recent-tag:hover {
-            background: #3d3d3d;
-        }
-
-        .quick-action {
-            background: #2d2d2d;
-            border-color: #333;
-        }
-
-        .quick-action:hover {
-            background: #3d3d3d;
-        }
-
-        .quick-action-title {
-            color: #ffffff;
-        }
-
-        .quick-action-desc {
-            color: #aaa;
+        .result-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>Search</h1>
-    <form method="GET" action="/search" id="searchForm">
+<div class="search-container">
+    <div class="search-header">
+        <h1>Search</h1>
         <div class="search-box">
-            <input
-                type="text"
-                name="q"
-                value="{{ query }}"
-                placeholder="Search users, groups, channels, messages..."
-                autocomplete="off"
-                id="searchInput"
-                autofocus
-            >
-            <button type="submit" style="display: none;">Search</button>
+            <input type="text"
+                   class="search-input"
+                   id="searchInput"
+                   placeholder="Search users, groups, channels..."
+                   value="{{ query|e if query else '' }}"
+                   autofocus>
         </div>
-    </form>
-
-    <div class="search-types">
-        <div class="search-type {{ 'active' if search_type == 'all' }}" onclick="setSearchType('all')">All</div>
-        <div class="search-type {{ 'active' if search_type == 'users' }}" onclick="setSearchType('users')">Users</div>
-        <div class="search-type {{ 'active' if search_type == 'groups' }}" onclick="setSearchType('groups')">Groups</div>
-        <div class="search-type {{ 'active' if search_type == 'channels' }}" onclick="setSearchType('channels')">Channels</div>
-        <div class="search-type {{ 'active' if search_type == 'messages' }}" onclick="setSearchType('messages')">Messages</div>
+        <div class="search-types">
+            <div class="type-tab {% if search_type == 'all' %}active{% endif %}" data-type="all">All</div>
+            <div class="type-tab {% if search_type == 'users' %}active{% endif %}" data-type="users">Users</div>
+            <div class="type-tab {% if search_type == 'groups' %}active{% endif %}" data-type="groups">Groups</div>
+            <div class="type-tab {% if search_type == 'channels' %}active{% endif %}" data-type="channels">Channels</div>
+            <div class="type-tab {% if search_type == 'messages' %}active{% endif %}" data-type="messages">Messages</div>
+        </div>
     </div>
-</div>
 
-<div class="container" id="searchResults">
-    {% if loading %}
-    <div class="loading">
-        <div class="loading-spinner"></div>
-        <p>Searching...</p>
-    </div>
-    {% elif query %}
-        <!-- Users Results -->
-        {% if search_type in ['all', 'users'] and results.users %}
-        <div class="section">
-            <div class="section-header">
-                <h3>Users ({{ results.users|length }})</h3>
-            </div>
-            {% for user in results.users %}
-            <div class="result-item ripple" onclick="openChat('personal', {{ user.id }})">
-                <div class="avatar">{{ user.username[0].upper() }}</div>
-                <div class="result-info">
-                    <div class="result-name" id="user-{{ user.id }}">{{ user.username }}</div>
-                    <div class="result-meta">
-                        <span class="status-dot {{ user.status if user.status else 'offline' }}"></span>
-                        {{ user.display_status if user.display_status else 'User' }}
-                        {% if user.last_seen %} • Last seen {{ user.last_seen }}{% endif %}
+    <div id="results">
+        {% if query %}
+            {% if results.users or results.groups or results.channels or results.messages %}
+                {% if results.users and search_type in ['all', 'users'] %}
+                <div class="result-section">
+                    <div class="section-title">Users · {{ results.users|length }}</div>
+                    {% for user in results.users %}
+                    <div class="result-item" onclick="openChat('personal', {{ user.id }})">
+                        <div class="result-avatar avatar-user">{{ user.username[0]|upper if user.username else 'U' }}</div>
+                        <div class="result-info">
+                            <div class="result-name">{{ user.username|e }}</div>
+                            <div class="result-meta">{{ user.status|default('Active') }}</div>
+                        </div>
+                        <div>→</div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+                {% endif %}
 
-        <!-- Groups Results -->
-        {% if search_type in ['all', 'groups'] and results.groups %}
-        <div class="section">
-            <div class="section-header">
-                <h3>Groups ({{ results.groups|length }})</h3>
-            </div>
-            {% for group in results.groups %}
-            <div class="result-item ripple" onclick="openChat('group', {{ group.id }})">
-                <div class="avatar group">G</div>
-                <div class="result-info">
-                    <div class="result-name" id="group-{{ group.id }}">{{ group.name }}</div>
-                    <div class="result-meta">
-                        {{ group.member_count }} members
-                        {% if group.is_public %} • Public{% else %} • Private{% endif %}
-                        {% if group.description %} • {{ group.description[:50] }}{{ '...' if group.description|length > 50 }}{% endif %}
+                {% if results.groups and search_type in ['all', 'groups'] %}
+                <div class="result-section">
+                    <div class="section-title">Groups · {{ results.groups|length }}</div>
+                    {% for group in results.groups %}
+                    <div class="result-item" onclick="openChat('group', {{ group.id }})">
+                        <div class="result-avatar avatar-group">👥</div>
+                        <div class="result-info">
+                            <div class="result-name">{{ group.name|e }}</div>
+                            <div class="result-meta">{{ group.member_count|default(0) }} members • {{ 'Public' if group.is_public else 'Private' }}</div>
+                        </div>
+                        <div>→</div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+                {% endif %}
 
-        <!-- Channels Results -->
-        {% if search_type in ['all', 'channels'] and results.channels %}
-        <div class="section">
-            <div class="section-header">
-                <h3>Channels ({{ results.channels|length }})</h3>
-            </div>
-            {% for channel in results.channels %}
-            <div class="result-item ripple" onclick="openChat('channel', {{ channel.id }})">
-                <div class="avatar channel">C</div>
-                <div class="result-info">
-                    <div class="result-name" id="channel-{{ channel.id }}">{{ channel.name }}</div>
-                    <div class="result-meta">
-                        {{ channel.subscriber_count }} subscribers
-                        {% if channel.is_public %} • Public{% else %} • Private{% endif %}
-                        {% if channel.description %} • {{ channel.description[:50] }}{{ '...' if channel.description|length > 50 }}{% endif %}
+                {% if results.channels and search_type in ['all', 'channels'] %}
+                <div class="result-section">
+                    <div class="section-title">Channels · {{ results.channels|length }}</div>
+                    {% for channel in results.channels %}
+                    <div class="result-item" onclick="openChat('channel', {{ channel.id }})">
+                        <div class="result-avatar avatar-channel">📢</div>
+                        <div class="result-info">
+                            <div class="result-name">{{ channel.name|e }}</div>
+                            <div class="result-meta">{{ channel.subscriber_count|default(0) }} subscribers • {{ 'Public' if channel.is_public else 'Private' }}</div>
+                        </div>
+                        <div>→</div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+                {% endif %}
 
-        <!-- Messages Results -->
-        {% if search_type in ['all', 'messages'] and results.messages %}
-        <div class="section">
-            <div class="section-header">
-                <h3>Messages ({{ results.messages|length }})</h3>
-            </div>
-            {% for message in results.messages %}
-            <div class="result-item ripple" onclick="openMessage('{{ message.chat_type }}', {{ message.chat_id }}, {{ message.id }})">
-                <div class="avatar">{{ message.sender_username[0].upper() }}</div>
-                <div class="result-info">
-                    <div class="result-name">{{ message.sender_username }}</div>
-                    <div class="message-content" id="message-{{ message.id }}">{{ message.content }}</div>
-                    <div class="message-context">
-                        {% if message.chat_type == 'group' %}
-                            👥 Group: {{ message.chat_name }}
-                        {% elif message.chat_type == 'channel' %}
-                            📢 Channel: {{ message.chat_name }}
-                        {% else %}
-                            💬 Personal chat
-                        {% endif %}
-                        • {{ message.timestamp }}
+                {% if results.messages and search_type in ['all', 'messages'] %}
+                <div class="result-section">
+                    <div class="section-title">Messages · {{ results.messages|length }}</div>
+                    {% for message in results.messages %}
+                    <div class="result-item" onclick="openMessage('{{ message.chat_type }}', {{ message.chat_id }})">
+                        <div class="result-avatar avatar-user">{{ message.sender_username[0]|upper if message.sender_username else 'U' }}</div>
+                        <div class="result-info">
+                            <div class="result-name">{{ message.sender_username|e }}</div>
+                            <div class="message-content">{{ message.content|e }}</div>
+                            <div class="result-meta">{{ message.timestamp }}</div>
+                        </div>
+                        <div>→</div>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- No Results -->
-        {% if not results.users and not results.groups and not results.channels and not results.messages %}
-        <div class="section">
-            <div class="empty-state">
-                <div class="icon">🔍</div>
-                <h3>No results found</h3>
-                <p>Try different keywords or search in other categories</p>
-                <div style="margin-top: 20px;">
-                    <button class="action-button" onclick="clearSearch()">Clear Search</button>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                    <h3>No results found</h3>
+                    <p>Try different keywords or search in other categories</p>
                 </div>
-            </div>
-        </div>
-        {% endif %}
-
-    {% else %}
-        <!-- Empty Search State -->
-        <div class="section">
-            <div class="empty-state">
-                <div class="icon">🔍</div>
-                <h3>Search Kiselgram</h3>
-                <p>Find users, groups, channels, and messages</p>
-            </div>
-        </div>
-
-        <!-- Recent Searches -->
-        {% if recent_searches %}
-        <div class="section">
-            <div class="section-header">
-                <h3>Recent Searches</h3>
-            </div>
-            <div class="recent-searches">
-                {% for term in recent_searches %}
-                <div class="recent-tag" onclick="searchTerm('{{ term }}')">{{ term }}</div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Quick Actions -->
-        <div class="section">
-            <div class="section-header">
-                <h3>Quick Access</h3>
-            </div>
+            {% endif %}
+        {% else %}
             <div class="quick-actions">
                 <div class="quick-action" onclick="window.location.href='/create_group'">
-                    <div class="quick-action-icon">👥</div>
-                    <div class="quick-action-title">New Group</div>
-                    <div class="quick-action-desc">Start a group conversation</div>
+                    <div class="quick-icon">👥</div>
+                    <div class="quick-info">
+                        <h4>New Group</h4>
+                        <p>Create a group chat with friends</p>
+                    </div>
                 </div>
                 <div class="quick-action" onclick="window.location.href='/create_channel'">
-                    <div class="quick-action-icon">📢</div>
-                    <div class="quick-action-title">New Channel</div>
-                    <div class="quick-action-desc">Broadcast to subscribers</div>
+                    <div class="quick-icon">📢</div>
+                    <div class="quick-info">
+                        <h4>New Channel</h4>
+                        <p>Broadcast to subscribers</p>
+                    </div>
                 </div>
                 <div class="quick-action" onclick="window.location.href='/users'">
-                    <div class="quick-action-icon">👤</div>
-                    <div class="quick-action-title">Browse Users</div>
-                    <div class="quick-action-desc">Discover new people</div>
+                    <div class="quick-icon">👤</div>
+                    <div class="quick-info">
+                        <h4>Browse Users</h4>
+                        <p>Discover people to chat with</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    function setSearchType(type) {
-        const form = document.getElementById('searchForm');
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'type';
-        input.value = type;
-        form.appendChild(input);
-        form.submit();
-    }
+    let searchTimeout;
 
     function openChat(type, id) {
-        if (type === 'personal') {
-            window.location.href = `/direct/${id}`;
-        } else if (type === 'group') {
-            window.location.href = `/group/${id}`;
-        } else if (type === 'channel') {
-            window.location.href = `/channel/${id}`;
-        }
+        const urls = {
+            personal: `/direct/${id}`,
+            group: `/group/${id}`,
+            channel: `/channel/${id}`
+        };
+        window.location.href = urls[type];
     }
 
-    function openMessage(chatType, chatId, messageId) {
+    function openMessage(chatType, chatId) {
         openChat(chatType, chatId);
-        // In a real implementation, you might scroll to the specific message
     }
 
-    function searchTerm(term) {
-        document.getElementById('searchInput').value = term;
-        document.getElementById('searchForm').submit();
-    }
-
-    function clearSearch() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('searchForm').submit();
-    }
-
-    function showAllChats() {
-        window.location.href = '/chat_list';
-    }
-
-    // Real-time search as user types
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e) {
+    // Search with debounce
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
+        const query = this.value.trim();
 
         if (query.length >= 2) {
             searchTimeout = setTimeout(() => {
-                // In a real app, you'd make an AJAX request here
-                // For now, just submit the form
-                if (query !== "{{ query }}") {
-                    document.getElementById('searchForm').submit();
-                }
+                const url = new URL(window.location.href);
+                url.searchParams.set('q', query);
+                window.location.href = url.toString();
             }, 500);
+        } else if (query.length === 0) {
+            searchTimeout = setTimeout(() => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('q');
+                window.location.href = url.toString();
+            }, 300);
         }
     });
 
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('searchInput').value) {
-            clearSearch();
-        }
-
-        if (e.key === 'Enter' && e.ctrlKey) {
-            document.getElementById('searchForm').submit();
-        }
+    // Tab switching
+    document.querySelectorAll('.type-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const type = this.dataset.type;
+            const url = new URL(window.location.href);
+            url.searchParams.set('type', type);
+            window.location.href = url.toString();
+        });
     });
 
-    // Highlight search terms in results
-    function highlightText(text, query) {
-        if (!query) return text;
-
-        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-        return text.replace(regex, '<span class="highlight">$1</span>');
-    }
-
-    // Apply highlighting when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        const query = "{{ query }}";
+    // Highlight search terms
+    function highlightResults() {
+        const query = '{{ query|e }}';
         if (!query) return;
 
-        // Highlight user names
-        document.querySelectorAll('.result-name').forEach(element => {
-            const originalText = element.textContent;
-            element.innerHTML = highlightText(originalText, query);
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+
+        document.querySelectorAll('.result-name, .message-content').forEach(el => {
+            const original = el.textContent;
+            if (original && original.toLowerCase().includes(query.toLowerCase())) {
+                el.innerHTML = original.replace(regex, '<span class="highlight">$1</span>');
+            }
         });
+    }
 
-        // Highlight message content
-        document.querySelectorAll('.message-content').forEach(element => {
-            const originalText = element.textContent;
-            element.innerHTML = highlightText(originalText, query);
-        });
-
-        // Auto-focus search input
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.focus();
-            // Move cursor to end
-            searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-        }
-    });
-
-    // Save recent searches to localStorage
-    document.getElementById('searchForm').addEventListener('submit', function() {
-        const query = document.getElementById('searchInput').value.trim();
-        if (query) {
-            let recentSearches = JSON.parse(localStorage.getItem('kiselgram_recent_searches') || '[]');
-            recentSearches = recentSearches.filter(term => term !== query);
-            recentSearches.unshift(query);
-            recentSearches = recentSearches.slice(0, 10); // Keep only last 10
-            localStorage.setItem('kiselgram_recent_searches', JSON.stringify(recentSearches));
-        }
-    });
+    highlightResults();
 </script>
 {% endblock %}

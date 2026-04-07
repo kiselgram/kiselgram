@@ -1,43 +1,318 @@
 {% extends "base.html" %}
 
+{% block title %}Settings - Kiselgram{% endblock %}
+
+{% block styles %}
+<style>
+    .settings-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 80px;
+    }
+
+    .settings-header {
+        margin-bottom: 24px;
+    }
+
+    .settings-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+    .profile-card {
+        background: var(--tg-surface);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .profile-avatar {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, var(--tg-primary), #764ba2);
+        border-radius: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .profile-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .profile-info p {
+        color: var(--tg-text-light);
+        font-size: 14px;
+    }
+
+    .settings-section {
+        background: var(--tg-surface);
+        border-radius: 20px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+
+    .section-title {
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--tg-text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: var(--tg-surface);
+        border-bottom: 1px solid var(--tg-border);
+    }
+
+    .setting-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid var(--tg-border);
+    }
+
+    .setting-item:last-child {
+        border-bottom: none;
+    }
+
+    .setting-item:hover {
+        background: rgba(94, 114, 228, 0.05);
+    }
+
+    .setting-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .setting-icon {
+        width: 40px;
+        font-size: 22px;
+    }
+
+    .setting-label {
+        font-weight: 500;
+    }
+
+    .setting-description {
+        font-size: 13px;
+        color: var(--tg-text-light);
+        margin-top: 2px;
+    }
+
+    .setting-value {
+        color: var(--tg-text-light);
+        font-size: 14px;
+    }
+
+    .logout-btn {
+        background: var(--tg-danger);
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 14px;
+        border-radius: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 24px;
+        transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(245, 54, 92, 0.2);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+        width: 48px;
+        height: 24px;
+        background: var(--tg-border);
+        border-radius: 24px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+        background: var(--tg-primary);
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.2s;
+    }
+
+    .toggle-switch.active::after {
+        transform: translateX(24px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mobile-layout">
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <div class="user-info">
-                <strong>Settings</strong>
-            </div>
-            <div class="header-actions">
-                <a href="/chat_list" class="icon-btn">←</a>
-                <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-            </div>
-        </div>
+<div class="settings-container">
+    <div class="settings-header">
+        <h1>Settings</h1>
+    </div>
 
-        <div class="chats-list">
-            <div style="padding: 2rem; text-align: center; color: #666;">
-                <p>Mobile-optimized Settings view</p>
-                <p style="font-size: 0.9rem; margin-top: 1rem;">Fully responsive design</p>
-            </div>
+    <div class="profile-card">
+        <div class="profile-avatar">
+            {{ current_user.username[0]|upper if current_user else 'U' }}
         </div>
-
-        <div class="bottom-nav">
-            <a href="/chat_list" class="nav-item">💬 Chats</a>
-            <a href="/users" class="nav-item">👥 Contacts</a>
-            <a href="/settings" class="nav-item active">⚙️ Settings</a>
+        <div class="profile-info">
+            <h3>{{ current_user.username if current_user else 'User' }}</h3>
+            <p>{{ current_user.email if current_user else 'user@example.com' }}</p>
         </div>
     </div>
 
-    <div class="main-content">
-        <div style="padding: 2rem; text-align: center;">
-            <h2>Settings</h2>
-            <p>Mobile-optimized interface</p>
+    <div class="settings-section">
+        <div class="section-title">Preferences</div>
+        <div class="setting-item">
+            <div class="setting-left">
+                <div class="setting-icon">🌙</div>
+                <div>
+                    <div class="setting-label">Dark Mode</div>
+                    <div class="setting-description">Follow system theme</div>
+                </div>
+            </div>
+            <div class="toggle-switch" id="darkModeToggle"></div>
+        </div>
+        <div class="setting-item">
+            <div class="setting-left">
+                <div class="setting-icon">🔔</div>
+                <div>
+                    <div class="setting-label">Notifications</div>
+                    <div class="setting-description">Message alerts</div>
+                </div>
+            </div>
+            <div class="toggle-switch" id="notificationsToggle"></div>
+        </div>
+        <div class="setting-item">
+            <div class="setting-left">
+                <div class="setting-icon">🎨</div>
+                <div>
+                    <div class="setting-label">Animations</div>
+                    <div class="setting-description">Smooth transitions</div>
+                </div>
+            </div>
+            <div class="toggle-switch active" id="animationsToggle"></div>
         </div>
     </div>
+
+    <div class="settings-section">
+        <div class="section-title">Account</div>
+        <div class="setting-item" id="editProfile">
+            <div class="setting-left">
+                <div class="setting-icon">👤</div>
+                <div>
+                    <div class="setting-label">Edit Profile</div>
+                    <div class="setting-description">Change username, photo</div>
+                </div>
+            </div>
+            <div class="setting-value">→</div>
+        </div>
+        <div class="setting-item" id="privacy">
+            <div class="setting-left">
+                <div class="setting-icon">🔒</div>
+                <div>
+                    <div class="setting-label">Privacy & Security</div>
+                    <div class="setting-description">Blocked users, sessions</div>
+                </div>
+            </div>
+            <div class="setting-value">→</div>
+        </div>
+        <div class="setting-item" id="dataUsage">
+            <div class="setting-left">
+                <div class="setting-icon">📊</div>
+                <div>
+                    <div class="setting-label">Data & Storage</div>
+                    <div class="setting-description">Media auto-download</div>
+                </div>
+            </div>
+            <div class="setting-value">→</div>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <div class="section-title">Support</div>
+        <div class="setting-item" id="help">
+            <div class="setting-left">
+                <div class="setting-icon">❓</div>
+                <div>
+                    <div class="setting-label">Help Center</div>
+                    <div class="setting-description">FAQ and support</div>
+                </div>
+            </div>
+            <div class="setting-value">→</div>
+        </div>
+        <div class="setting-item" id="about">
+            <div class="setting-left">
+                <div class="setting-icon">ℹ️</div>
+                <div>
+                    <div class="setting-label">About</div>
+                    <div class="setting-description">Version 1.0.0</div>
+                </div>
+            </div>
+            <div class="setting-value">→</div>
+        </div>
+    </div>
+
+    <button class="logout-btn" id="logoutBtn">Sign Out</button>
 </div>
 
 <script>
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('active');
-}
+    // Dark mode toggle
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    darkModeToggle.addEventListener('click', function() {
+        this.classList.toggle('active');
+        if (this.classList.contains('active')) {
+            document.documentElement.style.setProperty('--tg-bg', '#0a0a0a');
+            document.documentElement.style.setProperty('--tg-surface', '#1f1f1f');
+        } else {
+            document.documentElement.style.setProperty('--tg-bg', '#ffffff');
+            document.documentElement.style.setProperty('--tg-surface', '#f0f0f0');
+        }
+    });
+
+    // Navigation handlers
+    document.getElementById('editProfile').addEventListener('click', () => alert('Edit profile coming soon'));
+    document.getElementById('privacy').addEventListener('click', () => alert('Privacy settings coming soon'));
+    document.getElementById('dataUsage').addEventListener('click', () => alert('Storage settings coming soon'));
+    document.getElementById('help').addEventListener('click', () => alert('Help center coming soon'));
+    document.getElementById('about').addEventListener('click', () => alert('Kiselgram v1.0.0'));
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to sign out?')) {
+            window.location.href = '/logout';
+        }
+    });
+
+    // Load saved preferences
+    const savedDarkMode = localStorage.getItem('darkMode');
+    if (savedDarkMode === 'true') {
+        darkModeToggle.classList.add('active');
+    }
+
+    darkModeToggle.addEventListener('click', () => {
+        localStorage.setItem('darkMode', darkModeToggle.classList.contains('active'));
+    });
 </script>
 {% endblock %}
