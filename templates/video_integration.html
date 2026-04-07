@@ -1,229 +1,310 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-        <h1 style="font-size: 2.5rem; background: linear-gradient(135deg, white, #F0ECF5); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🎥 Kiselgram Video Chat</h1>
-        <a href="{{ url_for('chats.chat_list') }}" style="text-decoration: none; color: white">← Back to Chats</a>
-    </div>
+{% block title %}Video Calls - Kiselgram{% endblock %}
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;">
-        <!-- Create Room Card -->
-        <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-            <h2 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 2rem;">🎬</span> Create New Room
-            </h2>
-            <p style="color: #666; margin-bottom: 25px;">Start a new video call and invite others</p>
-            <button onclick="createRoom()" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 15px 30px; border-radius: 40px; font-size: 1.1rem; cursor: pointer; width: 100%; transition: transform 0.2s;">
-                ➕ Create Video Room
-            </button>
-        </div>
-
-        <!-- Join Room Card -->
-        <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-            <h2 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 2rem;">🔗</span> Join Existing Room
-            </h2>
-            <p style="color: #666; margin-bottom: 15px;">Enter a room ID to join</p>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="roomIdInput" placeholder="Enter room ID" style="flex: 1; padding: 15px; border: 2px solid #e0e0e0; border-radius: 30px; font-size: 1rem;">
-                <button onclick="joinRoom()" style="background: #48bb78; color: white; border: none; padding: 15px 30px; border-radius: 30px; font-size: 1rem; cursor: pointer;">
-                    Join
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Active Rooms List -->
-    <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-        <h2 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.5rem;">🟢</span> Active Rooms
-        </h2>
-        <div id="roomsList" style="min-height: 100px;">
-            <p style="color: #999; text-align: center;">Loading rooms...</p>
-        </div>
-    </div>
-</div>
-
+{% block styles %}
 <style>
-    button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    .video-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 80px;
     }
+    
+    .video-header {
+        margin-bottom: 24px;
+    }
+    
+    .video-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .video-header p {
+        color: var(--tg-text-light);
+        font-size: 14px;
+    }
+    
+    .action-cards {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+    
+    .action-card {
+        background: var(--tg-surface);
+        border-radius: 20px;
+        padding: 24px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+    
+    .card-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .card-desc {
+        color: var(--tg-text-light);
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    
+    .join-input {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    
+    .join-input input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid var(--tg-border);
+        border-radius: 28px;
+        background: var(--tg-bg);
+        color: var(--tg-text);
+        font-size: 14px;
+    }
+    
+    .join-input input:focus {
+        outline: none;
+        border-color: var(--tg-primary);
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 28px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--tg-primary), #764ba2);
+        color: white;
+    }
+    
+    .btn-success {
+        background: var(--tg-success);
+        color: white;
+    }
+    
+    .rooms-section {
+        background: var(--tg-surface);
+        border-radius: 20px;
+        padding: 20px;
+    }
+    
+    .rooms-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--tg-border);
+    }
+    
+    .rooms-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .rooms-header span {
+        font-size: 13px;
+        color: var(--tg-text-light);
+    }
+    
     .room-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 15px;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        padding: 16px;
+        border-radius: 16px;
+        margin-bottom: 12px;
+        background: var(--tg-bg);
+        cursor: pointer;
         transition: all 0.2s;
     }
+    
     .room-item:hover {
-        background: #f7fafc;
-        border-color: #667eea;
+        transform: translateX(4px);
+        background: rgba(94, 114, 228, 0.05);
     }
-    .error-message {
-        color: #e53e3e;
-        background: #fff5f5;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        text-align: center;
+    
+    .room-info {
+        flex: 1;
     }
-    .success-message {
-        color: #38a169;
-        background: #f0fff4;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
+    
+    .room-id {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+    
+    .room-meta {
+        font-size: 13px;
+        color: var(--tg-text-light);
+    }
+    
+    .join-room-btn {
+        padding: 8px 20px;
+        background: var(--tg-primary);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .empty-rooms {
         text-align: center;
+        padding: 40px;
+        color: var(--tg-text-light);
+    }
+    
+    @media (max-width: 480px) {
+        .video-container {
+            padding: 16px 12px 80px;
+        }
+        
+        .video-header h1 {
+            font-size: 24px;
+        }
+        
+        .action-card {
+            padding: 20px;
+        }
+        
+        .card-icon {
+            font-size: 40px;
+        }
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="video-container">
+    <div class="video-header">
+        <h1>Video Calls</h1>
+        <p>Connect face-to-face with crystal clear quality</p>
+    </div>
+    
+    <div class="action-cards">
+        <div class="action-card" onclick="createRoom()">
+            <div class="card-icon">🎬</div>
+            <div class="card-title">New Meeting</div>
+            <div class="card-desc">Start an instant video call and invite others</div>
+            <button class="btn btn-primary">Create Room →</button>
+        </div>
+        
+        <div class="action-card">
+            <div class="card-icon">🔗</div>
+            <div class="card-title">Join Meeting</div>
+            <div class="card-desc">Enter a room ID to join an existing call</div>
+            <div class="join-input">
+                <input type="text" id="roomIdInput" placeholder="Enter room ID">
+                <button class="btn btn-success" onclick="joinRoom()">Join</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="rooms-section">
+        <div class="rooms-header">
+            <h3>Active Rooms</h3>
+            <span id="roomCount">0 active</span>
+        </div>
+        <div id="roomsList">
+            <div class="empty-rooms">No active rooms at the moment</div>
+        </div>
+    </div>
+</div>
 
 <script>
     async function createRoom() {
-        const button = event.target;
-        const originalText = button.textContent;
-
-        // Show loading state
-        button.textContent = 'Creating...';
-        button.disabled = true;
-
         try {
-            // FIX: Changed to POST request with proper headers
-            const response = await fetch('/video/create-room', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    // You can add optional room name here
-                    room_name: `${document.getElementById('username')?.value || 'User'}'s Room`
-                })
-            });
-
+            const response = await fetch('/video/create-room');
             const data = await response.json();
-
+            
             if (data.success) {
-                showMessage('Room created successfully! Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = `/video/join/${data.room_id}`;
-                }, 1000);
+                window.location.href = `/video/join/${data.room_id}`;
             } else {
-                showMessage('Error creating room: ' + (data.error || 'Unknown error'), 'error');
-                button.textContent = originalText;
-                button.disabled = false;
+                alert('Error creating room: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
-            console.error('Error:', error);
-            showMessage('Video server not running. Please start the video server first.', 'error');
-            button.textContent = originalText;
-            button.disabled = false;
+            alert('Video service is starting up. Please try again in a moment.');
         }
     }
-
+    
     async function joinRoom() {
         const roomId = document.getElementById('roomIdInput').value.trim();
         if (!roomId) {
-            showMessage('Please enter a room ID', 'error');
+            alert('Please enter a room ID');
             return;
         }
-
-        // Validate room ID format (alphanumeric, 8 chars)
-        if (!/^[a-zA-Z0-9]{8}$/.test(roomId)) {
-            showMessage('Invalid room ID format. Room ID should be 8 characters alphanumeric.', 'error');
-            return;
-        }
-
         window.location.href = `/video/join/${roomId}`;
     }
-
+    
     async function loadRooms() {
         try {
             const response = await fetch('/video/rooms');
             const data = await response.json();
-
             const roomsList = document.getElementById('roomsList');
-
+            const roomCount = document.getElementById('roomCount');
+            
             if (data.success && data.rooms && data.rooms.length > 0) {
+                roomCount.textContent = `${data.rooms.length} active`;
                 roomsList.innerHTML = data.rooms.map(room => `
-                    <div class="room-item">
-                        <div>
-                            <strong style="font-size: 1.1rem;">${room.room_name || `Room ${room.room_id}`}</strong>
-                            <div style="color: #666; margin-top: 5px;">
-                                <span>ID: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${room.room_id}</code></span>
-                                <span style="margin-left: 15px;">👤 Created by: ${room.created_by}</span>
-                                <span style="margin-left: 15px;">👥 ${room.participants} participant${room.participants !== 1 ? 's' : ''}</span>
-                            </div>
-                            <div style="color: #999; font-size: 0.9rem; margin-top: 5px;">
-                                🕒 Created: ${new Date(room.created_at).toLocaleString()}
+                    <div class="room-item" onclick="window.location.href='/video/join/${room.room_id}'">
+                        <div class="room-info">
+                            <div class="room-id">Room: ${escapeHtml(room.room_id)}</div>
+                            <div class="room-meta">
+                                Created by ${escapeHtml(room.created_by || 'Anonymous')} • 
+                                👥 ${room.participants || 1} participants
                             </div>
                         </div>
-                        <button onclick="window.location.href='/video/join/${room.room_id}'"
-                                style="background: #667eea; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer;">
-                            Join
-                        </button>
+                        <button class="join-room-btn">Join →</button>
                     </div>
                 `).join('');
             } else {
-                roomsList.innerHTML = '<p style="color: #999; text-align: center;">No active rooms</p>';
+                roomCount.textContent = '0 active';
+                roomsList.innerHTML = '<div class="empty-rooms">No active rooms at the moment</div>';
             }
         } catch (error) {
-            console.error('Error loading rooms:', error);
-            document.getElementById('roomsList').innerHTML = `
-                <div style="text-align: center;">
-                    <p style="color: #e53e3e;">⚠️ Video server not running</p>
-                    <button onclick="loadRooms()" style="background: #667eea; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; margin-top: 10px;">
-                        ⟳ Retry
-                    </button>
-                </div>
-            `;
+            document.getElementById('roomsList').innerHTML = 
+                '<div class="empty-rooms">Video service unavailable</div>';
         }
     }
-
-    function showMessage(message, type) {
-        // Remove any existing messages
-        const existingMessages = document.querySelectorAll('.error-message, .success-message');
-        existingMessages.forEach(msg => msg.remove());
-
-        // Create new message
-        const messageDiv = document.createElement('div');
-        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
-        messageDiv.textContent = message;
-
-        // Insert at the top of the container
-        const container = document.querySelector('.container');
-        container.insertBefore(messageDiv, container.firstChild);
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            messageDiv.remove();
-        }, 5000);
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-
-    // Add keyboard shortcut for room ID input (Enter key)
-    document.getElementById('roomIdInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            joinRoom();
-        }
-    });
-
+    
     // Load rooms on page load
     loadRooms();
-
+    
     // Refresh every 10 seconds
     setInterval(loadRooms, 10000);
-
-    // Get username from template if available
-    document.addEventListener('DOMContentLoaded', function() {
-        // You can add a hidden username field if needed
-        const usernameInput = document.createElement('input');
-        usernameInput.type = 'hidden';
-        usernameInput.id = 'username';
-        usernameInput.value = '{{ username|default("User") }}';
-        document.body.appendChild(usernameInput);
+    
+    // Enter key in room ID input
+    document.getElementById('roomIdInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') joinRoom();
     });
 </script>
 {% endblock %}

@@ -31,18 +31,22 @@ VIDEO_STATUS_FILE = '.kiselgram_video_status.json'
 
 def print_header():
     """Print fancy header for Kiselgram"""
-    print("\n" + "=" * 60)
-    print("""
-  _  __ ___ _____ _____ ____ ____ ___  ____  __  __ 
- | |/ // _ \\_   _| ____/ ___/ ___/ _ \\|  _ \\|  \\/  |
- | ' /| | | || | |  _| \\___ \\___ \\ | | | |_) | |\\/| |
- | . \\| |_| || | | |___ ___) |__) | |_| |  _ <| |  | |
- |_|\\_\\\\___/ |_| |_____|____/____/ \\___/|_| \\_\\_|  |_|
-    """)
-    print("=" * 60)
+
+    with open('banner.txt', 'r') as banner:
+        printbanner = banner.read()
+
+    with open('banner.txt', 'r') as banner:
+        legnth = len(banner.readline())
+
+
+
+    print("\n" + "=" * legnth)
+
+    print(printbanner)
+    print("=" * legnth)
     print("📱 Complete Messaging Platform v2.0")
-    print("👥 Groups | 📢 Channels | 📁 File Support | 🤖 Bots | 🎥 Video Server (Auto-start)")
-    print("=" * 60)
+    print("👥 Groups | 📢 Channels | 📁 File Support | 🤖 Bots | 🎥 Video Server")
+    print("=" * legnth)
 
 
 def check_python_version():

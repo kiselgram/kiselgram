@@ -1,81 +1,145 @@
-<!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}Kiselgram{% endblock %}</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#0088cc">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#5e72e4">
     <meta name="format-detection" content="telephone=no">
-    <meta name="msapplication-tap-highlight" content="no">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/mobile.css">
-    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="stylesheet" href="/static/css/telegram.css">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
     <style>
-        .body {
-            background-image: url('{{ url_for("static", filename="kiselgram-banner.jpg") }}');
-            background-size: cover; /* Optional: adjust as needed */
+        /* Modern CSS Reset & Variables */
+        :root {
+            --tg-bg: #ffffff;
+            --tg-surface: #f0f0f0;
+            --tg-primary: #5e72e4;
+            --tg-primary-hover: #4a5bd4;
+            --tg-secondary: #6c757d;
+            --tg-success: #2dce89;
+            --tg-danger: #f5365c;
+            --tg-warning: #fb6340;
+            --tg-info: #11cdef;
+            --tg-text: #32325d;
+            --tg-text-light: #8898aa;
+            --tg-border: #e9ecef;
+            --tg-header: #ffffff;
+            --tg-online: #2dce89;
+            --tg-away: #fb6340;
+            --tg-offline: #cad1d9;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --tg-bg: #0a0a0a;
+                --tg-surface: #1f1f1f;
+                --tg-primary: #5e72e4;
+                --tg-text: #ffffff;
+                --tg-text-light: #a0a0a0;
+                --tg-border: #2c2c2c;
+                --tg-header: #1f1f1f;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+            line-height: 1.5;
+        }
+
+        /* Smooth scrolling */
+        .scrollable {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .ripple:after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(94, 114, 228, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .ripple:active:after {
+            width: 200%;
+            height: 200%;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--tg-border);
+            border-top-color: var(--tg-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Fade animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
         }
     </style>
-
     {% block styles %}{% endblock %}
 </head>
-<body class="body">
-    {% block content %}{% endblock %}
+<body>
+    <div class="app-container">
+        {% block content %}{% endblock %}
+    </div>
     {% if request.endpoint != 'auth.login' %}
         {% include "menu.html" %}
     {% endif %}
     {% block scripts %}{% endblock %}
 
     <script>
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW failed:', err));
+        }
+
         // Prevent zoom on double-tap
         let lastTouchEnd = 0;
-        document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
             if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
+                e.preventDefault();
             }
             lastTouchEnd = now;
         }, false);
-
-        // Add to home screen prompt
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-        });
-
-        // Service Worker registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/sw.js')
-                .then(() => console.log('SW registered'))
-                .catch(err => console.log('SW registration failed'));
-        }
-
-        // Ripple effect
-        document.addEventListener('touchstart', function(e) {
-            if (e.target.classList.contains('ripple')) {
-                const ripple = document.createElement('span');
-                const rect = e.target.getBoundingClientRect();
-                const size = Math.max(rect.width, rect.height);
-                const x = e.touches[0].clientX - rect.left - size / 2;
-                const y = e.touches[0].clientY - rect.top - size / 2;
-
-                ripple.style.width = ripple.style.height = size + 'px';
-                ripple.style.left = x + 'px';
-                ripple.style.top = y + 'px';
-                ripple.classList.add('ripple-effect');
-
-                e.target.appendChild(ripple);
-
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            }
-        });
     </script>
 </body>
 </html>

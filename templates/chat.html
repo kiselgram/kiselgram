@@ -1,310 +1,156 @@
-<!-- templates/direct_chat.html -->
 {% extends "base.html" %}
 
-{% block title %}Chat with {{ receiver.username }} - Kiselgram{% endblock %}
+{% block title %}Chat - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    /* Mobile-first responsive design - BLUE THEME */
-    :root {
-        --primary-color: #2196F3;
-        --primary-light: rgba(33, 150, 243, 0.1);
-        --primary-dark: #1976D2;
-        --surface-color: #ffffff;
-        --surface-variant: #f8f9fa;
-        --border-color: #e0e0e0;
-        --text-primary: #333333;
-        --text-secondary: #666666;
-        --text-disabled: #999999;
-        --error-color: #f44336;
-        --success-color: #4CAF50;
-        --online-status: #4CAF50;
-        --offline-status: #f44336;
-        --away-status: #FF9800;
-        --safe-area-top: env(safe-area-inset-top, 0px);
-        --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-        height: 100%;
-        overflow: hidden;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background: var(--surface-color);
-        color: var(--text-primary);
-        line-height: 1.4;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* Mobile app container */
-    .mobile-app {
-        height: 100vh;
-        height: -webkit-fill-available;
+    .chat-container {
         display: flex;
         flex-direction: column;
-        background: var(--surface-variant);
+        height: 100vh;
+        background: var(--tg-bg);
     }
 
-    /* Header */
-    .header {
-        background: var(--primary-color);
-        color: white;
-        padding: 12px 15px;
+    .chat-header {
+        position: sticky;
+        top: 0;
+        background: var(--tg-header);
+        backdrop-filter: blur(20px);
+        padding: 12px 16px;
         display: flex;
         align-items: center;
         gap: 12px;
-        position: relative;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        z-index: 1000;
-        flex-shrink: 0;
+        border-bottom: 1px solid var(--tg-border);
+        z-index: 100;
     }
 
-    .safe-area-top {
-        padding-top: calc(12px + var(--safe-area-top, 0px));
-    }
-
-    .ripple {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .ripple:after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 5px;
-        height: 5px;
-        background: rgba(255, 255, 255, 0.5);
-        opacity: 0;
-        border-radius: 100%;
-        transform: scale(1, 1) translate(-50%);
-        transform-origin: 50% 50%;
-    }
-
-    .ripple:focus:after {
-        animation: ripple 0.6s ease-out;
-    }
-
-    @keyframes ripple {
-        0% {
-            transform: scale(0, 0);
-            opacity: 0.5;
-        }
-        100% {
-            transform: scale(20, 20);
-            opacity: 0;
-        }
-    }
-
-    .header-button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 24px;
-        width: 44px;
-        height: 44px;
+    .back-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
         border-radius: 50%;
-        transition: background-color 0.2s;
-        flex-shrink: 0;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--tg-text);
+        transition: background 0.2s;
     }
 
-    .header-button:hover,
-    .header-button:active {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .chat-user-info {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
+    .back-btn:hover {
+        background: var(--tg-surface);
     }
 
     .chat-avatar {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
+        background: linear-gradient(135deg, var(--tg-primary), #764ba2);
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
-        font-weight: 500;
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
     }
 
     .chat-info {
-        min-width: 0;
         flex: 1;
     }
 
     .chat-name {
-        font-size: 16px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 17px;
+        font-weight: 600;
     }
 
     .chat-status {
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--tg-text-light);
     }
 
-    /* Messages Container */
-    .chat-view {
-        flex: 1;
+    .chat-status.online {
+        color: var(--tg-online);
+    }
+
+    .menu-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
-        flex-direction: column;
-        position: relative;
-        overflow: hidden;
-        background: var(--surface-variant);
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--tg-text);
     }
 
-    .messages-container {
+    .messages-area {
         flex: 1;
         overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        padding: 16px 12px;
-        scroll-behavior: smooth;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
 
-    /* Message Styles */
     .message {
-        margin: 8px 0;
-        max-width: 85%;
-        position: relative;
-        clear: both;
+        max-width: 75%;
+        animation: fadeIn 0.2s ease-out;
     }
 
     .message.outgoing {
-        float: right;
-        margin-left: auto;
+        align-self: flex-end;
     }
 
     .message.incoming {
-        float: left;
-        margin-right: auto;
+        align-self: flex-start;
     }
 
     .message-bubble {
-        border-radius: 18px;
         padding: 10px 14px;
+        border-radius: 18px;
         position: relative;
         word-wrap: break-word;
-        animation: fadeIn 0.3s ease-in;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
     }
 
     .message.outgoing .message-bubble {
-        background: var(--primary-color);
+        background: var(--tg-primary);
         color: white;
         border-bottom-right-radius: 4px;
     }
 
     .message.incoming .message-bubble {
-        background: var(--surface-color);
-        border: 1px solid var(--border-color);
+        background: var(--tg-surface);
+        color: var(--tg-text);
         border-bottom-left-radius: 4px;
     }
 
-    .bounce-in {
-        animation: bounceIn 0.3s ease;
-    }
-
-    @keyframes bounceIn {
-        0% {
-            opacity: 0;
-            transform: scale(0.3);
-        }
-        50% {
-            opacity: 0.9;
-            transform: scale(1.1);
-        }
-        80% {
-            opacity: 1;
-            transform: scale(0.89);
-        }
-        100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
     .message-text {
-        font-size: 16px;
+        font-size: 15px;
         line-height: 1.4;
         margin-bottom: 4px;
-        white-space: pre-wrap;
     }
 
     .message-time {
-        font-size: 11px;
-        opacity: 0.7;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .message.outgoing .message-time {
-        justify-content: flex-end;
-    }
-
-    .message.incoming .message-time {
-        justify-content: flex-start;
-    }
-
-    .message-status {
         font-size: 10px;
-        opacity: 0.9;
+        opacity: 0.7;
+        text-align: right;
     }
 
-    /* File Attachment Styles in Messages */
     .file-attachment {
-        margin: 4px 0 8px 0;
+        margin: 8px 0;
         border-radius: 12px;
         overflow: hidden;
-        background: var(--surface-variant);
-        border: 1px solid var(--border-color);
-    }
-
-    .message.outgoing .file-attachment {
-        background: var(--primary-light);
-        border-color: var(--primary-light);
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .file-preview {
         text-align: center;
         padding: 12px;
-        background: rgba(0, 0, 0, 0.02);
     }
 
     .file-preview img {
@@ -312,1283 +158,446 @@
         max-height: 200px;
         border-radius: 8px;
         cursor: pointer;
-        transition: transform 0.2s ease;
-        border: 1px solid var(--border-color);
-    }
-
-    .file-preview img:hover {
-        transform: scale(1.02);
-    }
-
-    .file-preview audio,
-    .file-preview video {
-        width: 100%;
-        border-radius: 8px;
-        margin-top: 8px;
-    }
-
-    .attachment-icon {
-        font-size: 3em;
-        margin-bottom: 8px;
-        opacity: 0.7;
-        color: var(--text-secondary);
     }
 
     .file-info {
-        padding: 10px 12px;
+        padding: 8px 12px;
         background: rgba(0, 0, 0, 0.03);
-        border-top: 1px solid var(--border-color);
-    }
-
-    .message.outgoing .file-info {
-        background: rgba(255, 255, 255, 0.1);
+        font-size: 12px;
     }
 
     .file-name {
         font-weight: 500;
-        font-size: 14px;
         margin-bottom: 4px;
         word-break: break-all;
-        color: var(--text-primary);
-    }
-
-    .file-size {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 8px;
     }
 
     .file-download {
         display: inline-block;
-        padding: 6px 12px;
-        background: var(--primary-color);
+        margin-top: 6px;
+        padding: 4px 10px;
+        background: var(--tg-primary);
         color: white;
         text-decoration: none;
         border-radius: 6px;
         font-size: 12px;
-        font-weight: 500;
-        transition: background 0.2s ease;
-        border: none;
-        cursor: pointer;
     }
 
-    .file-download:hover {
-        background: var(--primary-dark);
-    }
-
-    .file-download:active {
-        transform: scale(0.98);
-    }
-
-    /* File Upload Styles */
-    .upload-area {
-        background: var(--surface-color);
-        border-top: 1px solid var(--border-color);
-        border-bottom: 1px solid var(--border-color);
-        padding: 15px;
-        display: none;
-        transition: all 0.3s ease;
-    }
-
-    .upload-area.active {
-        display: block;
-        animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .upload-icon {
-        font-size: 2.5em;
-        text-align: center;
-        margin-bottom: 10px;
-        color: var(--primary-color);
-        opacity: 0.8;
-    }
-
-    #uploadFileName {
-        text-align: center;
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin-bottom: 15px;
-        word-break: break-all;
-        padding: 0 10px;
-    }
-
-    .upload-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .upload-button {
-        padding: 10px 20px;
-        border-radius: 20px;
-        border: none;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        min-width: 80px;
-    }
-
-    .upload-button.primary {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    .upload-button.secondary {
-        background: var(--surface-variant);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-
-    .upload-button.cancel {
-        background: var(--error-color);
-        color: white;
-    }
-
-    .upload-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .file-input {
-        display: none;
-    }
-
-    /* Input Area */
     .input-area {
-        background: var(--surface-color);
-        border-top: 1px solid var(--border-color);
-        padding: 12px;
-        flex-shrink: 0;
-        position: relative;
-    }
-
-    .safe-area-bottom {
-        padding-bottom: calc(12px + var(--safe-area-bottom, 0px));
-    }
-
-    .input-form {
+        padding: 12px 16px;
+        background: var(--tg-header);
+        border-top: 1px solid var(--tg-border);
         display: flex;
         gap: 8px;
         align-items: flex-end;
+        padding-bottom: 80pt;
     }
 
-    .input-row {
+    .attachment-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
-        align-items: flex-end;
-        gap: 8px;
-        width: 100%;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--tg-text-light);
+        transition: background 0.2s;
     }
 
     .message-input {
         flex: 1;
-        min-height: 44px;
-        max-height: 120px;
-        padding: 12px 16px;
-        border: 1px solid var(--border-color);
-        border-radius: 22px;
-        font-size: 16px;
-        font-family: inherit;
-        background: var(--surface-variant);
-        color: var(--text-primary);
+        padding: 10px 16px;
+        border: 1px solid var(--tg-border);
+        border-radius: 24px;
+        background: var(--tg-surface);
+        color: var(--tg-text);
+        font-size: 15px;
         resize: none;
-        outline: none;
-        transition: all 0.2s;
-        line-height: 1.4;
+        font-family: inherit;
+        max-height: 100px;
     }
 
     .message-input:focus {
-        border-color: var(--primary-color);
-        background: var(--surface-color);
-        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        outline: none;
+        border-color: var(--tg-primary);
     }
 
-    .message-input::placeholder {
-        color: var(--text-disabled);
-    }
-
-    .attachment-button {
-        background: none;
-        border: none;
-        font-size: 24px;
-        width: 44px;
-        height: 44px;
+    .send-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        color: var(--text-secondary);
         border-radius: 50%;
-        transition: all 0.2s;
-        flex-shrink: 0;
-    }
-
-    .attachment-button:hover,
-    .attachment-button:active {
-        background: var(--surface-variant);
-        color: var(--primary-color);
-    }
-
-    .send-button {
-        background: var(--primary-color);
+        background: var(--tg-primary);
+        border: none;
         color: white;
-        border: none;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        font-size: 18px;
         cursor: pointer;
-        font-size: 20px;
-        transition: all 0.2s;
-        flex-shrink: 0;
+        transition: transform 0.2s;
     }
 
-    .send-button:hover,
-    .send-button:active {
-        background: var(--primary-dark);
-        transform: scale(1.05);
-    }
-
-    .send-button:disabled {
-        background: var(--border-color);
+    .send-btn:disabled {
+        opacity: 0.5;
         cursor: not-allowed;
-        transform: none;
     }
 
-    /* Empty States */
-    .empty-state {
+    .upload-area {
+        position: fixed;
+        bottom: 80px;
+        left: 16px;
+        right: 16px;
+        background: var(--tg-header);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        display: none;
+        z-index: 200;
+    }
+
+    .upload-area.active {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .empty-messages {
         text-align: center;
         padding: 60px 20px;
-        color: var(--text-secondary);
+        color: var(--tg-text-light);
     }
 
-    .empty-state-icon {
-        font-size: 64px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-
-    .empty-state-text {
-        font-size: 18px;
-        font-weight: 500;
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 8px 12px;
+        background: var(--tg-surface);
+        border-radius: 16px;
+        width: fit-content;
         margin-bottom: 8px;
-        color: var(--text-primary);
     }
 
-    .empty-state-subtext {
-        font-size: 14px;
-        max-width: 300px;
-        margin: 0 auto;
-        line-height: 1.5;
-    }
-
-    /* Loading States */
-    .loading {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-secondary);
-    }
-
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid var(--border-color);
-        border-top-color: var(--primary-color);
+    .typing-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--tg-text-light);
         border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 16px;
+        animation: typing 1.4s infinite;
     }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-8px); opacity: 1; }
     }
 
-    /* Modal for image preview */
-    .image-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 2000;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-    }
-
-    .image-modal.active {
-        display: flex;
-    }
-
-    .image-modal img {
-        max-width: 100%;
-        max-height: 90%;
-        border-radius: 8px;
-        object-fit: contain;
-    }
-
-    .modal-close {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        color: white;
-        font-size: 40px;
-        cursor: pointer;
-        background: none;
-        border: none;
-        width: 44px;
-        height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2001;
-        opacity: 0.8;
-        transition: opacity 0.2s;
-    }
-
-    .modal-close:hover {
-        opacity: 1;
-    }
-
-    /* Shake animation for errors */
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-
-    .shake {
-        animation: shake 0.5s ease-in-out;
-    }
-
-    /* Error message */
-    .error-message {
-        background: var(--error-color);
-        color: white;
-        padding: 10px;
-        text-align: center;
-        font-size: 14px;
-    }
-
-    /* Debug panel (hidden by default) */
-    .debug-panel {
-        position: fixed;
-        bottom: 80px;
-        right: 10px;
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 10px;
-        border-radius: 8px;
-        font-size: 12px;
-        max-width: 300px;
-        max-height: 200px;
-        overflow: auto;
-        z-index: 3000;
-        display: none;
-    }
-
-    .debug-panel.active {
-        display: block;
-    }
-
-    .debug-toggle {
-        position: fixed;
-        bottom: 80px;
-        right: 10px;
-        background: var(--primary-color);
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 3001;
-        font-size: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --surface-color: #121212;
-            --surface-variant: #1e1e1e;
-            --border-color: #333333;
-            --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --text-disabled: #666666;
+    @media (max-width: 480px) {
+        .message {
+            max-width: 85%;
         }
 
-        body {
-            background: var(--surface-color);
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
         }
 
-        .message.incoming .message-bubble {
-            background: #2d2d2d;
-        }
-
-        .message.incoming .file-attachment {
-            background: #2d2d2d;
-        }
-
-        .message.incoming .file-info {
-            background: #252525;
-        }
-
-        .message-input {
-            background: #2d2d2d;
-            color: var(--text-primary);
-        }
-
-        .message-input:focus {
-            background: #2d2d2d;
-        }
-
-        .upload-area {
-            background: #1e1e1e;
-        }
-
-        .upload-button.secondary {
-            background: #2d2d2d;
-            color: var(--text-primary);
+        .messages-area {
+            padding: 12px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mobile-app">
-    <!-- Header -->
-    <div class="header safe-area-top">
-        <button class="header-button ripple" onclick="goBack()" aria-label="Go back">←</button>
-        <div class="chat-user-info">
-            <div class="chat-avatar">
-                {{ receiver.username[0]|upper }}
-            </div>
-            <div class="chat-info">
-                <div class="chat-name">{{ receiver.username }}</div>
-                <div class="chat-status" id="userStatus">Checking status...</div>
-            </div>
+<div class="chat-container">
+    <div class="chat-header">
+        <button class="back-btn" onclick="history.back()">←</button>
+        <div class="chat-avatar">{{ receiver.username[0]|upper if receiver else 'U' }}</div>
+        <div class="chat-info">
+            <div class="chat-name">{{ receiver.username|e if receiver else 'User' }}</div>
+            <div class="chat-status" id="userStatus">Loading...</div>
         </div>
-        <button class="header-button ripple" onclick="showUserMenu()" aria-label="Menu">⋮</button>
+        <button class="menu-btn" onclick="showMenu()">⋮</button>
     </div>
 
-    <!-- Debug toggle button -->
-    <div class="debug-toggle" onclick="toggleDebugPanel()" id="debugToggle">🐛</div>
-
-    <!-- Debug panel -->
-    <div class="debug-panel" id="debugPanel">
-        <div id="debugContent">Debug info will appear here</div>
+    <div class="messages-area" id="messagesArea">
+        <div class="empty-messages" id="emptyMessages">
+            <div>💬</div>
+            <p>No messages yet</p>
+            <small>Send a message to start the conversation</small>
+        </div>
     </div>
 
-    <!-- Messages -->
-    <div class="chat-view">
-        <div class="messages-container" id="messagesContainer">
-            <div class="loading">
-                <div class="spinner"></div>
-                <div>Loading messages...</div>
-            </div>
+    <div class="upload-area" id="uploadArea">
+        <div id="uploadFileName">No file selected</div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="file-download" onclick="document.getElementById('fileInput').click()">Choose</button>
+            <button class="file-download" onclick="uploadFile()">Upload</button>
+            <button class="file-download" onclick="cancelUpload()" style="background: var(--tg-danger);">Cancel</button>
         </div>
+        <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(this)">
+    </div>
 
-        <!-- File Upload Area -->
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <div id="uploadFileName">No file selected</div>
-            <div class="upload-buttons">
-                <button type="button" class="upload-button secondary ripple" onclick="document.getElementById('fileInput').click()">Choose File</button>
-                <button type="button" class="upload-button primary ripple" onclick="uploadFile()" id="uploadBtn">Upload</button>
-                <button type="button" class="upload-button cancel ripple" onclick="cancelUpload()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- Input Area -->
-        <div class="input-area safe-area-bottom">
-            <form class="input-form" id="messageForm">
-                <div class="input-row">
-                    <button type="button" class="attachment-button ripple" onclick="toggleUploadArea()" id="attachmentBtn" aria-label="Attach file">📎</button>
-                    <textarea class="message-input" placeholder="Message" id="messageInput" rows="1"></textarea>
-                    <button type="submit" class="send-button ripple" id="sendButton" disabled aria-label="Send message">➤</button>
-                </div>
-            </form>
-        </div>
+    <div class="input-area">
+        <button class="attachment-btn" onclick="toggleUpload()">📎</button>
+        <textarea class="message-input" id="messageInput" placeholder="Message" rows="1"></textarea>
+        <button class="send-btn" id="sendBtn" disabled>➤</button>
     </div>
 </div>
 
-<!-- Hidden file input -->
-<input type="file" id="fileInput" class="file-input" onchange="handleFileSelect(this.files)">
-<input type="hidden" id="receiverId" value="{{ receiver.id }}">
+<input type="hidden" id="receiverId" value="{{ receiver.id if receiver else '' }}">
 
-<!-- Image Preview Modal -->
-<div class="image-modal" id="imageModal">
-    <button class="modal-close" onclick="closeImagePreview()" aria-label="Close">×</button>
-    <img id="modalImage" src="" alt="Preview">
-</div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-// Debug utility
-function debugLog(...args) {
-    console.log('🔍', ...args);
-    const debugContent = document.getElementById('debugContent');
-    if (debugContent) {
-        const timestamp = new Date().toLocaleTimeString();
-        const message = args.map(arg => {
-            if (typeof arg === 'object') {
-                return JSON.stringify(arg, null, 2);
-            }
-            return arg;
-        }).join(' ');
-        debugContent.innerHTML = `<div>[${timestamp}] ${message}</div>` + debugContent.innerHTML;
-        if (debugContent.children.length > 10) {
-            debugContent.removeChild(debugContent.lastChild);
-        }
+    const receiverId = document.getElementById('receiverId').value;
+    let lastMessageId = 0;
+    let selectedFile = null;
+    let typingTimeout = null;
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-}
 
-function toggleDebugPanel() {
-    const panel = document.getElementById('debugPanel');
-    panel.classList.toggle('active');
-    const toggle = document.getElementById('debugToggle');
-    toggle.style.opacity = panel.classList.contains('active') ? '1' : '0.5';
-}
-
-// Utility functions
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function scrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    setTimeout(() => {
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-            debugLog('Scrolled to bottom');
-        }
-    }, 100);
-}
-
-// Global variables
-const receiverId = {{ receiver.id }};
-let isSending = false;
-let lastMessageId = 0;
-let selectedFile = null;
-let userStatusInterval = null;
-
-// Navigation functions
-function goBack() {
-    window.history.back();
-}
-
-function showUserMenu() {
-    const actions = ['View Profile', 'Block User', 'Clear Chat', 'Report'];
-    const actionText = actions.join('\n• ');
-    const action = prompt(`User Actions:\n\n• ${actionText}\n\nEnter action name:`);
-
-    if (action) {
-        handleUserAction(action.trim());
+    function formatTime(date) {
+        return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-}
 
-function handleUserAction(action) {
-    const lowerAction = action.toLowerCase();
+    function addMessage(message, isOwn) {
+        const container = document.getElementById('messagesArea');
+        const emptyMsg = document.getElementById('emptyMessages');
+        if (emptyMsg) emptyMsg.style.display = 'none';
 
-    if (lowerAction.includes('profile') || lowerAction.includes('view')) {
-        window.location.href = `/profile/${receiverId}`;
-    } else if (lowerAction.includes('block')) {
-        if (confirm('Are you sure you want to block this user?')) {
-            fetch(`/api/block_user/${receiverId}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('User blocked successfully');
-                    goBack();
-                } else {
-                    alert('Failed to block user: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Failed to block user');
-                debugLog('Error blocking user:', error);
-            });
-        }
-    } else if (lowerAction.includes('clear')) {
-        if (confirm('Are you sure you want to clear all messages in this chat?')) {
-            fetch(`/api/clear_chat/${receiverId}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Chat cleared successfully');
-                    loadMessages();
-                } else {
-                    alert('Failed to clear chat: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Failed to clear chat');
-                debugLog('Error clearing chat:', error);
-            });
-        }
-    } else if (lowerAction.includes('report')) {
-        const reason = prompt('Please enter the reason for reporting:');
-        if (reason) {
-            fetch(`/api/report_user/${receiverId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ reason: reason })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('User reported successfully');
-                } else {
-                    alert('Failed to report user: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Failed to report user');
-                debugLog('Error reporting user:', error);
-            });
-        }
-    }
-}
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'outgoing' : 'incoming'}`;
 
-// Check user online status
-async function checkUserStatus() {
-    try {
-        const response = await fetch(`/api/user_status/${receiverId}`);
-        const data = await response.json();
-        debugLog('User status:', data);
+        let html = '<div class="message-bubble">';
 
-        const statusElement = document.getElementById('userStatus');
-        if (statusElement && data.status) {
-            let statusText = '';
-            let statusColor = '';
+        if (message.file_url) {
+            const fileUrl = escapeHtml(message.file_url);
+            const fileName = escapeHtml(message.file_name || 'File');
 
-            switch(data.status) {
-                case 'online':
-                    statusText = 'Online';
-                    statusColor = 'var(--online-status)';
-                    break;
-                case 'offline':
-                    statusText = 'Offline';
-                    statusColor = 'var(--offline-status)';
-                    break;
-                case 'away':
-                    statusText = 'Away';
-                    statusColor = 'var(--away-status)';
-                    break;
-                default:
-                    statusText = data.status;
-                    statusColor = 'var(--text-secondary)';
-            }
-
-            statusElement.textContent = statusText;
-            statusElement.style.color = statusColor;
-
-            // Add last seen time if available
-            if (data.last_seen && data.status === 'offline') {
-                statusElement.textContent = `Last seen ${data.last_seen}`;
+            if (message.file_type === 'image') {
+                html += `<div class="file-attachment">
+                            <div class="file-preview">
+                                <img src="${fileUrl}" alt="${fileName}" onclick="window.open('${fileUrl}', '_blank')">
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name">${fileName}</div>
+                                <a href="${fileUrl}" class="file-download" download>Download</a>
+                            </div>
+                        </div>`;
+            } else {
+                html += `<div class="file-attachment">
+                            <div class="file-preview">📎 ${fileName}</div>
+                            <div class="file-info">
+                                <a href="${fileUrl}" class="file-download" download>Download</a>
+                            </div>
+                        </div>`;
             }
         }
-    } catch (error) {
-        debugLog('Error checking user status:', error);
-    }
-}
 
-// Message input setup
-function setupMessageInput() {
-    const input = document.getElementById('messageInput');
-    const form = document.getElementById('messageForm');
-    const sendButton = document.getElementById('sendButton');
-
-    // Auto-resize textarea
-    input.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        updateSendButton();
-    });
-
-    // Form submission
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        sendTextMessage();
-    });
-
-    // Enter key handling (Shift+Enter for new line)
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            form.dispatchEvent(new Event('submit'));
+        if (message.content) {
+            html += `<div class="message-text">${escapeHtml(message.content)}</div>`;
         }
-    });
 
-    debugLog('Message input setup complete');
-}
+        html += `<div class="message-time">${formatTime(message.timestamp || Date.now())}</div>`;
+        html += '</div>';
 
-function updateSendButton() {
-    const input = document.getElementById('messageInput');
-    const button = document.getElementById('sendButton');
-    if (input && button) {
-        button.disabled = input.value.trim().length === 0;
+        messageDiv.innerHTML = html;
+        container.appendChild(messageDiv);
+        scrollToBottom();
     }
-}
 
-// Send text message
-async function sendTextMessage() {
-    if (isSending) return;
-
-    const input = document.getElementById('messageInput');
-    const content = input.value.trim();
-
-    if (!content) return;
-
-    isSending = true;
-    debugLog('Sending text message:', content);
-
-    // Create optimistic UI update
-    const tempId = 'temp-' + Date.now();
-    const tempMessage = {
-        id: tempId,
-        content: content,
-        sender_name: 'You',
-        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        is_own: true,
-        is_read: false
-    };
-
-    // Add message immediately to UI
-    addMessageToUI(tempMessage, true);
-    input.value = '';
-    input.style.height = 'auto';
-    updateSendButton();
-
-    try {
-        const response = await fetch('/api/send_message', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                receiver_id: receiverId,
-                content: content
-            })
-        });
-
-        const data = await response.json();
-        debugLog('Send message response:', data);
-
-        if (data.success) {
-            // Remove temporary message and add the real one
-            removeTempMessage(tempId);
-            addMessageToUI(data.message, true);
-            lastMessageId = data.message.id;
-        } else {
-            // Show error and keep temporary message
-            showMessageError(tempId);
-        }
-    } catch (error) {
-        debugLog('Error sending message:', error);
-        showMessageError(tempId);
-    } finally {
-        isSending = false;
-    }
-}
-
-function removeTempMessage(tempId) {
-    const tempMessage = document.querySelector(`[data-message-id="${tempId}"]`);
-    if (tempMessage) {
-        tempMessage.remove();
-        debugLog('Removed temporary message:', tempId);
-    }
-}
-
-function showMessageError(tempId) {
-    const tempMessage = document.querySelector(`[data-message-id="${tempId}"]`);
-    if (tempMessage) {
-        tempMessage.classList.add('shake');
-        const bubble = tempMessage.querySelector('.message-bubble');
-        bubble.style.background = '#ffebee';
-        bubble.style.color = '#c62828';
-
-        // Restore after 2 seconds
+    function scrollToBottom() {
+        const container = document.getElementById('messagesArea');
         setTimeout(() => {
-            tempMessage.classList.remove('shake');
-            bubble.style.background = '';
-            bubble.style.color = '';
-        }, 2000);
-    }
-}
-
-// File upload functions
-function toggleUploadArea() {
-    const uploadArea = document.getElementById('uploadArea');
-    const isActive = uploadArea.classList.toggle('active');
-
-    // Toggle attachment button color
-    const attachmentBtn = document.getElementById('attachmentBtn');
-    if (isActive) {
-        attachmentBtn.style.color = 'var(--primary-color)';
-        debugLog('Upload area opened');
-    } else {
-        attachmentBtn.style.color = '';
-        debugLog('Upload area closed');
-    }
-}
-
-function cancelUpload() {
-    const uploadArea = document.getElementById('uploadArea');
-    uploadArea.classList.remove('active');
-    selectedFile = null;
-    document.getElementById('fileInput').value = '';
-    document.getElementById('uploadFileName').textContent = 'No file selected';
-
-    // Reset attachment button color
-    const attachmentBtn = document.getElementById('attachmentBtn');
-    if (attachmentBtn) attachmentBtn.style.color = '';
-
-    debugLog('Upload cancelled');
-}
-
-function handleFileSelect(files) {
-    if (files.length > 0) {
-        selectedFile = files[0];
-        document.getElementById('uploadFileName').textContent = selectedFile.name;
-        debugLog('File selected:', {
-            name: selectedFile.name,
-            size: selectedFile.size,
-            type: selectedFile.type
-        });
-
-        // Check file size (16MB limit)
-        if (selectedFile.size > 16 * 1024 * 1024) {
-            alert('File size must be less than 16MB');
-            cancelUpload();
-            return;
-        }
-    }
-}
-
-async function uploadFile() {
-    if (!selectedFile) {
-        alert('Please select a file first');
-        return;
+            container.scrollTop = container.scrollHeight;
+        }, 100);
     }
 
-    const messageText = document.getElementById('messageInput').value.trim();
-    const uploadBtn = document.getElementById('uploadBtn');
-
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('receiver_id', receiverId);
-    if (messageText) {
-        formData.append('message', messageText);
-    }
-
-    debugLog('Uploading file:', {
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        messageText: messageText,
-        receiverId: receiverId
-    });
-
-    try {
-        const response = await fetch('/upload_file', {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-        debugLog('Upload response:', data);
-
-        if (data.success && data.message) {
-            // Add the message to chat
-            addMessageToUI(data.message, true);
-            scrollToBottom();
-
-            // Clear inputs
-            document.getElementById('messageInput').value = '';
-            cancelUpload();
-
-            debugLog('File uploaded successfully:', data.message);
-        } else {
-            alert('Upload failed: ' + (data.error || 'Unknown error'));
-            debugLog('Upload failed:', data);
-        }
-    } catch (error) {
-        alert('Upload failed. Please try again.');
-        debugLog('Upload error:', error);
-    } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload';
-    }
-}
-
-// Image preview functions
-function openImagePreview(imageUrl) {
-    debugLog('Opening image preview:', imageUrl);
-    const modal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-    modalImage.src = imageUrl;
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeImagePreview() {
-    const modal = document.getElementById('imageModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-    debugLog('Closed image preview');
-}
-
-// Message display functions
-function createMessageElement(message, animate = false) {
-    debugLog('Creating message element:', message);
-
-    const div = document.createElement('div');
-    div.className = `message ${message.is_own ? 'outgoing' : 'incoming'}`;
-    div.dataset.messageId = message.id;
-
-    if (animate) {
-        div.classList.add('bounce-in');
-    }
-
-    let messageHTML = '<div class="message-bubble">';
-
-    // Add file attachment if exists
-    if (message.has_attachment) {
-        messageHTML += renderFileAttachment(message);
-    }
-
-    // Add text content if exists
-    if (message.content) {
-        messageHTML += `<div class="message-text">${escapeHtml(message.content)}</div>`;
-    }
-
-    messageHTML += `
-            <div class="message-time">
-                ${message.timestamp || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                ${message.is_own ? `<span class="message-status">${message.is_read ? '✓✓' : '✓'}</span>` : ''}
-            </div>
-        </div>
-    `;
-
-    div.innerHTML = messageHTML;
-    return div;
-}
-
-function renderFileAttachment(message) {
-    const fileType = message.file_type || 'unknown';
-    const fileName = message.file_name || 'file';
-    const fileUrl = message.file_url || '';
-    const fileSize = message.file_size || 0;
-    const thumbnailUrl = message.thumbnail_url || fileUrl;
-
-    // Debug log
-    debugLog('Rendering file attachment:', {
-        fileType,
-        fileName,
-        fileUrl,
-        thumbnailUrl,
-        fileSize,
-        fullMessage: message
-    });
-
-    // Check if URL is valid
-    if (fileUrl) {
-        if (fileUrl.startsWith('http')) {
-            debugLog('File URL is absolute:', fileUrl);
-        } else if (fileUrl.startsWith('/')) {
-            debugLog('File URL is relative (starts with /):', fileUrl);
-            // Construct full URL for debugging
-            const fullUrl = window.location.origin + fileUrl;
-            debugLog('Full URL would be:', fullUrl);
-        } else {
-            debugLog('⚠️ File URL has unexpected format:', fileUrl);
-        }
-    } else {
-        debugLog('⚠️ No file URL provided');
-    }
-
-    let previewHTML = '';
-
-    // Normalize file type for comparison
-    const normalizedType = fileType.toLowerCase();
-
-    if (normalizedType === 'image' || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(normalizedType)) {
-        previewHTML = `
-            <div class="file-preview">
-                <img src="${thumbnailUrl || fileUrl}" alt="${escapeHtml(fileName)}"
-                     onclick="openImagePreview('${fileUrl}')"
-                     onerror="this.onerror=null; console.error('Failed to load image:', this.src); this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNFNUU1RTUiLz48cGF0aCBkPSJNNzAgODBDNzAgNzIuMjM4MSA3Ni4yMzgxIDY2IDg0IDY2QzkxLjc2MTkgNjYgOTggNzIuMjM4MSA5OCA4MEM5OCA4Ny43NjE5IDkxLjc2MTkgOTQgODQgOTRDNzYuMjM4MSA5NCA3MCA4Ny43NjE5IDcwIDgwWiIgZmlsbD0iI0NDQyIvPjxwYXRoIGQ9Ik02NCAxMTRMMzYgMTQyVjE2NEgxNjRWMTE0TDEzNiA4NkwxMDQgMTE0TDg0IDk0TDY0IDExNFoiIGZpbGw9IiNDQ0MiLz48L3N2Zz4='; this.parentElement.innerHTML += '<div style=\"color: red; font-size: 12px; margin-top: 5px;\">Failed to load image</div>'">
-            </div>
-        `;
-    } else if (normalizedType === 'document' || ['pdf', 'doc', 'docx', 'txt'].includes(normalizedType)) {
-        previewHTML = `
-            <div class="file-preview">
-                <div class="attachment-icon">📄</div>
-                <div style="font-size: 14px; color: var(--text-secondary);">Document</div>
-            </div>
-        `;
-    } else if (normalizedType === 'audio' || ['mp3', 'wav', 'ogg'].includes(normalizedType)) {
-        previewHTML = `
-            <div class="file-preview">
-                <div class="attachment-icon">🎵</div>
-                <audio controls>
-                    <source src="${fileUrl}" type="audio/mpeg">
-                    Your browser does not support the audio element.
-                </audio>
-            </div>
-        `;
-    } else if (normalizedType === 'video' || ['mp4', 'webm', 'mov'].includes(normalizedType)) {
-        previewHTML = `
-            <div class="file-preview">
-                <div class="attachment-icon">🎬</div>
-                <video controls style="max-height: 200px;">
-                    <source src="${fileUrl}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-        `;
-    } else {
-        previewHTML = `
-            <div class="file-preview">
-                <div class="attachment-icon">📁</div>
-                <div style="font-size: 14px; color: var(--text-secondary);">File Attachment</div>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="file-attachment">
-            ${previewHTML}
-            <div class="file-info">
-                <div class="file-name">${escapeHtml(fileName)}</div>
-                <div class="file-size">${formatFileSize(fileSize)}</div>
-                <a href="${fileUrl}" class="file-download" download="${escapeHtml(fileName)}" target="_blank" rel="noopener noreferrer">Download</a>
-                <button onclick="debugLog('File URL:', '${fileUrl}')" class="file-download" style="background: var(--text-secondary); margin-left: 5px;">Debug URL</button>
-            </div>
-        </div>
-    `;
-}
-
-function addMessageToUI(message, animate = false) {
-    const container = document.getElementById('messagesContainer');
-    debugLog('Adding message to UI:', message);
-
-    // Remove empty state if it exists
-    const emptyState = container.querySelector('.empty-state');
-    if (emptyState) {
-        emptyState.remove();
-    }
-
-    // Remove loading spinner if it exists
-    const loading = container.querySelector('.loading');
-    if (loading) {
-        loading.remove();
-    }
-
-    const messageDiv = createMessageElement(message, animate);
-    container.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-// Load messages
-async function loadMessages() {
-    try {
-        debugLog('Loading messages, lastMessageId:', lastMessageId);
-        const response = await fetch(`/api/messages/${receiverId}?after=${lastMessageId}`);
-        const data = await response.json();
-        debugLog('Load messages response:', data);
-
-        const container = document.getElementById('messagesContainer');
-
-        if (data.messages && data.messages.length > 0) {
-            // Get current last message ID to check if we have new messages
-            const currentLastId = data.messages[data.messages.length - 1].id;
-
-            if (currentLastId > lastMessageId) {
-                // Only update if we have new messages
-                container.innerHTML = '';
-                data.messages.forEach(message => {
-                    const messageDiv = createMessageElement(message, false);
-                    container.appendChild(messageDiv);
-                });
-                scrollToBottom();
-                lastMessageId = currentLastId;
-                debugLog('Updated messages, new lastMessageId:', lastMessageId);
-            }
-        } else {
-            // Remove loading and show empty state
-            const loading = container.querySelector('.loading');
-            if (loading) {
-                loading.remove();
-            }
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">💬</div>
-                    <div class="empty-state-text">No messages yet</div>
-                    <div class="empty-state-subtext">Send a message to start the conversation!</div>
-                </div>
-            `;
-            debugLog('No messages, showing empty state');
-        }
-    } catch (error) {
-        debugLog('Error loading messages:', error);
-    }
-}
-
-// Poll for new messages
-function startMessagePolling() {
-    setInterval(async () => {
+    async function loadMessages() {
         try {
             const response = await fetch(`/api/messages/${receiverId}?after=${lastMessageId}`);
             const data = await response.json();
 
             if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(message => {
-                    // Only add messages we haven't seen yet
-                    if (message.id > lastMessageId) {
-                        addMessageToUI(message, true); // Animate new incoming messages
-                        lastMessageId = message.id;
-                    }
+                data.messages.forEach(msg => {
+                    addMessage(msg, msg.is_own);
+                    lastMessageId = Math.max(lastMessageId, msg.id);
                 });
             }
         } catch (error) {
-            debugLog('Error polling messages:', error);
+            console.error('Error loading messages:', error);
         }
-    }, 2000);
-}
-
-// Poll for user status updates
-function startStatusPolling() {
-    if (userStatusInterval) clearInterval(userStatusInterval);
-
-    userStatusInterval = setInterval(() => {
-        checkUserStatus();
-    }, 10000); // Check every 10 seconds
-}
-
-// Mark messages as read
-async function markMessagesAsRead() {
-    try {
-        await fetch(`/api/mark_read/${receiverId}`, {
-            method: 'POST'
-        });
-        debugLog('Marked messages as read');
-    } catch (error) {
-        debugLog('Error marking messages as read:', error);
     }
-}
 
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    debugLog('DOM loaded, initializing chat');
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
 
-    // Setup all components
-    setupMessageInput();
+        if (!content) return;
 
-    // Load initial messages
+        input.disabled = true;
+        document.getElementById('sendBtn').disabled = true;
+
+        try {
+            const response = await fetch('/api/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receiver_id: receiverId, content: content })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                input.value = '';
+                addMessage(data.message, true);
+                scrollToBottom();
+            } else {
+                alert('Failed to send message');
+            }
+        } catch (error) {
+            alert('Error sending message');
+        } finally {
+            input.disabled = false;
+            updateSendButton();
+            input.focus();
+        }
+    }
+
+    async function uploadFile() {
+        if (!selectedFile) {
+            alert('Please select a file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('receiver_id', receiverId);
+
+        const uploadBtn = event.target;
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+
+        try {
+            const response = await fetch('/upload_file', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            if (data.success) {
+                addMessage(data.message, true);
+                cancelUpload();
+                scrollToBottom();
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+        } catch (error) {
+            alert('Upload failed');
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload';
+        }
+    }
+
+    async function checkUserStatus() {
+        try {
+            const response = await fetch(`/api/user_status/${receiverId}`);
+            const data = await response.json();
+            const statusEl = document.getElementById('userStatus');
+
+            if (data.status === 'online') {
+                statusEl.textContent = 'Online';
+                statusEl.className = 'chat-status online';
+            } else if (data.status === 'away') {
+                statusEl.textContent = 'Away';
+                statusEl.className = 'chat-status';
+            } else {
+                statusEl.textContent = data.last_seen ? `Last seen ${data.last_seen}` : 'Offline';
+                statusEl.className = 'chat-status';
+            }
+        } catch (error) {
+            console.error('Error checking status:', error);
+        }
+    }
+
+    function updateSendButton() {
+        const input = document.getElementById('messageInput');
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = !input.value.trim();
+    }
+
+    function toggleUpload() {
+        const area = document.getElementById('uploadArea');
+        area.classList.toggle('active');
+    }
+
+    function cancelUpload() {
+        document.getElementById('uploadArea').classList.remove('active');
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('uploadFileName').textContent = 'No file selected';
+    }
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            selectedFile = input.files[0];
+            document.getElementById('uploadFileName').textContent = selectedFile.name;
+
+            if (selectedFile.size > 16 * 1024 * 1024) {
+                alert('File must be less than 16MB');
+                cancelUpload();
+            }
+        }
+    }
+
+    function showMenu() {
+        const action = prompt('Actions:\n• View Profile\n• Block User\n• Clear Chat\n• Report');
+        if (action) {
+            const lower = action.toLowerCase();
+            if (lower.includes('profile')) {
+                window.location.href = `/profile/${receiverId}`;
+            } else if (lower.includes('block')) {
+                if (confirm('Block this user?')) {
+                    fetch(`/api/block_user/${receiverId}`, { method: 'POST' })
+                        .then(() => alert('User blocked'));
+                }
+            } else if (lower.includes('clear')) {
+                if (confirm('Clear all messages?')) {
+                    fetch(`/api/clear_chat/${receiverId}`, { method: 'POST' })
+                        .then(() => location.reload());
+                }
+            }
+        }
+    }
+
+    // Event listeners
+    document.getElementById('messageInput').addEventListener('input', updateSendButton);
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Initialization
     loadMessages();
-
-    // Check user status
     checkUserStatus();
-    startStatusPolling();
+    setInterval(checkUserStatus, 10000);
+    setInterval(loadMessages, 2000);
 
-    // Start polling for new messages
-    startMessagePolling();
-
-    // Mark messages as read when opening chat
-    markMessagesAsRead();
-
-    // Focus on input field
-    const input = document.getElementById('messageInput');
-    if (input) {
-        input.focus();
-    }
-
-    // Setup event listeners
-    setupEventListeners();
-
-    debugLog('Chat initialization complete');
-});
-
-// Setup additional event listeners
-function setupEventListeners() {
-    // Close image preview when clicking outside
-    document.addEventListener('click', function(e) {
-        const modal = document.getElementById('imageModal');
-        if (modal && modal.classList.contains('active') && e.target === modal) {
-            closeImagePreview();
-        }
-    });
-
-    // Close image preview with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeImagePreview();
-        }
-    });
-
-    // Close upload area when clicking outside
-    document.addEventListener('click', function(e) {
-        const uploadArea = document.getElementById('uploadArea');
-        const attachmentBtn = document.getElementById('attachmentBtn');
-
-        if (uploadArea && uploadArea.classList.contains('active') &&
-            attachmentBtn && !uploadArea.contains(e.target) &&
-            e.target !== attachmentBtn && !attachmentBtn.contains(e.target)) {
+    document.addEventListener('click', (e) => {
+        const area = document.getElementById('uploadArea');
+        if (area.classList.contains('active') && !area.contains(e.target) && !e.target.classList.contains('attachment-btn')) {
             cancelUpload();
         }
     });
-
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            // Page became visible, mark messages as read
-            markMessagesAsRead();
-            // Reload messages to update read status
-            loadMessages();
-        }
-    });
-
-    debugLog('Event listeners setup complete');
-}
 </script>
 {% endblock %}

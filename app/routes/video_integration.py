@@ -9,7 +9,7 @@ from functools import wraps
 # Set up logging
 logger = logging.getLogger(__name__)
 
-video_int_bp = Blueprint('video_int', __name__, url_prefix='/video')
+video_int_bp = Blueprint('video', __name__, url_prefix='/video')
 
 dotenv.load_dotenv()
 

@@ -1,110 +1,87 @@
-<!-- templates/chat_list.html -->
 {% extends "base.html" %}
 
 {% block title %}Chats - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        color: #333;
-        background-image: url('{{ url_for("static", filename="kiselgram-banner.jpg") }}');
-        background-size: cover; /* Optional: adjust as needed */
-    }
-
-    .header {
-        color: #ffffff;
-        padding: 20px 15px;
+    .chats-header {
         position: sticky;
         top: 0;
+        background: var(--tg-header);
+        padding: 20px 16px 12px;
+        border-bottom: 1px solid var(--tg-border);
         z-index: 100;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .header h1 {
-        font-size: 1.5em;
-        margin-bottom: 10px;
+    .chats-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 16px;
     }
 
-    .user-info {
+    .tabs {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.9em;
-        opacity: 0.9;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
     }
 
-    .nav-tabs {
-        display: flex;
-        background: white;
-        border-bottom: 1px solid #eee;
-        position: sticky;
-        top: 80px;
-        z-index: 90;
+    .tabs::-webkit-scrollbar {
+        display: none;
     }
 
-    .nav-tab {
-        flex: 1;
-        text-align: center;
-        padding: 15px;
-        border-bottom: 3px solid transparent;
-        cursor: pointer;
+    .tab {
+        padding: 8px 16px;
+        background: var(--tg-surface);
+        border-radius: 20px;
+        font-size: 14px;
         font-weight: 500;
+        color: var(--tg-text-light);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
     }
 
-    .nav-tab.active {
-        border-bottom-color: #007bff;
-        color: #007bff;
+    .tab.active {
+        background: var(--tg-primary);
+        color: white;
     }
 
     .chat-list {
-
+        padding: 8px 0;
     }
 
     .chat-item {
         display: flex;
         align-items: center;
-        padding: 15px;
-        background: white;
-        border-bottom: 1px solid #f0f0f0;
+        gap: 12px;
+        padding: 12px 16px;
         cursor: pointer;
         transition: background 0.2s;
-        gap: 15px;
+        animation: fadeIn 0.3s ease-out;
     }
 
     .chat-item:hover {
-        background: #f8f9fa;
+        background: var(--tg-surface);
     }
 
     .chat-avatar {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        font-size: 1.2em;
+        font-size: 20px;
+        font-weight: 600;
         color: white;
+        flex-shrink: 0;
     }
 
-    .avatar-personal {
-        background: #007bff;
-    }
-
-    .avatar-group {
-        background: #28a745;
-    }
-
-    .avatar-channel {
-        background: #dc3545;
-    }
+    .avatar-personal { background: linear-gradient(135deg, #5e72e4, #825ee4); }
+    .avatar-group { background: linear-gradient(135deg, #2dce89, #11cdef); }
+    .avatar-channel { background: linear-gradient(135deg, #f5365c, #fb6340); }
 
     .chat-info {
         flex: 1;
@@ -114,199 +91,171 @@
     .chat-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 5px;
+        align-items: baseline;
+        margin-bottom: 4px;
     }
 
     .chat-name {
         font-weight: 600;
-        font-size: 1.1em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 16px;
     }
 
     .chat-time {
-        font-size: 0.8em;
-        color: #666;
-        white-space: nowrap;
+        font-size: 11px;
+        color: var(--tg-text-light);
     }
 
     .chat-preview {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
     }
 
     .chat-message {
-        font-size: 0.9em;
-        color: #666;
+        font-size: 14px;
+        color: var(--tg-text-light);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         flex: 1;
-        margin-right: 10px;
     }
 
     .chat-badge {
-        background: #007bff;
+        background: var(--tg-primary);
         color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7em;
-        font-weight: bold;
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 20px;
+        text-align: center;
     }
 
     .empty-state {
         text-align: center;
         padding: 60px 20px;
-        color: #666;
+        color: var(--tg-text-light);
     }
 
-    .empty-state .icon {
-        font-size: 4em;
-        margin-bottom: 20px;
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
         opacity: 0.5;
     }
 
     .fab {
         position: fixed;
-        bottom: 100px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        background: #007bff;
+        bottom: 80px;
+        right: 16px;
+        width: 56px;
+        height: 56px;
+        background: var(--tg-primary);
         color: white;
-        border-radius: 50%;
+        border-radius: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5em;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        font-size: 28px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         cursor: pointer;
-        z-index: 1000;
+        transition: all 0.2s;
+        z-index: 100;
+    }
+
+    .fab:hover {
+        transform: scale(1.05);
     }
 
     .fab-menu {
         position: fixed;
-        bottom: 150px;
-        right: 20px;
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        bottom: 140px;
+        right: 16px;
+        background: var(--tg-header);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         overflow: hidden;
-        z-index: 1000;
+        z-index: 100;
         display: none;
+        min-width: 200px;
+    }
+
+    .fab-menu.active {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
     }
 
     .fab-item {
-        padding: 15px 20px;
+        padding: 12px 20px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         cursor: pointer;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .fab-item:last-child {
-        border-bottom: none;
+        transition: background 0.2s;
     }
 
     .fab-item:hover {
-        background: #f8f9fa;
+        background: var(--tg-surface);
     }
 
-    .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: white;
-        display: flex;
-        border-top: 1px solid #eee;
-        z-index: 1000;
-    }
+    @media (max-width: 480px) {
+        .chats-header {
+            padding: 16px 16px 8px;
+        }
 
-    .nav-item {
-        flex: 1;
-        text-align: center;
-        padding: 15px 10px;
-        color: #666;
-        text-decoration: none;
-        font-size: 0.8em;
-    }
+        .chats-header h1 {
+            font-size: 24px;
+        }
 
-    .nav-item.active {
-        color: #007bff;
-    }
+        .chat-avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
 
-    .nav-icon {
-        font-size: 1.5em;
-        margin-bottom: 5px;
+        .fab {
+            bottom: 72px;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="header">
-    <h1>Kiselgram</h1>
-    <div class="user-info">
-        <span>👋 Hello, {{ current_user }}</span>
+<div class="chats-header">
+    <h1>Chats</h1>
+    <div class="tabs">
+        <div class="tab active" data-tab="all">All</div>
+        <div class="tab" data-tab="personal">Personal</div>
+        <div class="tab" data-tab="groups">Groups</div>
+        <div class="tab" data-tab="channels">Channels</div>
     </div>
-</div>
-
-<div class="nav-tabs">
-    <div class="nav-tab active" onclick="showTab('all')">All Chats</div>
-    <div class="nav-tab" onclick="showTab('personal')">Personal</div>
-    <div class="nav-tab" onclick="showTab('groups')">Groups</div>
-    <div class="nav-tab" onclick="showTab('channels')">Channels</div>
 </div>
 
 <div class="chat-list" id="chatList">
     {% if chats %}
         {% for chat in chats %}
-        <div class="chat-item"
-             onclick="openChat('{{ chat.type }}', {{ chat.id }})">
-            <div class="chat-avatar
-                {% if chat.type == 'personal' %}avatar-personal
-                {% elif chat.type == 'group' %}avatar-group
-                {% else %}avatar-channel{% endif %}">
+        <div class="chat-item" data-type="{{ chat.type }}" data-id="{{ chat.id }}">
+            <div class="chat-avatar avatar-{{ chat.type }}">
                 {% if chat.type == 'personal' %}
-                    {{ chat.name[0].upper() }}
+                    {{ chat.name[0]|upper if chat.name else 'U' }}
                 {% elif chat.type == 'group' %}
-                    G
+                    👥
                 {% else %}
-                    C
+                    📢
                 {% endif %}
             </div>
-
             <div class="chat-info">
                 <div class="chat-header">
-                    <div class="chat-name">{{ chat.name }}</div>
+                    <div class="chat-name">{{ chat.name|e }}</div>
                     <div class="chat-time">{{ chat.timestamp }}</div>
                 </div>
-
                 <div class="chat-preview">
-                    <div class="chat-message">
-                        {% if chat.last_message %}
-                            {% if chat.last_message.sender_id == session.user_id %}
-                                You: {{ chat.last_message.content }}
-                            {% else %}
-                                {{ chat.last_message.sender.username }}: {{ chat.last_message.content }}
-                            {% endif %}
-                        {% else %}
-                            No messages yet
-                        {% endif %}
-                    </div>
-
+                    <div class="chat-message">{{ chat.last_message|e if chat.last_message else 'No messages yet' }}</div>
                     {% if chat.unread_count > 0 %}
-                    <div class="chat-badge">
-                        {{ chat.unread_count }}
-                    </div>
+                    <div class="chat-badge">{{ chat.unread_count }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -314,28 +263,24 @@
         {% endfor %}
     {% else %}
         <div class="empty-state">
-            <div class="icon">💬</div>
+            <div class="empty-state-icon">💬</div>
             <h3>No chats yet</h3>
-            <p>Start a conversation by searching for users or creating a group</p>
+            <p>Start a conversation by searching for users</p>
         </div>
     {% endif %}
 </div>
 
-<!-- Floating Action Button -->
-<div class="fab" onclick="toggleFabMenu()">
-    +
-</div>
-
+<div class="fab" id="fab">+</div>
 <div class="fab-menu" id="fabMenu">
-    <div class="fab-item" onclick="createGroup()">
+    <div class="fab-item" data-action="group">
         <span>👥</span>
         <span>New Group</span>
     </div>
-    <div class="fab-item" onclick="createChannel()">
+    <div class="fab-item" data-action="channel">
         <span>📢</span>
         <span>New Channel</span>
     </div>
-    <div class="fab-item" onclick="searchUsers()">
+    <div class="fab-item" data-action="search">
         <span>🔍</span>
         <span>Search Users</span>
     </div>
@@ -346,170 +291,80 @@
 <script>
     let currentTab = 'all';
 
-    function showTab(tab) {
-        currentTab = tab;
-
-        // Update active tab UI
-        document.querySelectorAll('.nav-tab').forEach(t => {
-            t.classList.remove('active');
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentTab = this.dataset.tab;
+            filterChats();
         });
-        event.target.classList.add('active');
+    });
 
-        // Filter chats based on tab
-        filterChats(tab);
-    }
+    function filterChats() {
+        const items = document.querySelectorAll('.chat-item');
+        let visible = 0;
 
-    function filterChats(tab) {
-        const chatItems = document.querySelectorAll('.chat-item');
+        items.forEach(item => {
+            const type = item.dataset.type;
+            if (currentTab === 'all' || currentTab === type) {
+                item.style.display = 'flex';
+                visible++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Show/hide empty state
         const emptyState = document.querySelector('.empty-state');
-
-        if (tab === 'all') {
-            chatItems.forEach(item => item.style.display = 'flex');
-        } else {
-            chatItems.forEach(item => {
-                const avatarClass = item.querySelector('.chat-avatar').className;
-                if (tab === 'personal' && avatarClass.includes('avatar-personal')) {
-                    item.style.display = 'flex';
-                } else if (tab === 'groups' && avatarClass.includes('avatar-group')) {
-                    item.style.display = 'flex';
-                } else if (tab === 'channels' && avatarClass.includes('avatar-channel')) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Check if any chats are visible
-        const visibleChats = Array.from(chatItems).some(item => item.style.display !== 'none');
-
-        if (!visibleChats) {
-            showEmptyState(tab);
-        } else if (emptyState) {
-            emptyState.remove();
+        if (emptyState) {
+            if (visible === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+            }
         }
     }
 
-    function showEmptyState(tab) {
-        const chatList = document.getElementById('chatList');
-        let message = '';
-
-        switch(tab) {
-            case 'personal':
-                message = 'No personal chats yet. Start chatting with friends!';
-                break;
-            case 'groups':
-                message = 'No group chats yet. Create or join a group!';
-                break;
-            case 'channels':
-                message = 'No channels yet. Create or subscribe to channels!';
-                break;
-            default:
-                message = 'No chats yet. Start a conversation!';
-        }
-
-        // Remove existing empty state
-        const existingState = chatList.querySelector('.empty-state');
-        if (existingState) {
-            existingState.remove();
-        }
-
-        const emptyState = document.createElement('div');
-        emptyState.className = 'empty-state';
-        emptyState.innerHTML = `
-            <div class="icon">💬</div>
-            <h3>No ${tab === 'all' ? 'chats' : tab} yet</h3>
-            <p>${message}</p>
-        `;
-
-        // Hide all chat items
-        document.querySelectorAll('.chat-item').forEach(item => {
-            item.style.display = 'none';
-        });
-
-        chatList.appendChild(emptyState);
-    }
-
-    function openChat(type, id) {
-        if (type === 'personal') {
-            window.location.href = `/direct/${id}`;
-        } else if (type === 'group') {
-            window.location.href = `/group/${id}`;
-        } else if (type === 'channel') {
-            window.location.href = `/channel/${id}`;
-        }
-    }
-
-    function toggleFabMenu() {
-        const menu = document.getElementById('fabMenu');
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function createGroup() {
-        window.location.href = '/create_group';
-        toggleFabMenu();
-    }
-
-    function createChannel() {
-        window.location.href = '/create_channel';
-        toggleFabMenu();
-    }
-
-    function searchUsers() {
-        window.location.href = '/search';
-        toggleFabMenu();
-    }
-
-    // Close FAB menu when clicking outside
-    document.addEventListener('click', function(e) {
-        const fabMenu = document.getElementById('fabMenu');
-        const fab = document.querySelector('.fab');
-        if (fabMenu.style.display === 'block' && !fab.contains(e.target) && !fabMenu.contains(e.target)) {
-            fabMenu.style.display = 'none';
-        }
-    });
-
-    // Load chats periodically for updates
-    function updateChats() {
-        fetch('/api/chats/updates')
-            .then(response => response.json())
-            .then(data => {
-                if (data.updated && data.chats) {
-                    // In a real app, update the chat list UI
-                    console.log('Chats updated:', data.chats);
-                }
-            })
-            .catch(error => {
-                console.error('Error updating chats:', error);
-            });
-    }
-
-    // Update every 30 seconds
-    setInterval(updateChats, 30000);
-
-    // Mark as read when leaving the page
-    window.addEventListener('beforeunload', function() {
-        // Mark all as read when leaving
-        fetch('/api/mark_all_read', {
-            method: 'POST'
-        }).catch(console.error);
-    });
-
-    // Initialize tab filtering
-    document.addEventListener('DOMContentLoaded', function() {
-        // Default to all tab
-        showTab('all');
-
-        // Add click handlers to chat items for touch devices
-        document.querySelectorAll('.chat-item').forEach(item => {
-            item.addEventListener('touchstart', function() {
-                this.style.background = '#f8f9fa';
-            });
-
-            item.addEventListener('touchend', function() {
-                this.style.background = '';
-            });
+    // Open chat
+    document.querySelectorAll('.chat-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const type = this.dataset.type;
+            const id = this.dataset.id;
+            const urls = {
+                personal: `/direct/${id}`,
+                group: `/group/${id}`,
+                channel: `/channel/${id}`
+            };
+            window.location.href = urls[type];
         });
     });
+
+    // FAB menu
+    const fab = document.getElementById('fab');
+    const fabMenu = document.getElementById('fabMenu');
+
+    fab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fabMenu.classList.toggle('active');
+    });
+
+    document.querySelectorAll('.fab-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const urls = {
+                group: '/create_group',
+                channel: '/create_channel',
+                search: '/search'
+            };
+            window.location.href = urls[action];
+        });
+    });
+
+    document.addEventListener('click', () => {
+        fabMenu.classList.remove('active');
+    });
+
+    filterChats();
 </script>
 {% endblock %}

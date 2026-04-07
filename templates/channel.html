@@ -1,824 +1,468 @@
-<!-- templates/channel.html -->
 {% extends "base.html" %}
 
-{% block title %}{{ channel.name }} - Kiselgram{% endblock %}
+{% block title %}{{ channel.name|e }} - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
-    /* Your existing styles here (from the <style> section) */
-    .header {
-        background: #dc3545;
-        color: white;
-        padding: 15px;
-        position: fixed;
-        top: 0;
-        width: 100%;
-        z-index: 1000;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .channel-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: var(--tg-bg);
     }
 
-    .header-content {
+    .channel-header {
+        position: sticky;
+        top: 0;
+        background: var(--tg-header);
+        backdrop-filter: blur(20px);
+        padding: 12px 16px;
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 12px;
+        border-bottom: 1px solid var(--tg-border);
+        z-index: 100;
     }
 
-    .back-button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.2em;
-        cursor: pointer;
-        padding: 5px;
-    }
-
-    .channel-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.2);
+    .back-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5em;
-        font-weight: bold;
+        border-radius: 50%;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--tg-text);
+        transition: background 0.2s;
     }
 
-    /* ... rest of your CSS styles ... */
+    .back-btn:hover {
+        background: var(--tg-surface);
+    }
+
+    .channel-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--tg-danger), #fb6340);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
+    }
 
     .channel-info {
         flex: 1;
     }
 
     .channel-name {
-        font-size: 1.2em;
+        font-size: 17px;
         font-weight: 600;
-        margin-bottom: 5px;
     }
 
     .channel-meta {
-        font-size: 0.9em;
-        opacity: 0.9;
+        font-size: 13px;
+        color: var(--tg-text-light);
     }
 
-    .menu-button {
+    .owner-badge {
+        background: rgba(245, 54, 92, 0.2);
+        color: var(--tg-danger);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+
+    .menu-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
         background: none;
         border: none;
-        color: white;
-        font-size: 1.2em;
+        font-size: 20px;
         cursor: pointer;
-        padding: 5px;
+        color: var(--tg-text);
     }
 
-    .messages-container {
-        padding: 80px 15px 120px;
-        max-width: 800px;
-        margin: 0 auto;
+    .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
 
     .message {
-        margin: 15px 0;
-        padding: 12px 15px;
+        max-width: 75%;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .message.outgoing {
+        align-self: flex-end;
+    }
+
+    .message.incoming {
+        align-self: flex-start;
+    }
+
+    .message-bubble {
+        padding: 10px 14px;
         border-radius: 18px;
-        max-width: 85%;
         position: relative;
-        animation: fadeIn 0.3s ease-in;
+        word-wrap: break-word;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message-own {
-        background: #dc3545;
+    .message.outgoing .message-bubble {
+        background: var(--tg-danger);
         color: white;
-        margin-left: auto;
-        border-bottom-right-radius: 5px;
+        border-bottom-right-radius: 4px;
     }
 
-    .message-other {
-        background: white;
-        border: 1px solid #e0e0e0;
-        margin-right: auto;
-        border-bottom-left-radius: 5px;
+    .message.incoming .message-bubble {
+        background: var(--tg-surface);
+        color: var(--tg-text);
+        border-bottom-left-radius: 4px;
     }
 
     .message-sender {
+        font-size: 12px;
         font-weight: 600;
-        font-size: 0.9em;
-        margin-bottom: 5px;
-        opacity: 0.8;
-        color: #dc3545;
+        margin-bottom: 4px;
+        color: var(--tg-danger);
     }
 
-    .message-own .message-sender {
-        color: rgba(255,255,255,0.9);
+    .message.outgoing .message-sender {
+        color: rgba(255, 255, 255, 0.8);
     }
 
-    .message-content {
-        word-wrap: break-word;
-        margin-bottom: 5px;
+    .message-text {
+        font-size: 15px;
+        line-height: 1.4;
+        margin-bottom: 4px;
     }
 
     .message-time {
-        font-size: 0.7em;
+        font-size: 10px;
         opacity: 0.7;
         text-align: right;
     }
 
-    .message-other .message-time {
-        text-align: left;
-    }
-
-    /* File attachment styles */
     .file-attachment {
-        margin: 10px 0;
-        border: 1px solid rgba(255,255,255,0.3);
-        border-radius: 10px;
+        margin: 8px 0;
+        border-radius: 12px;
         overflow: hidden;
-        background: rgba(255,255,255,0.1);
-    }
-
-    .message-other .file-attachment {
-        border-color: #e0e0e0;
-        background: white;
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .file-preview {
         text-align: center;
-        padding: 15px;
+        padding: 12px;
     }
 
     .file-preview img {
         max-width: 100%;
-        max-height: 300px;
+        max-height: 200px;
         border-radius: 8px;
         cursor: pointer;
     }
 
     .file-info {
-        padding: 10px 15px;
-        background: rgba(0,0,0,0.1);
-        border-top: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .message-other .file-info {
-        background: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.03);
+        font-size: 12px;
     }
 
     .file-name {
-        font-weight: 600;
-        margin-bottom: 5px;
+        font-weight: 500;
+        margin-bottom: 4px;
         word-break: break-all;
-    }
-
-    .file-size {
-        font-size: 0.8em;
-        opacity: 0.8;
     }
 
     .file-download {
         display: inline-block;
-        padding: 5px 10px;
-        background: rgba(255,255,255,0.2);
+        margin-top: 6px;
+        padding: 4px 10px;
+        background: var(--tg-danger);
         color: white;
         text-decoration: none;
-        border-radius: 5px;
-        font-size: 0.9em;
-        margin-top: 5px;
+        border-radius: 6px;
+        font-size: 12px;
     }
 
-    .message-other .file-download {
-        background: #dc3545;
-    }
-
-    .attachment-icon {
-        font-size: 3em;
-        margin-bottom: 10px;
-        opacity: 0.7;
-    }
-
-    .system-message {
+    .broadcast-only {
         text-align: center;
-        color: #666;
-        font-size: 0.9em;
-        margin: 20px 0;
-        font-style: italic;
+        padding: 60px 20px;
+        color: var(--tg-text-light);
+    }
+
+    .broadcast-only-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
     }
 
     .input-area {
-        position: fixed;
-        bottom: 70pt;
-        left: 0;
-        right: 0;
-        background: white;
-        padding: 15px;
-        border-top: 1px solid #e0e0e0;
+        padding: 12px 16px;
+        background: var(--tg-header);
+        border-top: 1px solid var(--tg-border);
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+    }
+
+    .attachment-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: center;
+        border-radius: 50%;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--tg-text-light);
+        transition: background 0.2s;
     }
 
     .message-input {
         flex: 1;
-        padding: 12px 15px;
-        border: 1px solid #ddd;
-        border-radius: 25px;
-        outline: none;
-        font-size: 16px;
-        background: #f8f9fa;
+        padding: 10px 16px;
+        border: 1px solid var(--tg-border);
+        border-radius: 24px;
+        background: var(--tg-surface);
+        color: var(--tg-text);
+        font-size: 15px;
+        resize: none;
+        font-family: inherit;
+        max-height: 100px;
     }
 
     .message-input:focus {
-        border-color: #dc3545;
-        background: white;
+        outline: none;
+        border-color: var(--tg-danger);
     }
 
-    .attachment-button {
-        background: none;
-        border: none;
-        font-size: 1.5em;
-        cursor: pointer;
-        padding: 10px;
-        color: #666;
-    }
-
-    .send-button {
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
+    .send-btn {
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 50%;
+        background: var(--tg-danger);
+        border: none;
+        color: white;
+        font-size: 18px;
         cursor: pointer;
-        font-size: 1.2em;
+        transition: transform 0.2s;
     }
 
-    .send-button:disabled {
-        background: #ccc;
+    .send-btn:disabled {
+        opacity: 0.5;
         cursor: not-allowed;
     }
 
     .upload-area {
         position: fixed;
         bottom: 80px;
-        left: 15px;
-        right: 15px;
-        background: white;
-        border: 2px dashed #dc3545;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
-        z-index: 1001;
+        left: 16px;
+        right: 16px;
+        background: var(--tg-header);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        z-index: 200;
     }
 
     .upload-area.active {
         display: block;
+        animation: fadeIn 0.2s ease-out;
     }
 
-    .upload-icon {
-        font-size: 2em;
-        margin-bottom: 10px;
-        color: #dc3545;
-    }
-
-    .file-input {
-        display: none;
-    }
-
-    .upload-button {
-        background: #dc3545;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin: 5px;
-        font-size: 0.9em;
-    }
-
-    .upload-cancel {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin: 5px;
-        font-size: 0.9em;
-    }
-
-    .broadcast-only {
-        text-align: center;
-        padding: 40px 20px;
-        color: #666;
-    }
-
-    .broadcast-only .icon {
-        font-size: 3em;
-        margin-bottom: 15px;
-        opacity: 0.5;
-    }
-
-    .empty-channel {
+    .empty-messages {
         text-align: center;
         padding: 60px 20px;
-        color: #666;
-        background-color: lightgray;
-        border-radius: 10px;
-        width: 200pt;
-        align-self: center;
-        margin-top: 30pt;
-    }
-
-    .empty-channel .icon {
-        font-size: 4em;
-        margin-bottom: 20px;
-        opacity: 0.5;
-    }
-
-    .admin-badge {
-        background: rgba(255,255,255,0.3);
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.7em;
-        margin-left: 5px;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 20px;
-        color: #666;
-    }
-
-    .loading:after {
-        content: '...';
-        animation: dots 1.5s steps(4, end) infinite;
-    }
-
-    @keyframes dots {
-        0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
-        40% { color: #666; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
-        60% { text-shadow: .25em 0 0 #666, .5em 0 0 rgba(0,0,0,0); }
-        80%, 100% { text-shadow: .25em 0 0 #666, .5em 0 0 #666; }
-    }
-
-    /* Media player styles */
-    audio, video {
-        max-width: 100%;
-        border-radius: 5px;
-    }
-
-    audio {
-        width: 100%;
-        margin-top: 10px;
-    }
-
-    video {
-        max-height: 300px;
-        background: black;
+        color: var(--tg-text-light);
     }
 
     @media (max-width: 480px) {
-        .header {
-            padding: 12px;
+        .message {
+            max-width: 85%;
         }
 
         .channel-avatar {
-            width: 45px;
-            height: 45px;
-            font-size: 1.3em;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
         }
 
-        .messages-container {
-            padding: 70px 10px 110px;
-        }
-
-        .message {
-            max-width: 90%;
-            padding: 10px 12px;
-        }
-
-        .input-area {
+        .messages-area {
             padding: 12px;
-        }
-
-        .upload-area {
-            bottom: 70px;
-            left: 10px;
-            right: 10px;
-            padding: 15px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="header">
-    <div class="header-content">
-        <button class="back-button" onclick="goBack()">←</button>
-        <div class="channel-avatar">C</div>
+<div class="channel-container">
+    <div class="channel-header">
+        <button class="back-btn" onclick="history.back()">←</button>
+        <div class="channel-avatar">📢</div>
         <div class="channel-info">
-            <div class="channel-name">{{ channel.name }}</div>
+            <div class="channel-name">{{ channel.name|e }}</div>
             <div class="channel-meta">
-                {{ channel.subscribers|length }} subscribers
-                <span class="admin-badge">Owner</span>
+                {{ channel.subscribers|length if channel.subscribers else 0 }} subscribers
+                {% if channel.owner_id == session.user_id %}
+                <span class="owner-badge">Owner</span>
+                {% endif %}
             </div>
         </div>
-        <button class="menu-button" onclick="showChannelMenu()">⋯</button>
+        <button class="menu-btn" onclick="showChannelMenu()">⋮</button>
     </div>
-</div>
 
-<div class="messages-container" id="messagesContainer">
-    <div class="loading" id="loadingIndicator">Loading messages</div>
-</div>
-
-<div class="upload-area" id="uploadArea">
-    <div class="upload-icon">📁</div>
-    <div id="uploadFileName">No file selected</div>
-    <div>
-        <button class="upload-button" onclick="document.getElementById('fileInput').click()">Choose File</button>
-        <button class="upload-button" onclick="uploadFile()" id="uploadBtn">Upload</button>
-        <button class="upload-cancel" onclick="cancelUpload()">Cancel</button>
+    <div class="messages-area" id="messagesArea">
+        <div class="empty-messages" id="emptyMessages">
+            <div>📢</div>
+            <p>No posts yet</p>
+            <small>{% if is_owner %}Broadcast your first message!{% else %}Subscribe to see updates{% endif %}</small>
+        </div>
     </div>
-    <input type="file" id="fileInput" class="file-input" onchange="handleFileSelect(this.files)">
+
+    {% if is_owner %}
+    <div class="upload-area" id="uploadArea">
+        <div id="uploadFileName">No file selected</div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="file-download" onclick="document.getElementById('fileInput').click()">Choose</button>
+            <button class="file-download" onclick="uploadFile()">Upload</button>
+            <button class="file-download" onclick="cancelUpload()" style="background: var(--tg-danger);">Cancel</button>
+        </div>
+        <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(this)">
+    </div>
+
+    <div class="input-area">
+        <button class="attachment-btn" onclick="toggleUpload()">📎</button>
+        <textarea class="message-input" id="messageInput" placeholder="Broadcast to {{ channel.subscribers|length if channel.subscribers else 0 }} subscribers..." rows="1"></textarea>
+        <button class="send-btn" id="sendBtn" disabled>➤</button>
+    </div>
+    {% else %}
+    <div class="broadcast-only">
+        <div class="broadcast-only-icon">📢</div>
+        <h3>Channel</h3>
+        <p>Only the channel owner can post messages</p>
+        <small style="margin-top: 12px; display: block;">You're a subscriber - sit back and enjoy!</small>
+    </div>
+    {% endif %}
 </div>
 
-<div class="input-area" id="inputArea">
-    <input type="text"
-           class="message-input"
-           id="messageInput"
-           placeholder="Broadcast a message to subscribers..."
-           maxlength="1000">
-    <button class="attachment-button" onclick="toggleUploadArea()">📎</button>
-    <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>➤</button>
-</div>
+<input type="hidden" id="channelId" value="{{ channel.id }}">
+<input type="hidden" id="isOwner" value="{{ 'true' if channel.owner_id == session.user_id else 'false' }}">
 
-<div class="broadcast-only" id="broadcastOnlyMessage">
-    <div class="icon">📢</div>
-    <h3>Channel</h3>
-    <p>Only the channel owner can post messages</p>
-    <p style="margin-top: 10px; font-size: 0.9em;">
-        {{ channel.subscribers|length }} people subscribed
-    </p>
-</div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-    // Move all your JavaScript code here
+    const channelId = document.getElementById('channelId').value;
+    const isOwner = document.getElementById('isOwner').value === 'true';
     let lastMessageId = 0;
-    let isLoading = false;
     let selectedFile = null;
-    const channelId = {{ channel.id }};
-    const isOwner = {{ 'true' if channel.owner_id == session.user_id else 'false' }};
 
-    console.log('Channel Owner ID:', {{ channel.owner_id }});
-    console.log('Current User ID:', {{ session.user_id }});
-    console.log('Is Owner:', isOwner);
-
-    function goBack() {
-        window.location.href = '/chat_list';
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
-    function showChannelMenu() {
-        const actions = ['Channel Info', 'Subscribers', 'Invite Link'];
-        if (isOwner) {
-            actions.push('Edit Channel');
-        } else {
-            actions.push('Leave Channel');
-        }
-
-        const action = prompt('Channel Actions:\n' + actions.join('\n'));
-        if (action) {
-            handleChannelAction(action);
-        }
+    function formatTime(date) {
+        return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    function handleChannelAction(action) {
-        switch(action.toLowerCase()) {
-            case 'channel info':
-                window.location.href = `/channel_info/${channelId}`;
-                break;
-            case 'subscribers':
-                window.location.href = `/channel_info/${channelId}#subscribers`;
-                break;
-            case 'invite link':
-                showInviteLink();
-                break;
-            case 'edit channel':
-                alert('Channel editing coming soon!');
-                break;
-            case 'leave channel':
-                if (confirm('Are you sure you want to leave this channel?')) {
-                    window.location.href = `/leave_channel/${channelId}`;
-                }
-                break;
-        }
-    }
-
-    function showInviteLink() {
-        const inviteLink = `${window.location.origin}/join_channel/{{ channel.invite_link }}`;
-
-        if (navigator.share) {
-            navigator.share({
-                title: 'Subscribe to my channel: {{ channel.name }}',
-                text: 'Subscribe to my channel on Kiselgram!',
-                url: inviteLink
-            })
-            .catch(error => {
-                alert(`Invite link:\n${inviteLink}\n\nShare this link to invite subscribers.`);
-            });
-        } else {
-            alert(`Invite link:\n${inviteLink}\n\nShare this link to invite subscribers.`);
-        }
-    }
-
-    function setupUI() {
-        const inputArea = document.getElementById('inputArea');
-        const broadcastOnly = document.getElementById('broadcastOnlyMessage');
-
-        if (isOwner) {
-            inputArea.style.display = 'flex';
-            broadcastOnly.style.display = 'none';
-            console.log('Showing input area for channel owner');
-        } else {
-            inputArea.style.display = 'none';
-            broadcastOnly.style.display = 'block';
-            console.log('Showing broadcast-only message for subscriber');
-        }
-    }
-
-    function toggleUploadArea() {
-        if (!isOwner) {
-            alert('Only channel owners can upload files.');
-            return;
-        }
-
-        const uploadArea = document.getElementById('uploadArea');
-        uploadArea.classList.toggle('active');
-        if (uploadArea.classList.contains('active')) {
-            document.getElementById('messageInput').blur();
-        }
-    }
-
-    function cancelUpload() {
-        const uploadArea = document.getElementById('uploadArea');
-        uploadArea.classList.remove('active');
-        selectedFile = null;
-        document.getElementById('fileInput').value = '';
-        document.getElementById('uploadFileName').textContent = 'No file selected';
-    }
-
-    function handleFileSelect(files) {
-        if (files.length > 0) {
-            selectedFile = files[0];
-            document.getElementById('uploadFileName').textContent = selectedFile.name;
-
-            // Check file size (16MB limit)
-            if (selectedFile.size > 16 * 1024 * 1024) {
-                alert('File size must be less than 16MB');
-                cancelUpload();
-                return;
-            }
-
-            // Check file type
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
-                                 'application/msword', 'text/plain', 'audio/mpeg', 'video/mp4', 'application/zip'];
-            if (!allowedTypes.includes(selectedFile.type) &&
-                !selectedFile.name.match(/\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|txt|mp3|mp4|zip)$/i)) {
-                alert('File type not supported. Please upload images, documents, audio, video, or zip files.');
-                cancelUpload();
-                return;
-            }
-        }
-    }
-
-    function uploadFile() {
-        if (!isOwner) {
-            alert('Only channel owners can upload files.');
-            return;
-        }
-
-        if (!selectedFile) {
-            alert('Please select a file first');
-            return;
-        }
-
-        const messageText = document.getElementById('messageInput').value;
-
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('channel_id', channelId);
-        formData.append('message', messageText);
-
-        const uploadBtn = document.getElementById('uploadBtn');
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = 'Uploading...';
-
-        fetch('/upload_file', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload';
-
-            if (data.success) {
-                addMessageToChat(data.message);
-                scrollToBottom();
-                document.getElementById('messageInput').value = '';
-                cancelUpload();
-            } else {
-                alert('Upload failed: ' + data.error);
-            }
-        })
-        .catch(error => {
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload';
-            alert('Upload failed. Please try again.');
-            console.error('Error:', error);
-        });
-    }
-
-    function loadMessages() {
-        if (isLoading) return;
-
-        isLoading = true;
-        fetch(`/api/channel_messages/${channelId}?after=${lastMessageId}`)
-            .then(response => response.json())
-            .then(data => {
-                isLoading = false;
-
-                if (data.error) {
-                    console.error('Error loading messages:', data.error);
-                    showError('Failed to load messages');
-                    return;
-                }
-
-                const messagesContainer = document.getElementById('messagesContainer');
-                const loadingIndicator = document.getElementById('loadingIndicator');
-
-                if (loadingIndicator) {
-                    loadingIndicator.remove();
-                }
-
-                if (data.messages && data.messages.length > 0) {
-                    data.messages.forEach(message => {
-                        addMessageToChat(message);
-                        lastMessageId = Math.max(lastMessageId, message.id);
-                    });
-
-                    if (data.messages.length > 0) {
-                        scrollToBottom();
-                    }
-                } else if (lastMessageId === 0 && messagesContainer.children.length === 0) {
-                    showEmptyState();
-                }
-            })
-            .catch(error => {
-                isLoading = false;
-                console.error('Error loading messages:', error);
-                showError('Failed to load messages. Please check your connection.');
-            });
-    }
-
-    function addMessageToChat(message) {
-        const messagesContainer = document.getElementById('messagesContainer');
+    function addMessage(message, isOwn) {
+        const container = document.getElementById('messagesArea');
+        const emptyMsg = document.getElementById('emptyMessages');
+        if (emptyMsg) emptyMsg.style.display = 'none';
 
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${message.is_own ? 'message-own' : 'message-other'}`;
+        messageDiv.className = `message ${isOwn ? 'outgoing' : 'incoming'}`;
 
-        let messageHTML = '';
+        let html = '<div class="message-bubble">';
 
-        if (!message.is_own) {
-            messageHTML += `<div class="message-sender">${escapeHtml(message.sender_name)}</div>`;
+        if (!isOwn && message.sender_name) {
+            html += `<div class="message-sender">${escapeHtml(message.sender_name)}</div>`;
         }
 
-        if (message.has_attachment) {
-            messageHTML += renderFileAttachment(message);
+        if (message.file_url) {
+            const fileUrl = escapeHtml(message.file_url);
+            const fileName = escapeHtml(message.file_name || 'File');
+
+            if (message.file_type === 'image') {
+                html += `<div class="file-attachment">
+                            <div class="file-preview">
+                                <img src="${fileUrl}" alt="${fileName}" onclick="window.open('${fileUrl}', '_blank')">
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name">${fileName}</div>
+                                <a href="${fileUrl}" class="file-download" download>Download</a>
+                            </div>
+                        </div>`;
+            } else {
+                html += `<div class="file-attachment">
+                            <div class="file-preview">📎 ${fileName}</div>
+                            <div class="file-info">
+                                <a href="${fileUrl}" class="file-download" download>Download</a>
+                            </div>
+                        </div>`;
+            }
         }
 
         if (message.content) {
-            messageHTML += `<div class="message-content">${escapeHtml(message.content)}</div>`;
+            html += `<div class="message-text">${escapeHtml(message.content)}</div>`;
         }
 
-        messageHTML += `<div class="message-time">${message.timestamp}</div>`;
+        html += `<div class="message-time">${formatTime(message.timestamp || Date.now())}</div>`;
+        html += '</div>';
 
-        messageDiv.innerHTML = messageHTML;
-        messagesContainer.appendChild(messageDiv);
+        messageDiv.innerHTML = html;
+        container.appendChild(messageDiv);
+        scrollToBottom();
     }
 
-    function renderFileAttachment(message) {
-        const fileType = message.file_type;
-        const fileName = message.file_name;
-        const fileUrl = message.file_url;
-        const fileSize = message.file_size;
-        const thumbnailUrl = message.thumbnail_url;
+    function scrollToBottom() {
+        const container = document.getElementById('messagesArea');
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }
 
-        let previewHTML = '';
+    async function loadMessages() {
+        try {
+            const response = await fetch(`/api/channel_messages/${channelId}?after=${lastMessageId}`);
+            const data = await response.json();
 
-        switch(fileType) {
-            case 'image':
-                previewHTML = `
-                    <div class="file-preview">
-                        <img src="${thumbnailUrl || fileUrl}" alt="${fileName}"
-                             onclick="openImagePreview('${fileUrl}')">
-                    </div>
-                `;
-                break;
-            case 'document':
-                const docIcon = fileName.match(/\.pdf$/i) ? '📕' :
-                               fileName.match(/\.docx?$/i) ? '📘' : '📄';
-                previewHTML = `
-                    <div class="file-preview">
-                        <div class="attachment-icon">${docIcon}</div>
-                        <div>${fileName.split('.').pop().toUpperCase()} Document</div>
-                    </div>
-                `;
-                break;
-            case 'audio':
-                previewHTML = `
-                    <div class="file-preview">
-                        <div class="attachment-icon">🎵</div>
-                        <audio controls>
-                            <source src="${fileUrl}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
-                    </div>
-                `;
-                break;
-            case 'video':
-                previewHTML = `
-                    <div class="file-preview">
-                        <div class="attachment-icon">🎬</div>
-                        <video controls>
-                            <source src="${fileUrl}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                `;
-                break;
-            default:
-                previewHTML = `
-                    <div class="file-preview">
-                        <div class="attachment-icon">📁</div>
-                        <div>File Attachment</div>
-                    </div>
-                `;
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    addMessage(msg, msg.is_own);
+                    lastMessageId = Math.max(lastMessageId, msg.id);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading messages:', error);
         }
-
-        return `
-            <div class="file-attachment">
-                ${previewHTML}
-                <div class="file-info">
-                    <div class="file-name">${escapeHtml(fileName)}</div>
-                    <div class="file-size">${fileSize}</div>
-                    <a href="${fileUrl}" class="file-download" download="${fileName}">Download</a>
-                </div>
-            </div>
-        `;
     }
 
-    function openImagePreview(imageUrl) {
-        window.open(imageUrl, '_blank');
-    }
-
-    function showEmptyState() {
-        const messagesContainer = document.getElementById('messagesContainer');
-        const message = isOwner ?
-            'Be the first to broadcast a message to your subscribers!' :
-            'The channel owner hasn\'t posted any messages yet.';
-
-        messagesContainer.innerHTML = `
-            <div class="empty-channel">
-                <div class="icon">📢</div>
-                <h3>No messages yet</h3>
-                <p>${message}</p>
-            </div>
-        `;
-    }
-
-    function showError(message) {
-        const messagesContainer = document.getElementById('messagesContainer');
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'system-message';
-        errorDiv.style.color = '#dc3545';
-        errorDiv.textContent = message;
-        messagesContainer.appendChild(errorDiv);
-    }
-
-    function sendMessage() {
+    async function sendMessage() {
         if (!isOwner) {
-            alert('Only channel owners can post messages.');
+            alert('Only the channel owner can post messages');
             return;
         }
 
@@ -828,115 +472,156 @@
         if (!content) return;
 
         input.disabled = true;
-        document.getElementById('sendButton').disabled = true;
+        document.getElementById('sendBtn').disabled = true;
 
-        fetch('/api/send_channel_message', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                channel_id: channelId,
-                content: content
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            input.disabled = false;
-            document.getElementById('sendButton').disabled = false;
+        try {
+            const response = await fetch('/api/send_channel_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel_id: channelId, content: content })
+            });
+
+            const data = await response.json();
 
             if (data.success) {
                 input.value = '';
-                addMessageToChat(data.message);
+                addMessage(data.message, true);
                 scrollToBottom();
-                updateSendButton();
-
-                const emptyState = document.querySelector('.empty-channel');
-                if (emptyState) {
-                    emptyState.remove();
-                }
             } else {
-                alert('Error sending message: ' + (data.error || 'Unknown error'));
+                alert('Failed to post message');
             }
-        })
-        .catch(error => {
+        } catch (error) {
+            alert('Error posting message');
+        } finally {
             input.disabled = false;
-            document.getElementById('sendButton').disabled = false;
-            alert('Error sending message. Please try again.');
-            console.error('Error:', error);
-        });
+            updateSendButton();
+            input.focus();
+        }
+    }
+
+    async function uploadFile() {
+        if (!isOwner) {
+            alert('Only the channel owner can upload files');
+            return;
+        }
+
+        if (!selectedFile) {
+            alert('Please select a file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('channel_id', channelId);
+
+        const uploadBtn = event.target;
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+
+        try {
+            const response = await fetch('/upload_file', { method: 'POST', body: formData });
+            const data = await response.json();
+
+            if (data.success) {
+                addMessage(data.message, true);
+                cancelUpload();
+                scrollToBottom();
+            } else {
+                alert('Upload failed: ' + data.error);
+            }
+        } catch (error) {
+            alert('Upload failed');
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload';
+        }
     }
 
     function updateSendButton() {
+        if (!isOwner) return;
         const input = document.getElementById('messageInput');
-        const button = document.getElementById('sendButton');
-        if (input && button) {
-            button.disabled = input.value.trim().length === 0;
+        const btn = document.getElementById('sendBtn');
+        if (input && btn) {
+            btn.disabled = !input.value.trim();
         }
     }
 
-    function scrollToBottom() {
-        const container = document.getElementById('messagesContainer');
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        }
+    function toggleUpload() {
+        if (!isOwner) return;
+        const area = document.getElementById('uploadArea');
+        area.classList.toggle('active');
     }
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    function cancelUpload() {
+        document.getElementById('uploadArea').classList.remove('active');
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('uploadFileName').textContent = 'No file selected';
     }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-        // Setup UI based on ownership
-        setupUI();
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            selectedFile = input.files[0];
+            document.getElementById('uploadFileName').textContent = selectedFile.name;
 
-        // Load initial messages
-        loadMessages();
-
-        // Set up input event listeners for owner
-        if (isOwner) {
-            const input = document.getElementById('messageInput');
-            const button = document.getElementById('sendButton');
-
-            if (input && button) {
-                input.addEventListener('input', updateSendButton);
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                    }
-                });
-
-                input.focus();
-            }
-        }
-
-        // Load new messages every 3 seconds
-        window.messagePolling = setInterval(loadMessages, 3000);
-
-        // Close upload area when clicking outside
-        document.addEventListener('click', function(e) {
-            const uploadArea = document.getElementById('uploadArea');
-            const attachmentBtn = document.querySelector('.attachment-button');
-            if (uploadArea.classList.contains('active') &&
-                !uploadArea.contains(e.target) &&
-                !attachmentBtn.contains(e.target)) {
+            if (selectedFile.size > 16 * 1024 * 1024) {
+                alert('File must be less than 16MB');
                 cancelUpload();
             }
-        });
-    });
+        }
+    }
 
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            clearInterval(window.messagePolling);
+    function showChannelMenu() {
+        const actions = ['Channel Info', 'Subscribers', 'Invite Link'];
+        if (isOwner) {
+            actions.push('Edit Channel');
         } else {
-            clearInterval(window.messagePolling);
-            window.messagePolling = setInterval(loadMessages, 3000);
-            loadMessages();
+            actions.push('Subscribe');
+        }
+
+        const action = prompt('Channel Actions:\n• ' + actions.join('\n• '));
+        if (action) {
+            const lower = action.toLowerCase();
+            if (lower.includes('info')) {
+                alert('Channel: ' + '{{ channel.name|e }}' + '\nSubscribers: {{ channel.subscribers|length if channel.subscribers else 0 }}');
+            } else if (lower.includes('subscribers')) {
+                alert('Subscriber count: {{ channel.subscribers|length if channel.subscribers else 0 }}');
+            } else if (lower.includes('invite')) {
+                const link = `${window.location.origin}/join_channel/{{ channel.invite_link }}`;
+                prompt('Share this link:', link);
+            } else if (lower.includes('subscribe')) {
+                alert('You are already subscribed to this channel!');
+            } else if (lower.includes('edit') && isOwner) {
+                alert('Channel editing coming soon');
+            }
+        }
+    }
+
+    // Event listeners (only if owner)
+    if (isOwner) {
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.addEventListener('input', updateSendButton);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+    }
+
+    // Initialization
+    loadMessages();
+    setInterval(loadMessages, 3000);
+
+    document.addEventListener('click', (e) => {
+        const area = document.getElementById('uploadArea');
+        if (area && area.classList && area.classList.contains('active') && !area.contains(e.target) && !e.target.classList.contains('attachment-btn')) {
+            cancelUpload();
         }
     });
 </script>
