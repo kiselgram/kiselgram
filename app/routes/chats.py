@@ -162,6 +162,6 @@ def users_list():
 def direct(user_id):
     return redirect(url_for("chats.chat", user_id=user_id))
 
-@chats_bp.route('/kis-info')
+@chats_bp.route('/kis_info')
 def kis_info():
     return render_template('kis_info.html')

@@ -8,4 +8,7 @@ templates/.idea
 .kiselgram_video_status.json
 tmp_runner.py
 tmp_video_runner.py
+.env
+*.log
+
 
