@@ -1,6 +1,8 @@
 
-# Kiselgram V4.0
+# Kiselgram V3.0
 ## 🚀 Complete Self-Hosted Messaging + Video Chat Platform
+
+#
 
 <div align="center">
   <!-- Main Animated Banner -->
@@ -283,5 +285,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/kiselgram/kiselgram/issues)
-- 💬 **Discord**: discord.gg/kiselgram (create server)
-- 📧 **Email**: support@kiselgram.com
+- 💬 **Discord**: [discord.gg/kiselgram](https://discord.gg/NtSKWFns)
+- 📧 **Email**: [grown.dk.up@gmail.com](mailto:grown.dk.up@gmail.com)
+- 💬 **Telegram**: [Our Channel](https://t.me/kiseigram), [DANILKISEL](https://t.me/dka_dmin)

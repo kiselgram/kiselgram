@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Kiselgram · Complete Messaging Platform</title>
-    <!-- Google Fonts + simple reset -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Kiselgram V3.0 · Self-Hosted Messaging + Video Chat</title>
+    <!-- Google Fonts & modern reset -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -14,430 +15,472 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #f7f9fc;
-            color: #1e293b;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: linear-gradient(145deg, #f0f9ff 0%, #eef5fc 100%);
+            color: #0a2540;
             line-height: 1.5;
             scroll-behavior: smooth;
         }
 
         .container {
-            max-width: 1280px;
+            max-width: 1300px;
             margin: 0 auto;
-            padding: 2rem 1.5rem;
+            padding: 2rem 1.8rem;
         }
 
-        /* banner area */
-        .banner-wrapper {
-            margin-bottom: 2.5rem;
-            border-radius: 2rem;
-            overflow: hidden;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-            background: #fff;
+        /* animated banner float */
+        @keyframes bannerFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-10px) scale(1.02); }
+        }
+        @keyframes scrollFeatures {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
-        .banner-img {
+        .banner-img-main {
             width: 100%;
-            height: auto;
+            max-width: 800px;
             display: block;
-            object-fit: cover;
-            background: #eef2ff;
+            margin: 0 auto;
+            animation: bannerFloat 6s ease-in-out infinite;
+            filter: brightness(1.05) contrast(1.05);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -12px rgba(0,100,150,0.4);
+            background: #fff;
+            transition: transform 0.2s;
         }
 
-        /* header & titles */
+        /* ticker section */
+        .ticker-wrapper {
+            position: relative;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099ff 25%, #00ff88 50%, #32cd32 75%, #00bfff 100%);
+            background-size: 200% auto;
+            height: 80px;
+            border-radius: 60px;
+            margin: 25px 0 20px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(0,150,255,0.35);
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .features-track {
+            display: flex;
+            white-space: nowrap;
+            animation: scrollFeatures 22s linear infinite;
+            font-family: 'Inter', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .features-track span {
+            margin: 0 60px;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            backdrop-filter: blur(2px);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* card style */
+        .card {
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(0px);
+            border-radius: 2rem;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid #e2f0ff;
+            transition: all 0.25s;
+        }
+        .card:hover {
+            border-color: #9acdff;
+            box-shadow: 0 18px 32px -12px rgba(0,120,200,0.12);
+        }
+
         h1 {
-            font-size: 2.8rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #0f2b3d, #1e4a6b);
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(120deg, #0b3b5f, #1e6f5c, #2c9c8c);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            margin-bottom: 0.4rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
         }
 
-        .tagline {
+        .version-badge {
+            display: inline-block;
+            background: #1e7e34;
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.75rem;
+            vertical-align: middle;
+        }
+
+        .tagline-modern {
             font-size: 1.2rem;
-            color: #475569;
-            border-left: 4px solid #3b82f6;
+            color: #2c5a74;
+            border-left: 4px solid #00cc99;
             padding-left: 1rem;
-            margin: 0.75rem 0 1.5rem 0;
-        }
-
-        /* cards & sections */
-        .section-card {
-            background: white;
-            border-radius: 1.75rem;
-            padding: 1.8rem 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e9edf2;
-            transition: box-shadow 0.2s;
-        }
-
-        .section-card:hover {
-            box-shadow: 0 12px 24px -12px rgba(0,0,0,0.1);
+            margin: 0.5rem 0 1.5rem 0;
+            font-weight: 400;
         }
 
         h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 1.2rem;
-            display: inline-block;
-            background: linear-gradient(120deg, #1e293b, #2d3a4b);
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 1.2rem 0 1rem 0;
+            background: linear-gradient(135deg, #0f3b3b, #1b7f7a);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            letter-spacing: -0.3px;
-            border-left: 5px solid #3b82f6;
+            display: inline-block;
+            border-left: 5px solid #2ecc71;
             padding-left: 1rem;
         }
 
         h3 {
-            font-size: 1.35rem;
+            font-size: 1.4rem;
             font-weight: 600;
             margin: 1.5rem 0 0.8rem 0;
-            color: #0f3b5c;
+            color: #0f5e5a;
         }
 
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .feature-item {
-            background: #f8fafc;
-            border-radius: 1.25rem;
-            padding: 1.2rem 1.4rem;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-        }
-
-        .feature-item strong {
-            font-size: 1.2rem;
-            color: #1e4a76;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .badge-list {
+        .badge-group {
             display: flex;
             flex-wrap: wrap;
             gap: 0.6rem;
             margin: 1rem 0;
         }
-
-        .badge {
-            background: #eef2ff;
-            color: #1e40af;
-            padding: 0.2rem 0.9rem;
+        .badge-tech {
+            background: #e6f7f0;
+            color: #0a6e5a;
+            padding: 0.3rem 1rem;
             border-radius: 30px;
             font-size: 0.8rem;
             font-weight: 500;
             font-family: monospace;
         }
-
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.2rem 0;
+            background: #ffffffcc;
+            border-radius: 1.2rem;
+            overflow: hidden;
+        }
+        .feature-table th {
+            background: #d9f0ec;
+            padding: 0.8rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: #135b54;
+        }
+        .feature-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #ddeef0;
+        }
         pre, code {
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            background: #1e293b;
-            color: #e2e8f0;
+            background: #0f2a2f;
+            color: #cff4fc;
             border-radius: 1rem;
             padding: 0.2rem 0.4rem;
             font-size: 0.85rem;
         }
-
         pre {
             padding: 1.2rem;
             overflow-x: auto;
             margin: 1rem 0;
+            background: #0b2025;
             border-radius: 1.2rem;
-            background: #0f172a;
-            color: #cbd5e6;
-            font-size: 0.85rem;
-            line-height: 1.45;
+            color: #d9f2e6;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.2rem 0;
-            font-size: 0.9rem;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        .grid-2col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
         }
-
-        th {
-            background-color: #eef2ff;
-            text-align: left;
-            padding: 0.75rem 1rem;
-            font-weight: 600;
-            color: #0c4a6e;
+        .info-block {
+            background: #f5fcf9;
+            padding: 0.9rem 1.2rem;
+            border-radius: 1.2rem;
+            border-left: 4px solid #2ecc71;
         }
-
-        td {
-            padding: 0.7rem 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            background-color: white;
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 2rem;
         }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        hr {
-            margin: 2rem 0;
-            border: none;
-            height: 1px;
-            background: linear-gradient(to right, #cbd5e1, transparent);
-        }
-
-        .btn-outline {
-            display: inline-block;
-            padding: 0.3rem 1rem;
-            border-radius: 2rem;
-            background: transparent;
-            border: 1px solid #3b82f6;
-            color: #2563eb;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: 0.2s;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 1px solid #e2e8f0;
-            color: #5b6e8c;
-            font-size: 0.9rem;
-        }
-
         a {
-            color: #2563eb;
+            color: #1e7b6e;
             text-decoration: none;
+            font-weight: 500;
         }
-
         a:hover {
             text-decoration: underline;
+            color: #0b5345;
         }
-
+        hr {
+            margin: 1.5rem 0;
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, #b2dfdb, #80ced6, #b2dfdb);
+        }
         @media (max-width: 680px) {
-            .container {
-                padding: 1rem;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-            .section-card {
-                padding: 1.2rem;
-            }
+            .container { padding: 1rem; }
+            h1 { font-size: 2rem; }
+            .ticker-wrapper { height: 65px; }
+            .features-track span { margin: 0 30px; font-size: 1rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <!-- Banner Image using provided static path -->
-    <div class="banner-wrapper">
-        <img class="banner-img" src="/static/banner.jpg" alt="Kiselgram Banner - Messaging Platform" onerror="this.onerror=null; this.src='https://placehold.co/1200x400/e2e8f0/475569?text=Kiselgram+Banner';">
+    <!-- main banner with animation -->
+    <div style="text-align: center;">
+        <img class="banner-img-main" src="/static/banner.png" alt="Kiselgram V3.0 Banner" onerror="this.onerror=null; this.src='https://placehold.co/800x300/0b3b5f/white?text=Kiselgram+V3.0'">
     </div>
 
-    <h1>Kiselgram</h1>
-    <div class="tagline">A complete messaging platform with groups, channels, file sharing, and real-time video chat. Built with Flask and SocketIO.</div>
-
-    <!-- Features Section -->
-    <div class="section-card">
-        <h2>✨ Features</h2>
-        
-        <div class="feature-grid">
-            <div class="feature-item"><strong>💬 Messaging</strong> Personal chats, group conversations, broadcast channels, real‑time delivery.</div>
-            <div class="feature-item"><strong>🎥 Video Chat</strong> WebRTC calls, audio‑only mode, room‑based, multi‑participant, camera switching.</div>
-            <div class="feature-item"><strong>📁 File Sharing</strong> Multi‑format support, auto‑categorization, thumbnails, configurable limits.</div>
-            <div class="feature-item"><strong>👥 Groups & Channels</strong> Public/Private, invite links, member management, owner controls.</div>
-            <div class="feature-item"><strong>🤖 Bot Integration</strong> Telegram bot support, auto‑responses, extensible architecture.</div>
+    <!-- Animated features ticker (green+blue theme) -->
+    <div class="ticker-wrapper">
+        <div class="features-track">
+            <span><i class="fas fa-comment-dots"></i> Personal Chats</span>
+            <span><i class="fas fa-users"></i> Groups</span>
+            <span><i class="fas fa-bullhorn"></i> Channels</span>
+            <span><i class="fas fa-video"></i> Video Calls</span>
+            <span><i class="fas fa-file-upload"></i> File Sharing</span>
+            <span><i class="fas fa-search"></i> Search</span>
+            <span><i class="fas fa-palette"></i> Modern UI</span>
+            <span><i class="fas fa-lock"></i> Privacy</span>
+            <!-- duplicate for seamless loop -->
+            <span><i class="fas fa-comment-dots"></i> Personal Chats</span>
+            <span><i class="fas fa-users"></i> Groups</span>
+            <span><i class="fas fa-bullhorn"></i> Channels</span>
+            <span><i class="fas fa-video"></i> Video Calls</span>
+            <span><i class="fas fa-file-upload"></i> File Sharing</span>
+            <span><i class="fas fa-search"></i> Search</span>
+            <span><i class="fas fa-palette"></i> Modern UI</span>
+            <span><i class="fas fa-lock"></i> Privacy</span>
         </div>
+    </div>
 
-        <h3>🛠️ Tech Stack</h3>
-        <div class="badge-list">
-            <span class="badge">Python 3.7+</span><span class="badge">Flask</span><span class="badge">SQLAlchemy</span><span class="badge">SQLite</span>
-            <span class="badge">Flask-SocketIO</span><span class="badge">WebRTC</span><span class="badge">Pillow</span><span class="badge">HTML/CSS/JS</span>
+    <!-- header title + badges -->
+    <div style="display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between;">
+        <div>
+            <h1>Kiselgram <span class="version-badge">V3.0</span></h1>
+            <div class="tagline-modern">🚀 Complete Self-Hosted Messaging + Video Chat Platform</div>
+        </div>
+        <div class="badge-group">
+            <span class="badge-tech"><i class="fab fa-python"></i> Python 3.10+</span>
+            <span class="badge-tech"><i class="fas fa-flask"></i> Flask</span>
+            <span class="badge-tech"><i class="fas fa-video"></i> WebRTC P2P</span>
+            <span class="badge-tech"><i class="fas fa-database"></i> SQLite</span>
         </div>
     </div>
 
-    <!-- Project Structure -->
-    <div class="section-card">
-        <h2>📁 Project Structure</h2>
-        <pre>
-kiselgram/
-├── app/                 # Main application
-│   ├── models.py        # Database models
-│   ├── routes/          # Route blueprints
-│   │   ├── channels.py
-│   │   ├── chats.py
-│   │   ├── files.py
-│   │   ├── groups.py
-│   │   └── video_int.py
-│   └── utils/
-├── video_server/        # Standalone video server
-│   ├── app.py
-│   ├── templates/video/
-│   └── static/
-├── templates/           # Main app templates
-├── static/              # Main app assets
-├── uploads/             # User uploaded files (images, docs, media)
-├── manage.py            # Main management script
-├── requirements.txt
-├── .env
-└── README.md</pre>
+    <p style="font-size: 1.05rem; margin-bottom: 1.5rem;"><strong>Kiselgram</strong> — Modern Telegram-inspired platform with <strong>personal chats, groups, channels, file sharing, and WebRTC video calls</strong>. Fully self-contained, production-ready.</p>
+
+    <div class="badge-group">
+        <span class="badge-tech"><i class="fab fa-python"></i> Python 3.10+</span>
+        <span class="badge-tech"><i class="fas fa-fire"></i> Flask 2.x</span>
+        <span class="badge-tech"><i class="fas fa-exchange-alt"></i> WebRTC P2P</span>
+        <span class="badge-tech"><i class="fas fa-check-circle"></i> MIT License</span>
     </div>
 
-    <!-- Installation + Setup -->
-    <div class="section-card">
-        <h2>🚀 Installation</h2>
-        <p><strong>Prerequisites:</strong> Python 3.7+, pip, virtualenv (recommended).</p>
-        <h3>Step-by-Step Setup</h3>
-        <pre><code># 1. Clone repository
+    <div style="margin: 1rem 0 0.5rem;">
+        <a href="#quick-start" style="background:#0f5e5a; color:white; padding:0.5rem 1.2rem; border-radius:40px; display:inline-block; margin-right:0.8rem;">🚀 Quick Start</a>
+        <a href="#features" style="background:#eef2fa; color:#0f5e5a; padding:0.5rem 1.2rem; border-radius:40px; display:inline-block; margin-right:0.8rem;">✨ Features</a>
+        <a href="#commands" style="background:#eef2fa; color:#0f5e5a; padding:0.5rem 1.2rem; border-radius:40px; display:inline-block;">🔧 Commands</a>
+    </div>
+
+    <!-- FEATURES TABLE -->
+    <div class="card" id="features">
+        <h2>✨ Core Features</h2>
+        <table class="feature-table">
+            <thead><tr><th>Feature</th><th>Status</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>💬 Personal Chats</td><td>✅</td><td>Direct messaging with real-time updates</td></tr>
+                <tr><td>👥 Group Chats</td><td>✅</td><td>Member management, permissions</td></tr>
+                <tr><td>📢 Channels</td><td>✅</td><td>Broadcast with invite links</td></tr>
+                <tr><td>🎥 Video Calls</td><td>✅</td><td>WebRTC P2P, multi‑participant via <code>video_server/</code></td></tr>
+                <tr><td>📁 File Sharing</td><td>✅</td><td>Images/docs/videos (16MB max)</td></tr>
+                <tr><td>🔍 Search</td><td>✅</td><td>Global message/user search</td></tr>
+                <tr><td>🎨 Modern UI</td><td>✅</td><td>Two-column, dark mode, mobile-responsive</td></tr>
+                <tr><td>🔒 Privacy</td><td>✅</td><td>Block/clear/delete, profile settings</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- QUICK START -->
+    <div class="card" id="quick-start">
+        <h2>🚀 Quick Start</h2>
+        <pre><code># Clone & Setup
 git clone https://github.com/kiselgram/kiselgram.git
 cd kiselgram
 
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate   # or venv\Scripts\activate on Windows
+# Virtual Environment
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-# 3. Install dependencies
+# Install Dependencies
 pip install -r requirements.txt
 
-# 4. Environment setup (auto or manual)
+# Initial Setup
+python manage.py setup
+
+# Start Everything (main + video server)
+python manage.py start</code></pre>
+        <div class="grid-2col">
+            <div class="info-block"><strong>🌐 Main App:</strong> http://localhost:5000</div>
+            <div class="info-block"><strong>🎥 Video Server:</strong> http://localhost:5001</div>
+            <div class="info-block"><strong>📺 Video Rooms:</strong> http://localhost:5000/video/</div>
+            <div class="info-block"><strong>📡 API Docs:</strong> http://localhost:5000/api/status</div>
+        </div>
+    </div>
+
+    <!-- PROJECT STRUCTURE -->
+    <div class="card">
+        <h2>📁 Project Structure</h2>
+        <pre>
+kiselgram/
+├── app/                    # Main Flask application
+│   ├── models.py          # SQLAlchemy models
+│   ├── routes/            # Feature blueprints (api, chats, groups, video_integration)
+│   ├── uploads/           # User uploaded files
+├── video_server/          # WebRTC signaling server
+│   ├── app.py            # SocketIO + WebRTC signaling
+│   ├── templates/video/   # room.html, room_full.html
+├── static/                # CSS/JS + banner assets
+│   ├── banner.png
+│   └── kiselgram-banner.jpg
+├── templates/             # HTML templates
+├── instance/              # SQLite database (kiselgram.db)
+├── manage.py             # Management CLI
+├── requirements.txt
+└── restart.sh</pre>
+    </div>
+
+    <!-- MANAGEMENT COMMANDS -->
+    <div class="card" id="commands">
+        <h2>🔧 Management Commands</h2>
+        <pre><code># Core Commands
+python manage.py start              # Start main + video server
+python manage.py start --port 3000  # Custom port
+python manage.py start --no-video   # Main app only
+python manage.py stop               # Graceful shutdown
+python manage.py status             # Service status
+python manage.py restart            # Restart services
+
+# Database & Maintenance
+python manage.py setup              # Initial setup
+python manage.py reset-db           # ⚠️ Delete all data
+python manage.py clean              # Clear temp files
+python manage.py test               # Run tests
+
+# Video Server Only
+python manage.py video start        # Video server only
+python manage.py video stop</code></pre>
+    </div>
+
+    <!-- VIDEO CHAT FLOW & TECH -->
+    <div class="card">
+        <h2>🎥 Video Chat Flow</h2>
+        <pre><code>1. Chat → Video Icon → POST /video/create-room
+2. Redirect → http://localhost:5001/video/join/{room_id}
+3. WebRTC → getUserMedia() → SocketIO signaling → P2P streams
+4. UI → video_server/templates/video/room.html (grid layout)</code></pre>
+        <p><strong>Key files:</strong> <code>app/routes/video_integration.py</code> , <code>video_server/app.py</code> , <code>video_server/templates/video/room.html</code></p>
+    </div>
+
+    <!-- API ENDPOINTS -->
+    <div class="card">
+        <h2>🌐 API Endpoints</h2>
+        <h3>Messages & Groups</h3>
+        <table class="feature-table">
+            <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>/api/messages/&lt;user_id&gt;</code></td><td>GET</td><td>Get chat history</td></tr>
+                <tr><td><code>/api/send_message</code></td><td>POST</td><td>Send direct message</td></tr>
+                <tr><td><code>/api/group_messages/&lt;group_id&gt;</code></td><td>GET</td><td>Group chat history</td></tr>
+                <tr><td><code>/api/users</code></td><td>GET</td><td>List users</td></tr>
+                <tr><td><code>/api/user_status/&lt;id&gt;</code></td><td>GET</td><td>Online status</td></tr>
+            </tbody>
+        </table>
+        <h3>Video Integration</h3>
+        <table class="feature-table">
+            <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>/video/rooms</code></td><td>GET/POST</td><td>List/create rooms</td></tr>
+                <tr><td><code>/video/join/&lt;room_id&gt;</code></td><td>GET</td><td>Join video room</td></tr>
+                <tr><td><code>/video/health</code></td><td>GET</td><td>Video server status</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TECH STACK + FILE UPLOAD -->
+    <div class="card">
+        <h2>🛠️ Tech Stack</h2>
+        <div class="badge-group">
+            <span class="badge-tech">Python 3.10+</span>
+            <span class="badge-tech">Flask + SQLAlchemy</span>
+            <span class="badge-tech">SQLite</span>
+            <span class="badge-tech">Flask-SocketIO</span>
+            <span class="badge-tech">WebRTC</span>
+            <span class="badge-tech">Pillow</span>
+            <span class="badge-tech">HTML5/CSS3/JS</span>
+        </div>
+        <h3>📁 File Upload Support</h3>
+        <table class="feature-table">
+            <thead><tr><th>Type</th><th>Extensions</th><th>Max Size</th></tr></thead>
+            <tbody>
+                <tr><td>Images</td><td>.png .jpg .gif .webp</td><td>16MB</td></tr>
+                <tr><td>Documents</td><td>.pdf .docx .txt</td><td>16MB</td></tr>
+                <tr><td>Video</td><td>.mp4 .webm .mov</td><td>16MB</td></tr>
+                <tr><td>Audio</td><td>.mp3 .wav .m4a</td><td>16MB</td></tr>
+            </tbody>
+        </table>
+        <p><strong>Storage:</strong> <code>app/uploads/</code> + <code>uploads/</code> directories</p>
+    </div>
+
+    <!-- ENV + CONTRIBUTING -->
+    <div class="card">
+        <h2>🔒 Environment Variables</h2>
+        <pre><code># Just run the setup command!
 python manage.py setup</code></pre>
-        <p><strong>📄 .env example (manual):</strong></p>
-        <pre><code>TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-SECRET_KEY=your-secret-key-change-in-production
-DATABASE_URL=sqlite:///kiselgram.db
-HOST=0.0.0.0
-PORT=5000
-DEBUG=True
-VIDEO_PORT=5001
-VIDEO_HOST=0.0.0.0
-VIDEO_AUTO_START=True</code></pre>
-    </div>
-
-    <!-- Usage / Start Commands -->
-    <div class="section-card">
-        <h2>🎯 Usage</h2>
-        <h3>Starting the Application</h3>
-        <pre><code># Quick start (main app + video server)
-python manage.py start
-
-# Custom ports
-python manage.py start --port 3000 --video-port 3001
-
-# Without video server
-python manage.py start --no-video
-
-# Start only video server
-python manage.py video start --port 5001</code></pre>
-
-        <h3>Management Commands</h3>
-        <table>
-            <thead><tr><th>Command</th><th>Description</th></tr>
-            </thead>
-            <tbody>
-                <tr><td><code>python manage.py start</code></td><td>Start main app + video server</td></tr>
-                <tr><td><code>python manage.py stop</code></td><td>Stop all services</td></tr>
-                <tr><td><code>python manage.py restart</code></td><td>Restart all services</td></tr>
-                <tr><td><code>python manage.py status</code></td><td>Check service status</td></tr>
-                <tr><td><code>python manage.py video start/stop</code></td><td>Control video server</td></tr>
-                <tr><td><code>python manage.py setup</code></td><td>Setup environment</td></tr>
-                <tr><td><code>python manage.py clean</code></td><td>Clean temporary files</td></tr>
-                <tr><td><code>python manage.py reset-db</code></td><td>⚠️ Reset database (deletes data)</td></tr>
-                <tr><td><code>python manage.py test</code></td><td>Run basic tests</td></tr>
-            </tbody>
-        </table>
-        <p><strong>Access Points:</strong> Main: <code>http://localhost:5000</code> &nbsp;|&nbsp; Video Server: <code>http://localhost:5001</code> &nbsp;|&nbsp; Video Rooms: <code>http://localhost:5000/video/</code></p>
-    </div>
-
-    <!-- Features in Detail: Channels / Groups / Video / Files -->
-    <div class="section-card">
-        <h2>📱 Features in Detail</h2>
-        <h3>📢 Channels & Groups</h3>
-        <pre><code># Channel routes
-POST /create_channel      # Create new channel
-GET /channel/&lt;id&gt;         # View channel
-GET /join_channel/&lt;link&gt;  # Join via invite link
-
-# Group routes
-POST /create_group        # Create new group
-GET /group/&lt;id&gt;           # View group chat
-GET /join_group/&lt;link&gt;    # Join via invite link
-GET /leave_group/&lt;id&gt;     # Leave group</code></pre>
-
-        <h3>🎥 Video Chat Features</h3>
-        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
-            <li>Create Room → “Start Video Chat”</li>
-            <li>Join Room via invite link or room ID</li>
-            <li>Toggle Audio-Only mode (bandwidth saving)</li>
-            <li>Switch Camera & Screen Sharing support</li>
-        </ul>
-
-        <h3>📂 File Upload Support</h3>
-        <table>
-            <thead><tr><th>File Type</th><th>Allowed Extensions</th></tr></thead>
-            <tbody>
-                <tr><td>Images</td><td>jpg, jpeg, png, gif, bmp, webp</td></tr>
-                <tr><td>Documents</td><td>pdf, doc, docx, txt, rtf</td></tr>
-                <tr><td>Archives</td><td>zip, rar, 7z</td></tr>
-                <tr><td>Media</td><td>mp3, mp4, m4a, wav, ogg, avi, mov, mkv</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- API Endpoints -->
-    <div class="section-card">
-        <h2>🔧 API Endpoints</h2>
-        <h3>Video Server API</h3>
-        <table>
-            <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
-            <tbody>
-                <tr><td><code>/api/rooms</code></td><td>GET</td><td>List all active video rooms</td></tr>
-                <tr><td><code>/api/rooms/create</code></td><td>POST</td><td>Create new video room</td></tr>
-                <tr><td><code>/api/rooms/&lt;room_id&gt;</code></td><td>GET</td><td>Get room information</td></tr>
-                <tr><td><code>/health</code></td><td>GET</td><td>Video server health check</td></tr>
-            </tbody>
-        </table>
-        <h3>Status API</h3>
-        <table>
-            <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
-            <tbody>
-                <tr><td><code>/api/user_status/&lt;id&gt;</code></td><td>GET</td><td>Get user online status</td></tr>
-                <tr><td><code>/api/mark_read/&lt;id&gt;</code></td><td>POST</td><td>Mark messages as read</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Contributing + License + Support -->
-    <div class="section-card">
+        <hr>
         <h2>🤝 Contributing</h2>
-        <p>1. Fork the repo &nbsp; 2. Create feature branch (<code>git checkout -b feature/AmazingFeature</code>) <br>
-        3. Commit changes &nbsp; 4. Push &nbsp; 5. Open Pull Request.</p>
-        <hr>
+        <p>1. Fork the repo &nbsp;|&nbsp; 2. Feature branch: <code>git checkout -b feature/amazing-feature</code><br>
+        3. Commit changes &nbsp;|&nbsp; 4. Push &nbsp;|&nbsp; 5. Open Pull Request</p>
         <h2>📝 License</h2>
-        <p>This project is licensed under the MIT License – see the LICENSE file for details.</p>
-        <hr>
-        <h2>👥 Authors</h2>
-        <p><strong>DANILKISEL</strong> – Initial work</p>
+        <p>This project is licensed under the MIT License - see the <code>LICENSE</code> file for details.</p>
+        <h2>👥 Authors & Credits</h2>
+        <p><strong>DANILKISEL</strong> - Creator & Lead Developer</p>
         <h2>🙏 Acknowledgments</h2>
-        <p>Flask & Flask-SocketIO communities, WebRTC contributors, all supporters.</p>
+        <p>Flask-SocketIO & WebRTC communities, Telegram UI inspiration, all contributors and testers.</p>
         <h2>📞 Support</h2>
-        <p>GitHub Issues: <a href="https://github.com/kiselgram/kiselgram/issues" target="_blank">kiselgram/kiselgram/issues</a><br>
-        Project Link: <a href="https://github.com/kiselgram/kiselgram" target="_blank">github.com/kiselgram/kiselgram</a></p>
+        <div class="footer-links">
+            <a href="https://github.com/kiselgram/kiselgram/issues" target="_blank"><i class="fab fa-github"></i> GitHub Issues</a>
+            <a href="https://discord.gg/NtSKWFns"><i class="fab fa-discord"></i> discord.gg/kiselgram</a>
+            <a href="mailto:grown.dk.up@gmail.com"><i class="fas fa-envelope"></i> grown.dk.up@gmail.com</a>
+            <a href="https://t.me/kiseigram"><i class="fa-brands fa-telegram"></i>Kiselgram in Telegram</a>
+            <a href="https://t.me/dka_dmin"><i class="fa-brands fa-telegram"></i>DANILKISEL in Telegram</a>
+
+        </div>
     </div>
 
-    <div class="footer">
-        Kiselgram – real‑time messaging, video calls & file sharing. Built with Flask & SocketIO.
+    <div style="text-align: center; margin: 2rem 0 1rem; font-size: 0.8rem; color: #3f7e6b;">
+        <i class="fas fa-code"></i> Kiselgram V3.0 — real‑time messaging & WebRTC video · self‑hosted with pride
     </div>
 </div>
 </body>
 </html>
-```
