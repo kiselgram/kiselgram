@@ -224,21 +224,23 @@
                 <div class="setting-icon">👤</div>
                 <div>
                     <div class="setting-label">Edit Profile</div>
-                    <div class="setting-description">Change username, photo</div>
+                    <div class="setting-description">Change username, password</div>
                 </div>
             </div>
-            <div class="setting-value">→</div>
+            <div class="setting-value" onclick="window.location.href='/edit_profile'">→</div>
         </div>
+
         <div class="setting-item" id="privacy">
             <div class="setting-left">
                 <div class="setting-icon">🔒</div>
                 <div>
                     <div class="setting-label">Privacy & Security</div>
-                    <div class="setting-description">Blocked users, sessions</div>
+                    <div class="setting-description">Who can see your info, blocked users</div>
                 </div>
             </div>
-            <div class="setting-value">→</div>
+            <div class="setting-value" onclick="window.location.href='/privacy'">→</div>
         </div>
+
         <div class="setting-item" id="dataUsage">
             <div class="setting-left">
                 <div class="setting-icon">📊</div>
@@ -290,11 +292,16 @@
             document.documentElement.style.setProperty('--tg-bg', '#ffffff');
             document.documentElement.style.setProperty('--tg-surface', '#f0f0f0');
         }
+        localStorage.setItem('darkMode', this.classList.contains('active'));
     });
 
     // Navigation handlers
-    document.getElementById('editProfile').addEventListener('click', () => alert('Edit profile coming soon'));
-    document.getElementById('privacy').addEventListener('click', () => alert('Privacy settings coming soon'));
+    document.getElementById('editProfile').addEventListener('click', () => {
+        window.location.href = '/edit_profile';
+    });
+    document.getElementById('privacy').addEventListener('click', () => {
+        window.location.href = '/privacy';
+    });
     document.getElementById('dataUsage').addEventListener('click', () => alert('Storage settings coming soon'));
     document.getElementById('help').addEventListener('click', () => alert('Help center coming soon'));
     document.getElementById('about').addEventListener('click', () => alert('Kiselgram v1.0.0'));
@@ -310,9 +317,5 @@
     if (savedDarkMode === 'true') {
         darkModeToggle.classList.add('active');
     }
-
-    darkModeToggle.addEventListener('click', () => {
-        localStorage.setItem('darkMode', darkModeToggle.classList.contains('active'));
-    });
 </script>
 {% endblock %}

@@ -16,9 +16,20 @@ import threading
 import signal
 import atexit
 import json
+import logging
+import logging.handlers
 from pathlib import Path
 from datetime import datetime
 from video_server.app import run as run_video_server
+
+# Try to import TOML support
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None
 
 # Global variables for managing processes
 flask_process = None
@@ -28,30 +39,278 @@ process_pid = None
 STATUS_FILE = '.kiselgram_status.json'
 VIDEO_STATUS_FILE = '.kiselgram_video_status.json'
 
+# Logger instances
+kiselgram_logger = None
+video_logger = None
+main_logger = None
+
+
+class KiselgramFormatter(logging.Formatter):
+    """Custom formatter for kiselgram.log"""
+
+    def format(self, record):
+        service = getattr(record, 'service', 'kiselgram')
+        domain = getattr(record, 'domain', 'general')
+        timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
+        return f"{service} - {domain} - {record.levelname} - {timestamp}: {record.getMessage()}"
+
+
+class VideoFormatter(logging.Formatter):
+    """Custom formatter for kis_vid.log"""
+
+    def format(self, record):
+        timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
+        return f"{record.levelname} - {timestamp}: {record.getMessage()}"
+
+
+class MainFormatter(logging.Formatter):
+    """Custom formatter for kis_main.log"""
+
+    def format(self, record):
+        domain = getattr(record, 'domain', 'general')
+        timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
+        return f"{domain} - {record.levelname} - {timestamp}: {record.getMessage()}"
+
+
+def setup_logging(config=None):
+    """Setup logging with configuration from kis.toml - file only, no console"""
+    global kiselgram_logger, video_logger, main_logger
+
+    # Default log settings
+    log_settings = {
+        'kiselgram': {
+            'file': 'kiselgram.log',
+            'level': 'INFO',
+            'max_bytes': 10485760,
+            'backup_count': 5
+        },
+        'video': {
+            'file': 'kis_vid.log',
+            'level': 'INFO',
+            'max_bytes': 10485760,
+            'backup_count': 5
+        },
+        'main': {
+            'file': 'kis_main.log',
+            'level': 'INFO',
+            'max_bytes': 10485760,
+            'backup_count': 5
+        }
+    }
+
+    # Override with config if provided
+    if config and 'logging' in config:
+        if 'kiselgram' in config['logging']:
+            log_settings['kiselgram'].update(config['logging']['kiselgram'])
+        if 'video' in config['logging']:
+            log_settings['video'].update(config['logging']['video'])
+        if 'main' in config['logging']:
+            log_settings['main'].update(config['logging']['main'])
+
+    # Create logs directory if it doesn't exist
+    Path('logs').mkdir(exist_ok=True)
+
+    # Setup kiselgram logger
+    kiselgram_logger = logging.getLogger('kiselgram')
+    kiselgram_logger.setLevel(getattr(logging, log_settings['kiselgram']['level'].upper()))
+    kiselgram_logger.handlers.clear()
+
+    kiselgram_handler = logging.handlers.RotatingFileHandler(
+        f"logs/{log_settings['kiselgram']['file']}",
+        maxBytes=log_settings['kiselgram']['max_bytes'],
+        backupCount=log_settings['kiselgram']['backup_count'],
+        encoding='utf-8'
+    )
+    kiselgram_handler.setFormatter(KiselgramFormatter())
+    kiselgram_logger.addHandler(kiselgram_handler)
+    kiselgram_logger.propagate = False
+
+    # Setup video logger
+    video_logger = logging.getLogger('video')
+    video_logger.setLevel(getattr(logging, log_settings['video']['level'].upper()))
+    video_logger.handlers.clear()
+
+    video_handler = logging.handlers.RotatingFileHandler(
+        f"logs/{log_settings['video']['file']}",
+        maxBytes=log_settings['video']['max_bytes'],
+        backupCount=log_settings['video']['backup_count'],
+        encoding='utf-8'
+    )
+    video_handler.setFormatter(VideoFormatter())
+    video_logger.addHandler(video_handler)
+    video_logger.propagate = False
+
+    # Setup main logger
+    main_logger = logging.getLogger('main')
+    main_logger.setLevel(getattr(logging, log_settings['main']['level'].upper()))
+    main_logger.handlers.clear()
+
+    main_handler = logging.handlers.RotatingFileHandler(
+        f"logs/{log_settings['main']['file']}",
+        maxBytes=log_settings['main']['max_bytes'],
+        backupCount=log_settings['main']['backup_count'],
+        encoding='utf-8'
+    )
+    main_handler.setFormatter(MainFormatter())
+    main_logger.addHandler(main_handler)
+    main_logger.propagate = False
+
+    return True
+
+
+def log_kiselgram(level, message, service='kiselgram', domain='general'):
+    """Log to kiselgram.log"""
+    if kiselgram_logger:
+        extra = {'service': service, 'domain': domain}
+        getattr(kiselgram_logger, level.lower())(message, extra=extra)
+
+
+def log_video(level, message):
+    """Log to kis_vid.log"""
+    if video_logger:
+        getattr(video_logger, level.lower())(message)
+
+
+def log_main(level, message, domain='general'):
+    """Log to kis_main.log"""
+    if main_logger:
+        extra = {'domain': domain}
+        getattr(main_logger, level.lower())(message, extra=extra)
+
+
+def load_config():
+    """Load configuration from kis.toml"""
+    config = {}
+
+    if not os.path.exists('kis.toml'):
+        print("⚠️  kis.toml not found, using default configuration")
+        return create_default_config()
+
+    if tomllib is None:
+        print("❌ TOML support not available. Install tomli or use Python 3.11+")
+        return create_default_config()
+
+    try:
+        with open('kis.toml', 'rb') as f:
+            config = tomllib.load(f)
+        print("✅ Configuration loaded from kis.toml")
+        setup_logging(config)
+        return config
+    except Exception as e:
+        print(f"❌ Error loading kis.toml: {e}")
+        print("Using default configuration")
+        setup_logging()
+        return create_default_config()
+
+
+def create_default_config():
+    """Create default configuration file"""
+    default_config = """# Kiselgram Configuration File
+
+[app]
+name = "Kiselgram"
+version = "2.0.0"
+debug = true
+host = "0.0.0.0"
+port = 5000
+secret_key = "your-secret-key-change-in-production"
+
+[database]
+url = "sqlite:///kiselgram.db"
+echo = false
+
+[server]
+workers = 4
+threaded = true
+
+[video]
+enabled = true
+host = "0.0.0.0"
+port = 5001
+quality = "medium"
+max_size = 104857600
+auto_start = true
+
+[logging]
+
+[logging.kiselgram]
+file = "kiselgram.log"
+level = "INFO"
+max_bytes = 10485760
+backup_count = 5
+
+[logging.video]
+file = "kis_vid.log"
+level = "INFO"
+max_bytes = 10485760
+backup_count = 5
+
+[logging.main]
+file = "kis_main.log"
+level = "INFO"
+max_bytes = 10485760
+backup_count = 5
+
+[telegram]
+bot_token = "YOUR_BOT_TOKEN_HERE"
+webhook_url = ""
+
+[uploads]
+folder = "uploads"
+max_size = 16777216
+allowed_images = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
+allowed_documents = [".pdf", ".doc", ".docx", ".txt", ".md"]
+allowed_videos = [".mp4", ".avi", ".mov", ".mkv"]
+
+[features]
+groups = true
+channels = true
+bots = true
+video_streaming = true
+file_sharing = true
+reactions = true
+"""
+
+    with open('kis.toml', 'w') as f:
+        f.write(default_config)
+    print("✅ Created default kis.toml configuration file")
+
+    setup_logging()
+
+    return {
+        'app': {'port': 5000, 'host': '0.0.0.0', 'debug': True},
+        'video': {'port': 5001, 'host': '0.0.0.0', 'enabled': True},
+        'logging': {
+            'kiselgram': {'file': 'kiselgram.log', 'level': 'INFO'},
+            'video': {'file': 'kis_vid.log', 'level': 'INFO'},
+            'main': {'file': 'kis_main.log', 'level': 'INFO'}
+        }
+    }
+
 
 def print_header():
     """Print fancy header for Kiselgram"""
+    try:
+        with open('banner.txt', 'r') as banner:
+            printbanner = banner.read()
 
-    with open('banner.txt', 'r') as banner:
-        printbanner = banner.read()
+        with open('banner.txt', 'r') as banner:
+            legnth = len(banner.readline())
 
-    with open('banner.txt', 'r') as banner:
-        legnth = len(banner.readline())
+        print("\n" + "=" * legnth)
+        print(printbanner)
+        print("=" * legnth)
+        print("📱 Complete Messaging Platform v2.0")
+        print("👥 Groups | 📢 Channels | 📁 File Support | 🤖 Bots | 🎥 Video Server")
+        print("=" * legnth)
 
-
-
-    print("\n" + "=" * legnth)
-
-    print(printbanner)
-    print("=" * legnth)
-    print("📱 Complete Messaging Platform v2.0")
-    print("👥 Groups | 📢 Channels | 📁 File Support | 🤖 Bots | 🎥 Video Server")
-    print("=" * legnth)
+        log_kiselgram('INFO', 'Application header displayed', 'kiselgram', 'ui')
+    except Exception as e:
+        log_kiselgram('ERROR', f'Failed to print header: {e}', 'kiselgram', 'error')
 
 
 def check_python_version():
     """Check if Python version is compatible"""
-    print("🔍 Checking Python version...")
     if sys.version_info < (3, 7):
         print(f"❌ Python 3.7+ required. Current: {platform.python_version()}")
         return False
@@ -63,13 +322,7 @@ def check_dependencies():
     """Check if required dependencies are installed"""
     print("\n📦 Checking dependencies...")
 
-    required = [
-        'flask',
-        'flask_sqlalchemy',
-        'dotenv',
-        'PIL'
-    ]
-
+    required = ['flask', 'flask_sqlalchemy', 'dotenv', 'PIL']
     optional = ['pyTelegramBotAPI', 'pyfiglet', 'opencv-python']
 
     try:
@@ -142,16 +395,22 @@ def run_flask_app(host, port, debug, no_browser=False):
     """Run Flask application in a subprocess"""
     global flask_process, process_pid, is_running
 
+    # Ensure host and port have valid values
+    if host is None or host == 'None':
+        host = '0.0.0.0'
+    if port is None or port == 'None':
+        port = 5000
+    port = int(port)
+
+    log_main('INFO', f'Starting Flask app on {host}:{port}', 'flask')
+
     try:
-        # Set environment variables
         env = os.environ.copy()
         env['FLASK_ENV'] = 'development' if debug else 'production'
 
-        # Build command based on what files exist
         if os.path.exists('run_modular.py'):
             cmd = [sys.executable, 'run_modular.py']
         elif os.path.exists('app'):
-            # Create a temporary runner for modular app
             runner_content = f'''#!/usr/bin/env python3
 import sys
 import os
@@ -187,8 +446,8 @@ if __name__ == '__main__':
             print("❌ No Flask application found!")
             return False
 
-        # Start Flask process
         print(f"🚀 Starting Flask on http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
+
         flask_process = subprocess.Popen(
             cmd,
             env=env,
@@ -202,27 +461,22 @@ if __name__ == '__main__':
         is_running = True
         save_status(port, process_pid, 'main')
 
-        # Monitor output in a separate thread
         def monitor_output():
             for line in flask_process.stdout:
                 line = line.rstrip()
-                if line:  # Skip empty lines
-                    print(f"[App] {line}")
-                    # Only open browser if --no-browser is False
+                if line:
+                    log_main('INFO', line, 'flask-output')
                     if not no_browser and "Running on" in line and "http://" in line:
-                        # Try to open browser
                         try:
                             time.sleep(2)
                             url = f"http://localhost:{port}"
                             webbrowser.open(url)
-                            print(f"\n🌐 Opened browser at: {url}")
                         except:
                             pass
 
         monitor_thread = threading.Thread(target=monitor_output, daemon=True)
         monitor_thread.start()
 
-        # Wait for process to complete
         flask_process.wait()
         is_running = False
         clear_status('main')
@@ -231,6 +485,7 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(f"❌ Error starting Flask: {e}")
+        log_main('ERROR', f'Error starting Flask: {e}', 'flask')
         return False
 
 
@@ -238,8 +493,16 @@ def run_video_server_process(port=5001, host='0.0.0.0'):
     """Run video server in a subprocess"""
     global video_process
 
+    # Ensure host and port have valid values
+    if host is None or host == 'None':
+        host = '0.0.0.0'
+    if port is None or port == 'None':
+        port = 5001
+    port = int(port)
+
+    log_main('INFO', f'Starting video server on {host}:{port}', 'video')
+
     try:
-        # Create a temporary runner for video server
         runner_content = f'''#!/usr/bin/env python3
 import sys
 import os
@@ -248,7 +511,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from video_server.app import run
 
 if __name__ == '__main__':
-    # Override default port if needed
     os.environ['VIDEO_PORT'] = '{port}'
     os.environ['VIDEO_HOST'] = '{host}'
     run()
@@ -259,8 +521,8 @@ if __name__ == '__main__':
 
         cmd = [sys.executable, 'tmp_video_runner.py']
 
-        # Start video server process
         print(f"🎥 Starting Video Server on http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
+
         video_process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -271,12 +533,11 @@ if __name__ == '__main__':
 
         save_status(port, video_process.pid, 'video')
 
-        # Monitor output in a separate thread
         def monitor_video_output():
             for line in video_process.stdout:
                 line = line.rstrip()
-                if line:  # Skip empty lines
-                    print(f"[Video] {line}")
+                if line:
+                    log_video('INFO', line)
 
         monitor_thread = threading.Thread(target=monitor_video_output, daemon=True)
         monitor_thread.start()
@@ -285,6 +546,7 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(f"❌ Error starting video server: {e}")
+        log_main('ERROR', f'Error starting video server: {e}', 'video')
         return False
 
 
@@ -304,7 +566,6 @@ def stop_application(service='all'):
         kill_process_on_port(port)
         clear_status('main')
 
-        # Kill any Python processes running our app
         if platform.system() != 'Windows':
             subprocess.run(['pkill', '-f', 'run_modular.py'],
                            stdout=subprocess.DEVNULL,
@@ -327,7 +588,6 @@ def stop_application(service='all'):
         kill_process_on_port(port)
         clear_status('video')
 
-        # Kill video server processes
         if platform.system() != 'Windows':
             subprocess.run(['pkill', '-f', 'tmp_video_runner.py'],
                            stdout=subprocess.DEVNULL,
@@ -338,11 +598,9 @@ def stop_application(service='all'):
 
         print("✅ Video server stopped")
 
-    # Clean up temporary files
     for tmp_file in ['tmp_runner.py', 'tmp_video_runner.py', 'init_db.py', '.kiselgram.pid']:
         if os.path.exists(tmp_file):
             os.remove(tmp_file)
-            print(f"✓ Removed {tmp_file}")
 
     return True
 
@@ -351,7 +609,6 @@ def kill_process_on_port(port):
     """Kill process running on specific port"""
     try:
         if platform.system() == 'Windows':
-            # Find PID using port on Windows
             result = subprocess.run(['netstat', '-ano'], capture_output=True, text=True, shell=True)
             for line in result.stdout.split('\n'):
                 if f':{port}' in line and 'LISTENING' in line:
@@ -363,9 +620,7 @@ def kill_process_on_port(port):
                                        stderr=subprocess.DEVNULL)
                         print(f"✓ Killed process {pid} on port {port}")
         else:
-            # Unix/Linux/Mac - find and kill process on port
             import signal
-            # Try lsof first
             try:
                 result = subprocess.run(['lsof', '-ti', f':{port}'],
                                         capture_output=True, text=True)
@@ -378,9 +633,8 @@ def kill_process_on_port(port):
                             os.kill(int(pid), signal.SIGKILL)
                             print(f"✓ Killed process {pid} on port {port}")
                         except ProcessLookupError:
-                            pass  # Process already dead
+                            pass
             except FileNotFoundError:
-                # lsof not available, use pkill
                 subprocess.run(['pkill', '-f', f'port.*{port}'],
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL)
@@ -405,7 +659,6 @@ def check_application(service='all'):
             print(f"   Started: {started}")
             print(f"   URL: http://localhost:{port}")
 
-            # Check if port is actually responding
             if check_port_available(port):
                 print(f"   ⚠️  Warning: Port {port} appears to be free (process may have crashed)")
             else:
@@ -427,7 +680,6 @@ def check_application(service='all'):
             print(f"   Started: {started}")
             print(f"   URL: http://localhost:{port}")
 
-            # Check if port is actually responding
             if check_port_available(port):
                 print(f"   ⚠️  Warning: Port {port} appears to be free (process may have crashed)")
             else:
@@ -442,8 +694,8 @@ def setup_environment():
     """Setup the Kiselgram environment"""
     print("\n🔧 Setting up Kiselgram environment...")
 
-    # Create necessary directories
     directories = [
+        'logs',
         'uploads/images',
         'uploads/documents',
         'uploads/media',
@@ -462,7 +714,6 @@ def setup_environment():
         Path(directory).mkdir(parents=True, exist_ok=True)
         print(f"✓ Created: {directory}")
 
-    # Create .env file if it doesn't exist
     if not os.path.exists('.env'):
         env_content = """# Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
@@ -480,12 +731,12 @@ DEBUG=True
 VIDEO_PORT=5001
 VIDEO_HOST=0.0.0.0
 VIDEO_QUALITY=medium
-MAX_VIDEO_SIZE=104857600  # 100MB
-VIDEO_AUTO_START=True     # Auto-start video server with main app
+MAX_VIDEO_SIZE=104857600
+VIDEO_AUTO_START=True
 
 # File Uploads
 UPLOAD_FOLDER=uploads
-MAX_CONTENT_LENGTH=16777216  # 16MB
+MAX_CONTENT_LENGTH=16777216
 """
         with open('.env', 'w') as f:
             f.write(env_content)
@@ -493,15 +744,15 @@ MAX_CONTENT_LENGTH=16777216  # 16MB
     else:
         print("✓ .env file already exists")
 
-    # Create requirements.txt if it doesn't exist
     if not os.path.exists('requirements.txt'):
         req_content = """Flask>=2.3.0
 Flask-SQLAlchemy>=3.0.0
 python-dotenv>=1.0.0
 Pillow>=10.0.0
 pyTelegramBotAPI>=4.12.0
-opencv-python>=4.8.0  # For video processing
-flask-socketio>=5.3.0  # For real-time video
+opencv-python>=4.8.0
+flask-socketio>=5.3.0
+tomli>=2.0.0
 """
         with open('requirements.txt', 'w') as f:
             f.write(req_content)
@@ -509,12 +760,13 @@ flask-socketio>=5.3.0  # For real-time video
     else:
         print("✓ requirements.txt already exists")
 
+    load_config()
+
     print("\n✅ Setup completed!")
     print("\nNext steps:")
     print("1. Install dependencies: pip install -r requirements.txt")
-    print("2. Configure Telegram bot in .env (optional)")
-    print("3. Run: python manage.py start  (video server starts automatically)")
-    print("   Use --no-video to disable video server auto-start")
+    print("2. Configure kis.toml and .env files")
+    print("3. Run: python manage.py start")
 
     return True
 
@@ -525,7 +777,7 @@ def show_help():
     print("\n📚 Kiselgram Management Commands:")
     print("=" * 40)
 
-    print("\n📱 Main Application Commands (Video Server Auto-starts):")
+    print("\n📱 Main Application Commands:")
     print("  python manage.py start [options]      Start main app + video server")
     print("  python manage.py stop                  Stop all services")
     print("  python manage.py restart [options]     Restart all services")
@@ -553,22 +805,7 @@ def show_help():
     print("  python manage.py clean                  Clean temporary files")
     print("  python manage.py reset-db               Reset database (⚠️ deletes data)")
     print("  python manage.py test                   Run basic tests")
-
-    print("\nExamples:")
-    print("  # Start everything (video auto-starts)")
-    print("  python manage.py start")
-    print("")
-    print("  # Start without video server")
-    print("  python manage.py start --no-video")
-    print("")
-    print("  # Start with custom video port")
-    print("  python manage.py start --video-port 8080")
-    print("")
-    print("  # Start both services on different ports")
-    print("  python manage.py start --port 3000 --video-port 3001")
-    print("")
-    print("  # Start without opening browser")
-    print("  python manage.py start --no-browser")
+    print("  python manage.py help                   Show this help")
 
     return True
 
@@ -596,7 +833,6 @@ def clean_temporary_files():
                 os.remove(item)
                 print(f"✓ Removed file: {item}")
 
-    # Clean __pycache__ directories
     import shutil
     for root, dirs, files in os.walk('.'):
         if '__pycache__' in dirs:
@@ -604,7 +840,6 @@ def clean_temporary_files():
             shutil.rmtree(pycache_path)
             print(f"✓ Removed: {pycache_path}")
 
-    # Clean .pyc files
     for root, dirs, files in os.walk('.'):
         for file in files:
             if file.endswith('.pyc'):
@@ -627,22 +862,15 @@ def reset_database():
 
     print("\n🗑️  Resetting database...")
 
-    # Stop application if running
     stop_application('all')
 
-    # Remove database files
-    db_files = [
-        'kiselgram.db',
-        'instance/kiselgram.db',
-        'test.db'
-    ]
+    db_files = ['kiselgram.db', 'instance/kiselgram.db', 'test.db']
 
     for db_file in db_files:
         if os.path.exists(db_file):
             os.remove(db_file)
             print(f"✓ Removed: {db_file}")
 
-    # Remove uploads
     if os.path.exists('uploads'):
         import shutil
         shutil.rmtree('uploads')
@@ -665,51 +893,35 @@ def run_tests():
     tests_passed = 0
     tests_failed = 0
 
-    # Test 1: Check Python version
-    try:
-        if sys.version_info >= (3, 7):
-            print("✓ Python version OK")
-            tests_passed += 1
-        else:
-            print("✗ Python version too old")
-            tests_failed += 1
-    except:
+    if sys.version_info >= (3, 7):
+        print("✓ Python version OK")
+        tests_passed += 1
+    else:
+        print("✗ Python version too old")
         tests_failed += 1
 
-    # Test 2: Check dependencies
-    try:
-        if check_dependencies():
-            print("✓ Dependencies OK")
-            tests_passed += 1
-        else:
-            print("✗ Missing dependencies")
-            tests_failed += 1
-    except:
+    if check_dependencies():
+        print("✓ Dependencies OK")
+        tests_passed += 1
+    else:
+        print("✗ Missing dependencies")
         tests_failed += 1
 
-    # Test 3: Check directory structure
-    try:
-        required_dirs = ['app', 'video_server', 'templates', 'static', 'uploads']
-        all_exist = all(os.path.exists(d) for d in required_dirs)
-        if all_exist:
-            print("✓ Directory structure OK")
-            tests_passed += 1
-        else:
-            print("✗ Missing directories")
-            tests_failed += 1
-    except:
+    required_dirs = ['app', 'video_server', 'templates', 'static', 'uploads', 'logs']
+    all_exist = all(os.path.exists(d) for d in required_dirs)
+    if all_exist:
+        print("✓ Directory structure OK")
+        tests_passed += 1
+    else:
+        print("✗ Missing directories")
         tests_failed += 1
 
-    # Test 4: Check database
-    try:
-        if os.path.exists('kiselgram.db') or os.path.exists('instance/kiselgram.db'):
-            print("✓ Database file exists")
-            tests_passed += 1
-        else:
-            print("⚠️ No database file (this is OK for first run)")
-            tests_passed += 1
-    except:
-        tests_failed += 1
+    if os.path.exists('kis.toml'):
+        print("✓ Config file exists")
+        tests_passed += 1
+    else:
+        print("⚠️ No config file (run setup to create)")
+        tests_passed += 1
 
     print(f"\n📊 Test Results: {tests_passed} passed, {tests_failed} failed")
 
@@ -728,10 +940,10 @@ def video_command(args):
         print("\n🎥 Video Server Management")
         print("-" * 40)
 
-        # Check if already running
         video_status = load_status('video')
         if video_status and video_status.get('running'):
-            print(f"⚠️ Video server is already running on port {video_status.get('port')}")
+            current_port = video_status.get('port', 5001)
+            print(f"⚠️ Video server is already running on port {current_port}")
             choice = input("Stop and restart? (y/n): ")
             if choice.lower() == 'y':
                 stop_application('video')
@@ -739,26 +951,25 @@ def video_command(args):
             else:
                 return
 
-        # Check port
         port = args.port if hasattr(args, 'port') and args.port else 5001
+        host = args.host if hasattr(args, 'host') and args.host else '0.0.0.0'
+
         if not check_port_available(port):
             print(f"❌ Port {port} is already in use!")
             return
 
         print(f"🚀 Starting video server...")
         print(f"   Port: {port}")
-        print(f"   Host: {args.host if hasattr(args, 'host') else '0.0.0.0'}")
+        print(f"   Host: {host}")
         print("-" * 40)
 
-        # Start video server in a separate thread
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(port, args.host if hasattr(args, 'host') else '0.0.0.0'),
+            args=(port, host),
             daemon=True
         )
         video_thread.start()
 
-        # Wait a bit and check if started
         time.sleep(3)
 
         if check_port_available(port):
@@ -769,7 +980,6 @@ def video_command(args):
             print("🛑 To stop: python manage.py video stop")
 
             try:
-                # Keep script alive
                 while True:
                     time.sleep(1)
             except KeyboardInterrupt:
@@ -784,12 +994,12 @@ def video_command(args):
         print_header()
         print("\n🎥 Restarting Video Server...")
 
-        # Stop if running
         stop_application('video')
         time.sleep(2)
 
-        # Start again
         port = args.port if hasattr(args, 'port') and args.port else 5001
+        host = args.host if hasattr(args, 'host') and args.host else '0.0.0.0'
+
         if not check_port_available(port):
             print(f"❌ Port {port} is still in use!")
             return
@@ -797,7 +1007,7 @@ def video_command(args):
         print(f"\n🚀 Starting video server...")
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(port, args.host if hasattr(args, 'host') else '0.0.0.0'),
+            args=(port, host),
             daemon=True
         )
         video_thread.start()
@@ -819,25 +1029,58 @@ def start_all_services(args):
     """Start main app and optionally video server"""
     print_header()
 
-    # Check dependencies
+    config = load_config()
+
+    # Get main app settings
+    if hasattr(args, 'port') and args.port is not None:
+        main_port = args.port
+    else:
+        main_port = config.get('app', {}).get('port', 5000)
+
+    if hasattr(args, 'host') and args.host is not None:
+        main_host = args.host
+    else:
+        main_host = config.get('app', {}).get('host', '0.0.0.0')
+
+    if hasattr(args, 'debug') and args.debug is not None:
+        debug = args.debug
+    else:
+        debug = config.get('app', {}).get('debug', True)
+
+    # Get video settings
+    if hasattr(args, 'no_video'):
+        video_enabled = not args.no_video
+    else:
+        video_enabled = config.get('video', {}).get('enabled', True)
+
+    if hasattr(args, 'video_port') and args.video_port is not None:
+        video_port = args.video_port
+    else:
+        video_port = config.get('video', {}).get('port', 5001)
+
+    if hasattr(args, 'video_host') and args.video_host is not None:
+        video_host = args.video_host
+    else:
+        video_host = config.get('video', {}).get('host', '0.0.0.0')
+
+    no_browser = hasattr(args, 'no_browser') and args.no_browser
+
     if not check_dependencies():
         print("\n❌ Missing dependencies. Install with: pip install -r requirements.txt")
         return False
 
-    # Check main app port
-    if not check_port_available(args.port):
-        print(f"\n❌ Port {args.port} is already in use!")
+    if not check_port_available(main_port):
+        print(f"\n❌ Port {main_port} is already in use!")
         choice = input(f"Try another port? (y/n): ")
         if choice.lower() == 'y':
             new_port = int(input("Enter port number: "))
-            args.port = new_port
-            if not check_port_available(args.port):
-                print(f"❌ Port {args.port} is also in use.")
+            main_port = new_port
+            if not check_port_available(main_port):
+                print(f"❌ Port {main_port} is also in use.")
                 return False
         else:
             return False
 
-    # Check if main app already running
     main_status = load_status('main')
     if main_status and main_status.get('running'):
         print(f"\n⚠️  Main application is already running on port {main_status.get('port')}")
@@ -848,20 +1091,16 @@ def start_all_services(args):
         else:
             return False
 
-    # Check video port if video is enabled
-    video_enabled = not args.no_video
-    video_port = args.video_port if hasattr(args, 'video_port') else 5001
-
     if video_enabled:
         if not check_port_available(video_port):
             print(f"\n❌ Video server port {video_port} is already in use!")
             print("Use --video-port to specify a different port or --no-video to disable")
             return False
 
-        # Check if video server already running
         video_status = load_status('video')
         if video_status and video_status.get('running'):
-            print(f"\n⚠️  Video server is already running on port {video_status.get('port')}")
+            current_port = video_status.get('port', video_port)
+            print(f"\n⚠️  Video server is already running on port {current_port}")
             choice = input("Stop and restart? (y/n): ")
             if choice.lower() == 'y':
                 stop_application('video')
@@ -869,48 +1108,41 @@ def start_all_services(args):
             else:
                 video_enabled = False
 
+    main_url = f"http://{main_host if main_host != '0.0.0.0' else 'localhost'}:{main_port}"
+    video_url = f"http://{video_host if video_host != '0.0.0.0' else 'localhost'}:{video_port}" if video_enabled else "DISABLED"
+
     print(f"\n🚀 Starting Kiselgram services...")
-    print(f"   Main App: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")
-    if video_enabled:
-        print(f"   Video Server: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{video_port}")
-    else:
-        print(f"   Video Server: DISABLED (use --no-video to disable, or remove flag to enable)")
-    print(f"   Debug: {args.debug}")
-    print(f"   Open Browser: {not args.no_browser}")
+    print(f"   Main App: {main_url}")
+    print(f"   Video Server: {video_url}")
+    print(f"   Debug: {debug}")
+    print(f"   Open Browser: {not no_browser}")
     print("-" * 40)
 
-    # Start Flask in a separate thread - PASS THE NO_BROWSER FLAG
     flask_thread = threading.Thread(
         target=run_flask_app,
-        args=(args.host, args.port, args.debug, args.no_browser),  # Added no_browser parameter
+        args=(main_host, main_port, debug, no_browser),
         daemon=True
     )
     flask_thread.start()
 
-    # Start video server if enabled
     if video_enabled:
-        # Small delay to avoid output mixing
         time.sleep(1)
         video_thread = threading.Thread(
             target=run_video_server_process,
-            args=(video_port, args.host),
+            args=(video_port, video_host),
             daemon=True
         )
         video_thread.start()
 
-    # Wait a bit and check if started
     time.sleep(3)
 
-    # Check main app
-    main_started = not check_port_available(args.port)
-
-    # Check video if enabled
+    main_started = not check_port_available(main_port)
     video_started = not check_port_available(video_port) if video_enabled else False
 
     print("\n" + "=" * 40)
     if main_started:
         print("✅ Main application started successfully!")
-        print(f"🌐 Main App: http://localhost:{args.port}")
+        print(f"🌐 Main App: http://localhost:{main_port}")
     else:
         print("⚠️  Main application may not have started properly. Check logs above.")
 
@@ -926,7 +1158,6 @@ def start_all_services(args):
     print("Press Ctrl+C to exit this script (services will continue running)")
 
     try:
-        # Keep script alive
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
@@ -937,61 +1168,53 @@ def start_all_services(args):
 
 def main():
     """Main entry point"""
+    setup_logging()
+
     parser = argparse.ArgumentParser(description='Kiselgram Management Script')
     subparsers = parser.add_subparsers(dest='command', help='Command to execute')
 
-    # Main app commands (with auto video)
-    start_parser = subparsers.add_parser('start',
-                                         help='Start main app + video server (use --no-video to disable video)')
-    start_parser.add_argument('--port', type=int, default=5000, help='Main app port (default: 5000)')
-    start_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
-    start_parser.add_argument('--debug', action='store_true', default=True, help='Enable debug mode')
+    start_parser = subparsers.add_parser('start', help='Start main app + video server')
+    start_parser.add_argument('--port', type=int, default=None, help='Main app port')
+    start_parser.add_argument('--host', default=None, help='Host to bind to')
+    start_parser.add_argument('--debug', action='store_true', default=None, help='Enable debug mode')
     start_parser.add_argument('--no-debug', action='store_false', dest='debug', help='Disable debug mode')
     start_parser.add_argument('--no-browser', action='store_true', help="Don't open browser automatically")
-
-    # Video server options for main start
     start_parser.add_argument('--no-video', action='store_true', help='Disable video server auto-start')
-    start_parser.add_argument('--video-port', type=int, default=5001, help='Video server port (default: 5001)')
-    start_parser.add_argument('--video-host', default='0.0.0.0', help='Video server host (default: 0.0.0.0)')
+    start_parser.add_argument('--video-port', type=int, default=None, help='Video server port')
+    start_parser.add_argument('--video-host', default=None, help='Video server host')
 
     subparsers.add_parser('stop', help='Stop all services')
 
     restart_parser = subparsers.add_parser('restart', help='Restart all services')
-    restart_parser.add_argument('--port', type=int, default=5000, help='Main app port (default: 5000)')
-    restart_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
-    restart_parser.add_argument('--debug', action='store_true', default=True, help='Enable debug mode')
+    restart_parser.add_argument('--port', type=int, default=None, help='Main app port')
+    restart_parser.add_argument('--host', default=None, help='Host to bind to')
+    restart_parser.add_argument('--debug', action='store_true', default=None, help='Enable debug mode')
     restart_parser.add_argument('--no-debug', action='store_false', dest='debug', help='Disable debug mode')
     restart_parser.add_argument('--no-browser', action='store_true', help="Don't open browser automatically")
     restart_parser.add_argument('--no-video', action='store_true', help='Disable video server auto-start')
-    restart_parser.add_argument('--video-port', type=int, default=5001, help='Video server port (default: 5001)')
+    restart_parser.add_argument('--video-port', type=int, default=None, help='Video server port')
 
     status_parser = subparsers.add_parser('status', help='Check service status')
     status_parser.add_argument('--all', action='store_true', help='Check all services')
 
-    # Video subcommands
     video_parser = subparsers.add_parser('video', help='Video server commands')
-    video_subparsers = video_parser.add_subparsers(dest='video_command', help='Video command to execute')
+    video_subparsers = video_parser.add_subparsers(dest='video_command', help='Video command')
 
-    # Video start
     video_start_parser = video_subparsers.add_parser('start', help='Start video server')
-    video_start_parser.add_argument('--port', type=int, default=5001, help='Port to run on (default: 5001)')
-    video_start_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    video_start_parser.add_argument('--port', type=int, default=5001, help='Port to run on')
+    video_start_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
 
-    # Video stop
     video_subparsers.add_parser('stop', help='Stop video server')
 
-    # Video restart
     video_restart_parser = video_subparsers.add_parser('restart', help='Restart video server')
-    video_restart_parser.add_argument('--port', type=int, default=5001, help='Port to run on (default: 5001)')
-    video_restart_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    video_restart_parser.add_argument('--port', type=int, default=5001, help='Port to run on')
+    video_restart_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
 
-    # Video status
     video_subparsers.add_parser('status', help='Check video server status')
 
-    # Utility commands
     subparsers.add_parser('setup', help='Setup environment')
     subparsers.add_parser('clean', help='Clean temporary files')
-    subparsers.add_parser('reset-db', help='Reset database (⚠️ deletes data)')
+    subparsers.add_parser('reset-db', help='Reset database')
     subparsers.add_parser('test', help='Run basic tests')
     subparsers.add_parser('help', help='Show help')
 
@@ -1002,7 +1225,6 @@ def main():
         print("\n❌ No command specified. Use 'python manage.py help' for usage.")
         return
 
-    # Handle video commands
     if args.command == 'video':
         if not hasattr(args, 'video_command') or not args.video_command:
             print_header()
@@ -1016,70 +1238,51 @@ def main():
         video_command(args)
         return
 
-    # Handle other commands
     if args.command == 'start':
         start_all_services(args)
-
     elif args.command == 'stop':
         print_header()
         print("\n🛑 Stopping all services...")
         stop_application('all')
-
     elif args.command == 'restart':
         print_header()
         print("\n🔄 Restarting all services...")
-
-        # Stop all services
         stop_application('all')
         time.sleep(3)
-
-        # Clear temp files
         clean_temporary_files()
-
-        # Start again
         start_all_services(args)
-
     elif args.command == 'status':
         print_header()
         if hasattr(args, 'all') and args.all:
             check_application('all')
         else:
             check_application('main')
-            # Also show video status hint
             video_status = load_status('video')
             if video_status and video_status.get('running'):
                 print("\n🎥 Video server is also running (use --all to see details)")
             else:
                 print("\n🎥 Video server is not running")
-
     elif args.command == 'setup':
         print_header()
         setup_environment()
-
     elif args.command == 'clean':
         print_header()
         clean_temporary_files()
-
     elif args.command == 'reset-db':
         print_header()
         reset_database()
-
     elif args.command == 'test':
         print_header()
         run_tests()
-
     elif args.command == 'help':
         show_help()
-
     else:
         print(f"❌ Unknown command: {args.command}")
         show_help()
 
 
-# Cleanup on exit
 def cleanup():
     """Cleanup function called on exit"""
-    # Clean up temporary files
     for tmp_file in ['tmp_runner.py', 'tmp_video_runner.py', 'init_db.py']:
         if os.path.exists(tmp_file):
             try:

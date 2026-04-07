@@ -1,6 +1,6 @@
-# Kiselgram
+# Kiselgram V3.0
 
-![Kiselgram Banner](./banner.jpg)
+![Kiselgram Banner](./banner.png)
 
 A complete messaging platform with groups, channels, file sharing, and real-time video chat. Built with Flask and SocketIO.
 

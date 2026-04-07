@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}Kiselgram{% endblock %}</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#5e72e4">
+    <meta name="theme-color" content="#2dce89">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
@@ -16,7 +16,7 @@
             box-sizing: border-box;
         }
 
-        /* Modern Color Variables */
+        /* Modern Color Variables - Green & Blue Theme */
         :root {
             --bg-primary: #e9f0f5;
             --bg-secondary: #ffffff;
@@ -26,32 +26,25 @@
             --text-primary: #1e2f3e;
             --text-secondary: #5c6f87;
             --text-muted: #8a9bb0;
-            --accent-blue: #5e72e4;
+
+            /* Main colors - Green and Blue */
             --accent-green: #2dce89;
+            --accent-blue: #5e72e4;
+            --accent-green-dark: #24a46d;
+            --accent-blue-dark: #4a5bd4;
             --accent-red: #f5365c;
             --accent-orange: #fb6340;
+
             --hover-bg: #f0f4f9;
             --active-bg: #eef2ff;
             --online-green: #2dce89;
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
             --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-            --tg-bg: #ffffff;
-            --tg-surface: #f0f0f0;
-            --tg-primary: #5e72e4;
-            --tg-primary-hover: #4a5bd4;
-            --tg-secondary: #6c757d;
-            --tg-success: #2dce89;
-            --tg-danger: #f5365c;
-            --tg-warning: #fb6340;
-            --tg-info: #11cdef;
-            --tg-text: #32325d;
-            --tg-text-light: #8898aa;
-            --tg-border: #e9ecef;
-            --tg-header: #ffffff;
-            --tg-online: #2dce89;
-            --tg-away: #fb6340;
-            --tg-offline: #cad1d9;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            --gradient-secondary: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
         }
 
         @media (prefers-color-scheme: dark) {
@@ -84,14 +77,14 @@
             min-height: 100vh;
         }
 
-        /* Hamburger Menu Button - Top Left (hidden on login page) */
+        /* Hamburger Menu Button - Top Left */
         .menu-btn {
             position: fixed;
             top: 16px;
             left: 16px;
             width: 44px;
             height: 44px;
-            background: var(--accent-blue);
+            background: var(--gradient-primary);
             border: none;
             border-radius: 12px;
             cursor: pointer;
@@ -107,7 +100,6 @@
 
         .menu-btn:hover {
             transform: scale(1.05);
-            background: var(--accent-blue);
         }
 
         .menu-btn span {
@@ -131,7 +123,7 @@
             transform: rotate(-45deg) translate(7px, -6px);
         }
 
-        /* Sidebar Menu (hidden on login page) */
+        /* Sidebar Menu */
         .sidebar-menu {
             position: fixed;
             top: 0;
@@ -170,7 +162,7 @@
 
         .sidebar-header {
             padding: 30px 20px;
-            background: linear-gradient(135deg, var(--accent-blue), #764ba2);
+            background: var(--gradient-primary);
         }
 
         .sidebar-avatar {
@@ -220,8 +212,8 @@
 
         .sidebar-nav-item.active {
             background: var(--active-bg);
-            color: var(--accent-blue);
-            border-left: 3px solid var(--accent-blue);
+            color: var(--accent-green);
+            border-left: 3px solid var(--accent-green);
         }
 
         .sidebar-nav-icon {
@@ -348,7 +340,6 @@
     <script>
         // Only initialize sidebar if menu exists (not on login page)
         {% if request.endpoint != 'auth.login' %}
-            // Sidebar functionality
             const menuBtn = document.getElementById('menuBtn');
             const sidebar = document.getElementById('sidebarMenu');
             const overlay = document.getElementById('sidebarOverlay');
@@ -385,7 +376,6 @@
                     }
                 });
 
-                // Highlight active nav item
                 const currentPath = window.location.pathname;
                 document.querySelectorAll('.sidebar-nav-item').forEach(item => {
                     if (item.getAttribute('href') === currentPath) {
@@ -393,7 +383,6 @@
                     }
                 });
 
-                // Logout
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', function() {
@@ -405,7 +394,6 @@
             }
         {% endif %}
 
-        // Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW failed:', err));
         }
