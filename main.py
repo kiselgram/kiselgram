@@ -998,7 +998,7 @@ def chat(user_id):
         {'is_read': True})
     db.session.commit()
 
-    return render_template('chat.html', current_user=get_current_user(), receiver=receiver)
+    return render_template('direct_chat.html', current_user=get_current_user(), receiver=receiver)
 
 
 @app.route('/settings')

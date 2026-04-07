@@ -6,12 +6,16 @@ import re
 search_bp = Blueprint('search', __name__)
 
 @search_bp.route('/search')
+# Update the search route in search.py to match template expectations
+
+@search_bp.route('/search')
 def search():
     if not get_current_user():
         return redirect('/')
 
     query = request.args.get('q', '')
     search_type = request.args.get('type', 'all')
+    current_user_id = get_current_user_id()
 
     results = {
         'users': [],
@@ -20,39 +24,50 @@ def search():
         'messages': []
     }
 
-    if query:
-        current_user_id = get_current_user_id()
-
+    if query and len(query) >= 2:
         # Search users
         if search_type in ['all', 'users']:
             users = User.query.filter(
                 User.username.ilike(f'%{query}%'),
                 User.id != current_user_id
-            ).all()
-            results['users'] = users
+            ).limit(20).all()
+            results['users'] = [{
+                'id': u.id,
+                'username': u.username,
+                'status': 'online'
+            } for u in users]
 
         # Search groups
         if search_type in ['all', 'groups']:
-            groups = Group.query.filter(Group.name.ilike(f'%{query}%')).all()
-            filtered_groups = []
-            for group in groups:
-                if group.is_public or GroupMember.query.filter_by(user_id=current_user_id, group_id=group.id).first():
-                    filtered_groups.append(group)
-            results['groups'] = filtered_groups
+            groups = Group.query.filter(
+                Group.name.ilike(f'%{query}%'),
+                Group.is_public == True
+            ).limit(20).all()
+            results['groups'] = [{
+                'id': g.id,
+                'name': g.name,
+                'member_count': GroupMember.query.filter_by(group_id=g.id).count(),
+                'is_public': g.is_public,
+                'description': g.description
+            } for g in groups]
 
         # Search channels
         if search_type in ['all', 'channels']:
-            channels = Channel.query.filter(Channel.name.ilike(f'%{query}%')).all()
-            filtered_channels = []
-            for channel in channels:
-                if channel.is_public or ChannelSubscriber.query.filter_by(user_id=current_user_id,
-                                                                          channel_id=channel.id).first():
-                    filtered_channels.append(channel)
-            results['channels'] = filtered_channels
+            channels = Channel.query.filter(
+                Channel.name.ilike(f'%{query}%'),
+                Channel.is_public == True
+            ).limit(20).all()
+            results['channels'] = [{
+                'id': c.id,
+                'name': c.name,
+                'subscriber_count': ChannelSubscriber.query.filter_by(channel_id=c.id).count(),
+                'is_public': c.is_public,
+                'description': c.description
+            } for c in channels]
 
         # Search messages
         if search_type in ['all', 'messages']:
-            personal_messages = Message.query.filter(
+            messages = Message.query.filter(
                 Message.content.ilike(f'%{query}%'),
                 Message.group_id.is_(None),
                 Message.channel_id.is_(None),
@@ -62,20 +77,15 @@ def search():
                 )
             ).order_by(Message.timestamp.desc()).limit(50).all()
 
-            user_group_ids = [gm.group_id for gm in GroupMember.query.filter_by(user_id=current_user_id).all()]
-            group_messages = Message.query.filter(
-                Message.content.ilike(f'%{query}%'),
-                Message.group_id.in_(user_group_ids)
-            ).order_by(Message.timestamp.desc()).limit(50).all()
-
-            user_channel_ids = [cs.channel_id for cs in
-                                ChannelSubscriber.query.filter_by(user_id=current_user_id).all()]
-            channel_messages = Message.query.filter(
-                Message.content.ilike(f'%{query}%'),
-                Message.channel_id.in_(user_channel_ids)
-            ).order_by(Message.timestamp.desc()).limit(50).all()
-
-            results['messages'] = personal_messages + group_messages + channel_messages
+            results['messages'] = [{
+                'id': m.id,
+                'content': m.content[:200] if m.content else '',
+                'sender_username': m.sender.username,
+                'timestamp': m.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'chat_type': 'personal',
+                'chat_id': m.sender_id if m.sender_id != current_user_id else m.receiver_id,
+                'chat_name': m.sender.username if m.sender_id != current_user_id else m.receiver.username if m.receiver else 'Unknown'
+            } for m in messages]
 
     return render_template('search.html',
                            current_user=get_current_user(),

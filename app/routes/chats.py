@@ -7,6 +7,9 @@ from app.utils.helpers import get_current_user, get_current_user_id
 
 chats_bp = Blueprint('chats', __name__)
 
+
+# Update the chat_list route in chats.py to include last_message details
+
 @chats_bp.route('/chat_list')
 def chat_list():
     if not get_current_user():
@@ -31,6 +34,9 @@ def chat_list():
             unread_count = Message.query.filter_by(sender_id=user_id, receiver_id=current_user_id,
                                                    is_read=False).count()
 
+            timestamp = ''
+            last_message_data = None
+
             if last_message:
                 time_diff = datetime.utcnow() - last_message.timestamp
                 if time_diff.days == 0:
@@ -41,85 +47,29 @@ def chat_list():
                     timestamp = last_message.timestamp.strftime('%A')
                 else:
                     timestamp = last_message.timestamp.strftime('%d.%m.%Y')
-            else:
-                timestamp = ''
+
+                # Create last_message dict for template
+                last_message_data = {
+                    'content': last_message.content,
+                    'sender_id': last_message.sender_id,
+                    'sender': {'username': last_message.sender.username}
+                }
 
             chats_data.append({
                 'type': 'personal',
                 'id': user.id,
                 'name': user.username,
-                'user': user,
-                'last_message': last_message,
+                'last_message': last_message_data,
                 'unread_count': unread_count,
                 'timestamp': timestamp
             })
 
-    # Get groups the user is member of
-    user_groups = GroupMember.query.filter_by(user_id=current_user_id).all()
-    for membership in user_groups:
-        group = membership.group
-        last_message = Message.query.filter_by(group_id=group.id).order_by(Message.timestamp.desc()).first()
+    # Sort by most recent
+    chats_data.sort(key=lambda x: x['timestamp'] if x['timestamp'] else '', reverse=True)
 
-        if last_message:
-            time_diff = datetime.utcnow() - last_message.timestamp
-            if time_diff.days == 0:
-                timestamp = last_message.timestamp.strftime('%H:%M')
-            elif time_diff.days == 1:
-                timestamp = 'Yesterday'
-            elif time_diff.days < 7:
-                timestamp = last_message.timestamp.strftime('%A')
-            else:
-                timestamp = last_message.timestamp.strftime('%d.%m.%Y')
-        else:
-            timestamp = ''
-
-        unread_count = 0
-
-        chats_data.append({
-            'type': 'group',
-            'id': group.id,
-            'name': group.name,
-            'group': group,
-            'last_message': last_message,
-            'unread_count': unread_count,
-            'timestamp': timestamp
-        })
-
-    # Get channels the user is subscribed to
-    user_channels = ChannelSubscriber.query.filter_by(user_id=current_user_id).all()
-    for subscription in user_channels:
-        channel = subscription.channel
-        last_message = Message.query.filter_by(channel_id=channel.id).order_by(Message.timestamp.desc()).first()
-
-        if last_message:
-            time_diff = datetime.utcnow() - last_message.timestamp
-            if time_diff.days == 0:
-                timestamp = last_message.timestamp.strftime('%H:%M')
-            elif time_diff.days == 1:
-                timestamp = 'Yesterday'
-            elif time_diff.days < 7:
-                timestamp = last_message.timestamp.strftime('%A')
-            else:
-                timestamp = last_message.timestamp.strftime('%d.%m.%Y')
-        else:
-            timestamp = ''
-
-        unread_count = 0
-
-        chats_data.append({
-            'type': 'channel',
-            'id': channel.id,
-            'name': channel.name,
-            'channel': channel,
-            'last_message': last_message,
-            'unread_count': unread_count,
-            'timestamp': timestamp
-        })
-
-    chats_data.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else datetime.min, reverse=True)
-    bots = TelegramBot.query.filter_by(is_active=True).all()
-
-    return render_template('chat_list.html', current_user=get_current_user(), chats=chats_data, bots=bots)
+    return render_template('chat_list.html',
+                           current_user=get_current_user(),
+                           chats=chats_data)
 
 @chats_bp.route('/chat/<int:user_id>')
 def chat(user_id):
@@ -131,7 +81,7 @@ def chat(user_id):
         {'is_read': True})
     db.session.commit()
 
-    return render_template('chat.html', current_user=get_current_user(), receiver=receiver)
+    return render_template('direct_chat.html', current_user=get_current_user(), receiver=receiver)
 
 @chats_bp.route('/users')
 def users_list():
@@ -143,6 +93,26 @@ def users_list():
     return render_template('users_list.html', current_user=get_current_user(), users=users, bots=bots)
 
 
+# Add to routes/chats.py - fix the direct chat route
+
 @chats_bp.route('/direct/<int:user_id>')
-def direct(user_id):
-    return redirect(url_for("chats.chat", user_id=user_id))
+def direct_chat(user_id):
+    """Direct chat with a user (matches template expectation)"""
+    if not get_current_user():
+        return redirect('/')
+
+    receiver = User.query.get_or_404(user_id)
+    current_user = get_current_user()
+
+    # Mark messages as read
+    Message.query.filter_by(
+        sender_id=user_id,
+        receiver_id=get_current_user_id(),
+        is_read=False
+    ).update({'is_read': True})
+    db.session.commit()
+
+    return render_template('direct_chat.html',
+                           receiver=receiver,
+                           current_user=current_user,
+                           session={'user_id': get_current_user_id()})

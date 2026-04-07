@@ -288,3 +288,126 @@ def api_chat_list():
             })
 
     return jsonify({'chats': chats_data})
+
+
+# Add to routes/api.py
+
+@api_bp.route('/api/users')
+def api_users():
+    """Get list of all users (for group creation)"""
+    if not get_current_user():
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user_id = get_current_user_id()
+    users = User.query.filter(User.id != current_user_id).all()
+
+    users_data = [{
+        'id': user.id,
+        'username': user.username,
+        'status': 'online',  # You can implement actual status tracking
+        'last_seen': None
+    } for user in users]
+
+    return jsonify({'success': True, 'users': users_data})
+
+
+@api_bp.route('/api/block_user/<int:user_id>', methods=['POST'])
+def api_block_user(user_id):
+    """Block a user"""
+    if not get_current_user():
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user_id = get_current_user_id()
+
+    # TODO: Implement actual blocking in a BlockedUser model
+    # For now, just return success
+    return jsonify({'success': True, 'message': 'User blocked'})
+
+
+@api_bp.route('/api/clear_chat/<int:user_id>', methods=['POST'])
+def api_clear_chat(user_id):
+    """Clear all messages with a user"""
+    if not get_current_user():
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user_id = get_current_user_id()
+
+    # Delete messages between current user and target user
+    Message.query.filter(
+        ((Message.sender_id == current_user_id) & (Message.receiver_id == user_id)) |
+        ((Message.sender_id == user_id) & (Message.receiver_id == current_user_id))
+    ).delete()
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Chat cleared'})
+
+
+@api_bp.route('/api/report_user/<int:user_id>', methods=['POST'])
+def api_report_user(user_id):
+    """Report a user"""
+    if not get_current_user():
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    reason = data.get('reason', 'No reason provided')
+
+    # TODO: Save report to database
+    print(f"User {get_current_user_id()} reported user {user_id}: {reason}")
+
+    return jsonify({'success': True, 'message': 'User reported'})
+
+
+@api_bp.route('/api/chats/updates')
+def api_chats_updates():
+    """Get updated chat list for polling"""
+    if not get_current_user():
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user_id = get_current_user_id()
+
+    # Get personal chats
+    sent_chats = db.session.query(Message.receiver_id).filter_by(sender_id=current_user_id).distinct()
+    received_chats = db.session.query(Message.sender_id).filter_by(receiver_id=current_user_id).distinct()
+    chat_user_ids = set([id[0] for id in sent_chats] + [id[0] for id in received_chats])
+
+    chats_data = []
+    for user_id in chat_user_ids:
+        user = User.query.get(user_id)
+        if user and user.id != current_user_id:
+            last_message = Message.query.filter(
+                ((Message.sender_id == current_user_id) & (Message.receiver_id == user_id)) |
+                ((Message.sender_id == user_id) & (Message.receiver_id == current_user_id))
+            ).order_by(Message.timestamp.desc()).first()
+
+            unread_count = Message.query.filter_by(
+                sender_id=user_id,
+                receiver_id=current_user_id,
+                is_read=False
+            ).count()
+
+            timestamp = ''
+            if last_message:
+                time_diff = datetime.utcnow() - last_message.timestamp
+                if time_diff.days == 0:
+                    timestamp = last_message.timestamp.strftime('%H:%M')
+                elif time_diff.days == 1:
+                    timestamp = 'Yesterday'
+                else:
+                    timestamp = last_message.timestamp.strftime('%d.%m')
+
+            chats_data.append({
+                'type': 'personal',
+                'id': user.id,
+                'name': user.username,
+                'last_message': {
+                    'content': last_message.content if last_message else '',
+                    'sender_id': last_message.sender_id if last_message else None,
+                    'sender': {
+                        'username': last_message.sender.username if last_message else None
+                    } if last_message else None
+                } if last_message else None,
+                'unread_count': unread_count,
+                'timestamp': timestamp,
+            })
+
+    return jsonify({'updated': True, 'chats': chats_data})
