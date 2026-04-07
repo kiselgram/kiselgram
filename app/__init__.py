@@ -76,5 +76,16 @@ def create_app():
     except ImportError:
         print("Warning: highlight_text filter not available")
 
+    # Add to your app factory or main app file
+
+    @app.context_processor
+    def utility_processor():
+        from app.utils.helpers import get_current_user, get_current_user_id
+        return {
+            'current_user': get_current_user(),
+            'session': {'user_id': get_current_user_id()}
+        }
+
 
     return app
+
