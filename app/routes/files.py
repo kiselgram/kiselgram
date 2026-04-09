@@ -412,3 +412,120 @@ def debug_url(filename):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# files.py - Add these routes
+
+@files_bp.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    """Handle avatar upload for user profile"""
+    from flask import session
+    from PIL import Image
+    import io
+
+
+    # Get current user from session
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user = User.query.get(user_id)
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 401
+
+    if 'avatar' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    # Check file type
+    allowed_image_types = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+    if file_ext not in allowed_image_types:
+        return jsonify({'error': 'Invalid image format. Use JPG, PNG, GIF, or WEBP'}), 400
+
+    try:
+        # Read and process image
+        image = Image.open(file)
+
+        # Convert to RGB if necessary
+        if image.mode in ('RGBA', 'P'):
+            rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+            rgb_image.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+            image = rgb_image
+
+        # Resize to standard avatar size
+        max_size = (400, 400)
+        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+        # Generate unique filename
+        unique_filename = f"avatar_{uuid.uuid4().hex}.jpg"
+
+        # Save paths
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
+        avatars_dir = os.path.join(base_upload_dir, 'avatars')
+        os.makedirs(avatars_dir, exist_ok=True)
+
+        file_path = os.path.join(avatars_dir, unique_filename)
+        relative_path = os.path.join('avatars', unique_filename)
+
+        # Save image
+        image.save(file_path, 'JPEG', quality=85)
+
+        # Delete old avatar if exists
+        if current_user.avatar_url:
+            old_avatar_path = os.path.join(base_upload_dir, current_user.avatar_url.replace('/uploads/', ''))
+            if os.path.exists(old_avatar_path):
+                os.remove(old_avatar_path)
+
+        # Update user avatar URL
+        avatar_url = f"/uploads/{relative_path}"
+        current_user.avatar_url = avatar_url
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'avatar_url': avatar_url,
+            'message': 'Avatar updated successfully'
+        })
+
+    except Exception as e:
+        print(f"🔍 DEBUG - Avatar upload error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@files_bp.route('/remove_avatar', methods=['POST'])
+def remove_avatar():
+    from flask import session
+    """Remove user avatar"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    current_user = User.query.get(user_id)
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 401
+
+    try:
+        # Delete avatar file if exists
+        if current_user.avatar_url:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
+            avatar_path = os.path.join(base_upload_dir, current_user.avatar_url.replace('/uploads/', ''))
+            if os.path.exists(avatar_path):
+                os.remove(avatar_path)
+
+        current_user.avatar_url = None
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Avatar removed'})
+
+    except Exception as e:
+        print(f"🔍 DEBUG - Remove avatar error: {str(e)}")
+        return jsonify({'error': str(e)}), 500

@@ -53,25 +53,17 @@ def create_app():
     try:
         from app.routes.auth import auth_bp
         from app.routes.chats import chats_bp
-        from app.routes.groups import groups_bp
-        from app.routes.channels import channels_bp
         from app.routes.files import files_bp
-        from app.routes.api import api_bp
-        from app.routes.search import search_bp
-        from app.routes.status import status_bp
         from app.routes.video_integration import video_int_bp
         from app.routes.utils_api import utils_api_bp  # New utility API
-
+        from app.routes.spa_app import register_spa_bp
         app.register_blueprint(auth_bp)
         app.register_blueprint(chats_bp)
-        app.register_blueprint(groups_bp)
-        app.register_blueprint(channels_bp)
         app.register_blueprint(files_bp)
-        app.register_blueprint(api_bp)
-        app.register_blueprint(search_bp)
-        app.register_blueprint(status_bp)
         app.register_blueprint(video_int_bp)
         app.register_blueprint(utils_api_bp)  # Register utility API
+        register_spa_bp(app)
+
 
         print("✅ All blueprints registered successfully")
         print("✅ Utility API available at /api/utils")
@@ -109,3 +101,7 @@ def create_app():
             }
 
     return app
+
+if __name__ == '__main__':
+    flask = create_app()
+    flask.run()

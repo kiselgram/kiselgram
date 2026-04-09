@@ -134,34 +134,6 @@ def chat_list():
                            chats=chats_data,
                            session={'user_id': current_user_id})
 
-
-@chats_bp.route('/chat/<int:user_id>')
-def chat(user_id):
-    if not get_current_user():
-        return redirect('/')
-
-    receiver = User.query.get_or_404(user_id)
-    Message.query.filter_by(sender_id=user_id, receiver_id=get_current_user_id(), is_read=False).update(
-        {'is_read': True})
-    db.session.commit()
-
-    return render_template('direct_chat.html', current_user=get_current_user(), receiver=receiver)
-
-
-@chats_bp.route('/users')
-def users_list():
-    if not get_current_user():
-        return redirect('/')
-
-    users = User.query.all()
-    bots = TelegramBot.query.filter_by(is_active=True).all()
-    return render_template('users_list.html', current_user=get_current_user(), users=users, bots=bots)
-
-
-@chats_bp.route('/direct/<int:user_id>')
-def direct(user_id):
-    return redirect(url_for("chats.chat", user_id=user_id))
-
 @chats_bp.route('/kis_info')
 def kis_info():
     return render_template('kis_info.html')

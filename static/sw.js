@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kiselgram-v1';
+const CACHE_NAME = 'kiselgram-v3';
 const urlsToCache = [
     '/',
     '/static/manifest.json'
