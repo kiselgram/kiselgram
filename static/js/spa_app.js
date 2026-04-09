@@ -1088,3 +1088,255 @@ window.logout = logout;
 window.toggleMobileSidebar = toggleMobileSidebar;
 window.showReactionPickerModal = showReactionPickerModal;
 window.showForwardModal = showForwardModal;
+
+// ============ MISSING FUNCTIONS ============
+
+// Chat Info
+function showChatInfo() {
+    if (!currentChat) return;
+
+    let infoHtml = `
+        <p><strong>Name:</strong> ${escapeHtml(currentChat.name)}</p>
+        <p><strong>Type:</strong> ${currentChatType}</p>
+        <p><strong>ID:</strong> ${currentChat.id}</p>
+    `;
+
+    if (currentChatType === 'group') {
+        infoHtml += `<p><strong>Members:</strong> Loading...</p>`;
+    } else if (currentChatType === 'channel') {
+        infoHtml += `<p><strong>Subscribers:</strong> Loading...</p>`;
+    }
+
+    showModal('Chat Info', infoHtml, null, null, 'Close');
+}
+
+// Chat Menu
+function showChatMenu() {
+    if (!currentChat) return;
+
+    const actions = [];
+
+    if (currentChatType === 'personal') {
+        actions.push({ label: 'View Profile', action: () => window.location.href = `/profile/${currentChat.id}` });
+        actions.push({ label: 'Block User', action: blockUser, danger: true });
+        actions.push({ label: 'Clear Chat', action: clearCurrentChat, danger: true });
+    } else if (currentChatType === 'group') {
+        actions.push({ label: 'Group Info', action: showChatInfo });
+        actions.push({ label: 'Members', action: () => showToast('Members list coming soon', 'info') });
+        actions.push({ label: 'Leave Group', action: leaveCurrentGroup, danger: true });
+    } else if (currentChatType === 'channel') {
+        actions.push({ label: 'Channel Info', action: showChatInfo });
+        actions.push({ label: 'Leave Channel', action: leaveCurrentChannel, danger: true });
+    }
+
+    const buttonsHtml = actions.map(a => `
+        <button class="modal-btn ${a.danger ? 'modal-btn-danger' : 'modal-btn-primary'}"
+                style="width: 100%; margin-bottom: 8px;"
+                onclick="(${a.action.toString()})(); document.querySelector('.modal-overlay')?.remove();">
+            ${a.label}
+        </button>
+    `).join('');
+
+    showModal('Chat Actions', buttonsHtml, null, null, 'Close');
+}
+
+function blockUser() {
+    showConfirmModal('Block User', 'Are you sure you want to block this user?', async () => {
+        try {
+            await fetch(`/api/block_user/${currentChat.id}`, { method: 'POST' });
+            showToast('User blocked', 'success');
+            showView('empty');
+            loadChats();
+        } catch (error) {
+            showToast('Error blocking user', 'error');
+        }
+    });
+}
+
+function clearCurrentChat() {
+    showConfirmModal('Clear Chat', 'Delete all messages? This cannot be undone.', async () => {
+        try {
+            await fetch(`/api/clear_chat/${currentChat.id}`, { method: 'POST' });
+            document.getElementById('messagesContainer').innerHTML = '';
+            lastMessageId = 0;
+            showToast('Chat cleared', 'success');
+            loadChats();
+        } catch (error) {
+            showToast('Error clearing chat', 'error');
+        }
+    });
+}
+
+async function leaveCurrentGroup() {
+    showConfirmModal('Leave Group', 'Are you sure you want to leave this group?', async () => {
+        try {
+            await fetch(`/api/leave_group/${currentChat.id}`, { method: 'POST' });
+            showToast('Left group', 'success');
+            showView('empty');
+            loadChats();
+        } catch (error) {
+            showToast('Error leaving group', 'error');
+        }
+    });
+}
+
+async function leaveCurrentChannel() {
+    showConfirmModal('Leave Channel', 'Are you sure you want to leave this channel?', async () => {
+        try {
+            await fetch(`/api/leave_channel/${currentChat.id}`, { method: 'POST' });
+            showToast('Left channel', 'success');
+            showView('empty');
+            loadChats();
+        } catch (error) {
+            showToast('Error leaving channel', 'error');
+        }
+    });
+}
+
+// File Upload Functions
+function triggerFileUpload() {
+    document.getElementById('fileInput')?.click();
+}
+
+function handleFileSelect(input) {
+    if (input.files && input.files.length > 0) {
+        selectedFile = input.files[0];
+        const uploadArea = document.getElementById('uploadArea');
+        const fileNameEl = document.getElementById('uploadFileName');
+
+        if (fileNameEl) {
+            fileNameEl.textContent = selectedFile.name;
+        }
+        if (uploadArea) {
+            uploadArea.classList.add('active');
+        }
+
+        // Check file size (max 16MB)
+        if (selectedFile.size > 16 * 1024 * 1024) {
+            showToast('File must be less than 16MB', 'error');
+            cancelUpload();
+        }
+    }
+}
+
+async function uploadFile() {
+    if (!selectedFile || !currentChat) {
+        showToast('Please select a file', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    if (currentChatType === 'personal') {
+        formData.append('receiver_id', currentChat.id);
+    } else if (currentChatType === 'group') {
+        formData.append('group_id', currentChat.id);
+    } else {
+        formData.append('channel_id', currentChat.id);
+    }
+
+    const uploadBtn = event.target;
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+    }
+
+    try {
+        const response = await fetch('/files/upload_file', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            addMessageToUI(data.message, true);
+            cancelUpload();
+            scrollToBottom();
+            showToast('File uploaded', 'success');
+            loadChats();
+        } else {
+            showToast(data.error || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        showToast('Upload failed', 'error');
+    } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload';
+        }
+    }
+}
+
+function cancelUpload() {
+    document.getElementById('uploadArea')?.classList.remove('active');
+    selectedFile = null;
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) fileInput.value = '';
+    const fileNameEl = document.getElementById('uploadFileName');
+    if (fileNameEl) fileNameEl.textContent = 'No file selected';
+}
+
+// Add Contact Modal
+function showAddContactModal() {
+    showPromptModal('Add Contact', 'Enter username:', async (username) => {
+        try {
+            const response = await fetch('/api/users');
+            const data = await response.json();
+            const user = data.users?.find(u => u.username === username);
+
+            if (user) {
+                startChatWithContact(user.id, user.username);
+                showToast(`Starting chat with ${username}`, 'success');
+            } else {
+                showToast('User not found', 'error');
+            }
+        } catch (error) {
+            showToast('Error finding user', 'error');
+        }
+    });
+}
+
+// Profile Modal
+function openProfileModal() {
+    loadUserProfile();
+    // You can implement a proper profile modal here
+    showToast('Profile modal coming soon', 'info');
+}
+
+// Fix loadStories to handle errors gracefully
+async function loadStories() {
+    try {
+        const response = await fetch('/api/stories');
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.warn('Stories endpoint returned non-JSON response');
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            storiesList = data.stories || [];
+            renderStoriesRow(storiesList);
+        }
+    } catch (error) {
+        console.error('Error loading stories:', error);
+        // Silently fail - stories are optional
+    }
+}
+
+// Export all functions to window
+window.showChatInfo = showChatInfo;
+window.showChatMenu = showChatMenu;
+window.blockUser = blockUser;
+window.clearCurrentChat = clearCurrentChat;
+window.leaveCurrentGroup = leaveCurrentGroup;
+window.leaveCurrentChannel = leaveCurrentChannel;
+window.triggerFileUpload = triggerFileUpload;
+window.handleFileSelect = handleFileSelect;
+window.uploadFile = uploadFile;
+window.cancelUpload = cancelUpload;
+window.showAddContactModal = showAddContactModal;
+window.openProfileModal = openProfileModal;
