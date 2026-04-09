@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Kiselgram</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+</head>
+<body>
+    <!-- Menu Button -->
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Popout Menu -->
+    <aside class="popout-menu-column" id="popoutMenu">
+        <div class="menu-user-header" onclick="openProfileModal(); closePopout();">
+            <div class="menu-user-avatar" id="menuUserAvatar">{{ current_user.username[0].upper() if current_user else '?' }}</div>
+            <div class="menu-user-info">
+                <div class="menu-user-name" id="menuUserName">{{ current_user.display_name or current_user.username if current_user else 'Guest' }}</div>
+                <div class="menu-user-username" id="menuUserUsername">@{{ current_user.username if current_user else 'guest' }}</div>
+            </div>
+            <div class="menu-user-arrow">›</div>
+        </div>
+        
+        <div class="nav-list">
+            <a href="#" class="nav-item" onclick="window.location.reload(); return false;">
+                <span>💬</span><span>Chats</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showContactsView(); return false;">
+                <span>👥</span><span>Contacts</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showCreateGroupView(); return false;">
+                <span>👥</span><span>Create Group</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showCreateChannelView(); return false;">
+                <span>📢</span><span>Create Channel</span>
+            </a>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <div class="nav-list">
+            <a href="#" class="nav-item" onclick="openSettingsPanel(); return false;">
+                <span>⚙️</span><span>Settings</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openPrivacyPanel(); return false;">
+                <span>🔒</span><span>Privacy</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openChatCustomization(); return false;">
+                <span>🎨</span><span>Chat Style</span>
+            </a>
+        </div>
+        
+        <div class="menu-footer-section">
+            <button class="logout-btn-sidebar" onclick="logout()">
+                <span>🚪</span><span>Sign Out</span>
+            </button>
+            <span>🔒 Kiselgram v3.1.0</span>
+        </div>
+    </aside>
+
+    <!-- Panel Overlay -->
+    <div class="panel-overlay" id="panelOverlay" onclick="closeAllPanels()"></div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="settings-close" onclick="closeSettingsPanel()">✕</button>
+        </div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <h3>Appearance</h3>
+                <div class="theme-options">
+                    <div class="theme-option active" onclick="setTheme('light')"><span>☀️</span>Light</div>
+                    <div class="theme-option" onclick="setTheme('dark')"><span>🌙</span>Dark</div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>Notifications</h3>
+                <div class="settings-item">
+                    <span>Push Notifications</span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this, 'notifications')"><div class="toggle-slider"></div></div>
+                </div>
+                <div class="settings-item">
+                    <span>Sound</span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this, 'sound')"><div class="toggle-slider"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Panel -->
+    <div class="privacy-panel" id="privacyPanel">
+        <div class="privacy-header">
+            <h2>Privacy</h2>
+            <button class="privacy-close" onclick="closePrivacyPanel()">✕</button>
+        </div>
+        <div class="privacy-content">
+            <div class="settings-section">
+                <h3>Online Status</h3>
+                <div class="settings-item">
+                    <span>Show Online Status</span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this, 'onlineStatus')"><div class="toggle-slider"></div></div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>Read Receipts</h3>
+                <div class="settings-item">
+                    <span>Show Read Receipts</span>
+                    <div class="toggle-switch active" onclick="toggleSetting(this, 'readReceipts')"><div class="toggle-slider"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-primary" onclick="closePrivacyPanel()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Left Sidebar - Chat List -->
+        <div class="chat-sidebar" id="chatSidebar">
+            <div class="sidebar-header">
+                <h1>Kiselgram</h1>
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search chats...">
+                </div>
+            </div>
+
+            <!-- Stories Row -->
+            <div class="stories-row" id="storiesRow"></div>
+
+            <!-- Chat List -->
+            <div class="chat-list" id="chatList">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel Area - 3 Parts: Header, Messages, Input -->
+        <div class="chat-area" id="chatArea">
+            <!-- Empty State -->
+            <div class="empty-chat" id="emptyChat">
+                <div class="empty-chat-icon">💬</div>
+                <h3>Welcome to Kiselgram</h3>
+                <p>Select a chat to start messaging</p>
+            </div>
+
+            <!-- Chat View - 3 Part Structure -->
+            <div id="chatView" class="panel-view" style="display: none; flex-direction: column; height: 100%;">
+                <!-- Part 1: Header -->
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="chat-header-avatar" id="chatHeaderAvatar"></div>
+                        <div class="chat-header-info">
+                            <div class="chat-header-name" id="chatHeaderName"></div>
+                            <div class="chat-header-status" id="chatHeaderStatus">Online</div>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="header-action-btn" onclick="openChatCustomization()">🎨</button>
+                        <button class="header-action-btn" onclick="showChatInfo()">ℹ️</button>
+                        <button class="header-action-btn" onclick="showChatMenu()">⋮</button>
+                    </div>
+                </div>
+
+                <!-- Part 2: Messages (flex: 1 - takes all available space) -->
+                <div class="messages-container" id="messagesContainer">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <!-- Part 3: Input Area -->
+                <div class="chat-input-area">
+                    <div id="replyPreview" class="reply-preview" style="display: none;">
+                        <div class="reply-preview-content">
+                            <div class="reply-preview-name"></div>
+                            <div class="reply-preview-text"></div>
+                        </div>
+                        <button class="cancel-reply-btn" onclick="cancelReply()">✕</button>
+                    </div>
+                    <div class="input-wrapper">
+                        <button class="attachment-btn" onclick="triggerFileUpload()">📎</button>
+                        <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+                        <button class="send-btn" id="sendBtn" disabled>➤</button>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;" multiple onchange="handleFileSelect(this)">
+                </div>
+            </div>
+
+            <!-- Contacts View -->
+            <div id="contactsView" class="panel-view" style="display: none;">
+                <div class="panel-header">
+                    <button class="back-btn" onclick="hideContactsView()">←</button>
+                    <h2>Contacts</h2>
+                    <button class="header-action-btn" onclick="showAddContactModal()">➕</button>
+                </div>
+                <div class="contacts-search">
+                    <input type="text" class="search-input" id="contactSearchInput" placeholder="Search contacts...">
+                </div>
+                <div class="contacts-list" id="contactsList"></div>
+            </div>
+
+            <!-- Create Group View -->
+            <div id="createGroupView" class="panel-view" style="display: none;">
+                <div class="panel-header">
+                    <button class="back-btn" onclick="hideCreateGroupView()">←</button>
+                    <h2>Create Group</h2>
+                    <div></div>
+                </div>
+                <div class="create-form-content">
+                    <div class="form-group">
+                        <label>Group Name</label>
+                        <input type="text" id="groupName" class="form-input" placeholder="Enter group name" maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Description (optional)</label>
+                        <textarea id="groupDescription" class="form-input" placeholder="Add a description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="groupIsPublic" checked>
+                            <span>Public Group</span>
+                        </label>
+                        <small>Anyone can join via invite link</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Add Members</label>
+                        <input type="text" id="memberSearchInput" class="form-input" placeholder="Search users...">
+                        <div id="selectedMembers" class="selected-members"></div>
+                        <div id="userListForGroup" class="user-select-list"></div>
+                    </div>
+                    <button class="create-btn" onclick="createGroup()">Create Group</button>
+                </div>
+            </div>
+
+            <!-- Create Channel View -->
+            <div id="createChannelView" class="panel-view" style="display: none;">
+                <div class="panel-header">
+                    <button class="back-btn" onclick="hideCreateChannelView()">←</button>
+                    <h2>Create Channel</h2>
+                    <div></div>
+                </div>
+                <div class="create-form-content">
+                    <div class="form-group">
+                        <label>Channel Name</label>
+                        <input type="text" id="channelName" class="form-input" placeholder="Enter channel name" maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Description (optional)</label>
+                        <textarea id="channelDescription" class="form-input" placeholder="Add a description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="channelIsPublic" checked>
+                            <span>Public Channel</span>
+                        </label>
+                        <small>Anyone can find and subscribe</small>
+                    </div>
+                    <button class="create-btn" onclick="createChannel()">Create Channel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="uploadArea">
+        <div id="uploadFileName">No file selected</div>
+        <div class="upload-actions">
+            <button class="upload-btn" onclick="uploadFile()">Upload</button>
+            <button class="upload-btn cancel" onclick="cancelUpload()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Modal Root -->
+    <div id="modalRoot"></div>
+
+    <script src="{{ url_for('static', filename='js/spa_app.js') }}"></script>
+</body>
+</html>

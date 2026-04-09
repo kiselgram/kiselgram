@@ -392,7 +392,7 @@ def chat_list():
     chats_data.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else datetime.min, reverse=True)
     bots = TelegramBot.query.filter_by(is_active=True).all()
 
-    return render_template('chat_list.html', current_user=get_current_user(), chats=chats_data, bots=bots)
+    return render_template('spa_app.html', current_user=get_current_user(), chats=chats_data, bots=bots)
 
 
 # Group and Channel Management Routes

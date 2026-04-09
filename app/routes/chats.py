@@ -129,7 +129,7 @@ def chat_list():
     # Sort by most recent message
     chats_data.sort(key=lambda x: x['timestamp'] if x['timestamp'] else '', reverse=True)
 
-    return render_template('chat_list.html',
+    return render_template('spa_app.html',
                            current_user=get_current_user(),
                            chats=chats_data,
                            session={'user_id': current_user_id})
