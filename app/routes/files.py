@@ -6,7 +6,8 @@ from app import db
 from app.models import User, Message
 from datetime import datetime
 
-files_bp = Blueprint('files', __name__)
+files_bp = Blueprint('files', __name__, url_prefix='/files')
+uploads_bp = Blueprint('uploads', __name__, url_prefix='/uploads')
 
 
 def allowed_file(filename):
@@ -65,7 +66,7 @@ def format_file_size(bytes):
     return f"{bytes:.1f} {size_names[i]}"
 
 
-@files_bp.route('/uploads/<path:filename>')
+@uploads_bp.route('/<path:filename>')
 def serve_file(filename):
     """Serve uploaded files"""
     try:

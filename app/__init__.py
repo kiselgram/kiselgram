@@ -53,7 +53,7 @@ def create_app():
     try:
         from app.routes.auth import auth_bp
         from app.routes.chats import chats_bp
-        from app.routes.files import files_bp
+        from app.routes.files import files_bp, uploads_bp
         from app.routes.video_integration import video_int_bp
         from app.routes.utils_api import utils_api_bp  # New utility API
         from app.routes.spa_app import register_spa_bp
@@ -62,6 +62,7 @@ def create_app():
         app.register_blueprint(files_bp)
         app.register_blueprint(video_int_bp)
         app.register_blueprint(utils_api_bp)  # Register utility API
+        app.register_blueprint(uploads_bp)
         register_spa_bp(app)
 
 
@@ -69,7 +70,7 @@ def create_app():
         print("✅ Utility API available at /api/utils")
         # CHANGE VERSION HERE
         # TODO: change version here before commit
-        app.config['VERSION'] = '3.0.5'
+        app.config['VERSION'] = '3.6.0'
 
     except ImportError as e:
         print(f"❌ Error importing blueprints: {e}")

@@ -151,3 +151,44 @@ class ChannelSubscriber(db.Model):
     channel_id = db.Column(db.Integer, db.ForeignKey('channel.id'), nullable=False)
     subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('user_id', 'channel_id', name='unique_channel_subscriber'),)
+
+
+# In app/models.py, add these models
+
+class Story(db.Model):
+    __tablename__ = 'stories'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    media_path = db.Column(db.String(500), nullable=False)
+    media_type = db.Column(db.String(20), default='image')  # 'image' or 'video'
+    caption = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('stories', lazy='dynamic'))
+    views = db.relationship('StoryView', backref='story', lazy='dynamic')
+    likes = db.relationship('StoryLike', backref='story', lazy='dynamic')
+
+
+class StoryView(db.Model):
+    __tablename__ = 'story_views'
+
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    viewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    viewer = db.relationship('User', backref=db.backref('story_views', lazy='dynamic'))
+
+
+class StoryLike(db.Model):
+    __tablename__ = 'story_likes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('story_id', 'user_id', name='unique_story_like'),)
+
+    user = db.relationship('User', backref=db.backref('story_likes', lazy='dynamic'))

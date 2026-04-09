@@ -1,5 +1,46 @@
 /* static/css/mobile.css */
 
+@media (max-width: 768px) {
+    .chat-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 150;
+        transform: translateX(-100%);
+        width: 100%;
+        max-width: 360px;
+    }
+
+    .chat-sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .message-wrapper {
+        max-width: 85%;
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 50px;
+        height: 50px;
+        background: var(--accent-blue);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 160;
+        box-shadow: var(--shadow-lg);
+        align-items: center;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 480px) {
     .popout-menu-column {
         width: 280px;
@@ -15,14 +56,6 @@
         width: 100%;
     }
 
-    .profile-stats {
-        gap: 16px;
-    }
-
-    .stat-item {
-        padding: 6px 10px;
-    }
-
     .menu-btn {
         top: 12px;
         left: 12px;
@@ -30,52 +63,37 @@
         height: 40px;
     }
 
-    .menu-header-area h2 {
-        font-size: 1.6rem;
+    .sidebar-header h1 {
+        font-size: 24px;
     }
 
-    .nav-item {
-        padding: 0.8rem 1rem;
-        font-size: 1rem;
+    .chat-header {
+        padding: 12px 16px;
     }
 
-    .modal-header {
-        padding: 16px 16px 10px;
+    .messages-container {
+        padding: 12px;
     }
 
-    .modal-body {
-        padding: 16px;
+    .chat-input-area {
+        padding: 8px 12px;
     }
 
-    .modal-footer {
-        padding: 10px 16px 16px;
+    .stories-row {
+        padding: 8px 12px;
     }
 
-    .profile-header {
-        padding: 20px 16px;
+    .story-avatar {
+        width: 52px;
+        height: 52px;
     }
 
-    .profile-avatar-container {
-        width: 100px;
-        height: 100px;
+    .add-story-btn {
+        width: 52px;
+        height: 52px;
     }
 
-    .profile-avatar,
-    .profile-avatar-placeholder {
-        width: 100px;
-        height: 100px;
-        font-size: 40px;
-    }
-
-    .profile-name {
-        font-size: 20px;
-    }
-
-    .profile-section {
-        padding: 14px 16px;
-    }
-
-    .profile-action-btn {
-        padding: 12px 14px;
+    .message-actions {
+        right: -35px;
     }
 }

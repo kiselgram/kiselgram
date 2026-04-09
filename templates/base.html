@@ -26,45 +26,80 @@
 
         <!-- Popout Menu -->
         <aside class="popout-menu-column" id="popoutMenu">
-            <div class="menu-header-area">
-                <h2>📋 Menu</h2>
-                <button class="close-menu-btn" id="closePopoutBtn">✕</button>
+            <!-- User Profile Header in Menu -->
+            <div class="menu-user-header" onclick="openProfileModal(); closePopout();">
+                <div class="menu-user-avatar" id="menuUserAvatar">
+                    {{ current_user.username[0].upper() if current_user else '?' }}
+                </div>
+                <div class="menu-user-info">
+                    <div class="menu-user-name">{{ current_user.display_name or current_user.username if current_user else 'Guest' }}</div>
+                    <div class="menu-user-username">@{{ current_user.username if current_user else 'guest' }}</div>
+                </div>
+                <div class="menu-user-arrow">›</div>
             </div>
+
+<!-- In base.html, update the menu section -->
             <div class="nav-list">
                 <a href="{{ url_for('chats.chat_list') }}" class="nav-item">
-                    <span>💬</span> <span>Chats</span>
+                    <span>💬</span>
+                    <span>Chats</span>
                 </a>
                 <a href="{{ url_for('video.video_index') }}" class="nav-item">
-                    <span>🎥</span> <span>Video Calls</span>
+                    <span>🎥</span>
+                    <span>Video Calls</span>
                 </a>
-                <a href="{{ url_for('spa.search') }}" class="nav-item">
-                    <span>🔍</span> <span>Search</span>
+                <a href="#" class="nav-item" onclick="showContactsView(); return false;">
+                    <span>👥</span>
+                    <span>Contacts</span>
                 </a>
-                <a href="{{ url_for('spa.get_users') }}" class="nav-item">
-                    <span>👥</span> <span>Contacts</span>
+                <a href="#" class="nav-item" onclick="showCreateGroupView(); return false;">
+                    <span>👥</span>
+                    <span>Create Group</span>
                 </a>
-                <div class="nav-item" onclick="window.location.href='/create_group'">
-                    <span>👥</span> <span>Create Group</span>
+                <a href="#" class="nav-item" onclick="showCreateChannelView(); return false;">
+                    <span>📢</span>
+                    <span>Create Channel</span>
+    </a>
                 </div>
-                <div class="nav-item" onclick="window.location.href='/create_channel'">
-                    <span>📢</span> <span>Create Channel</span>
-                </div>
-                <a href="#" class="nav-item" onclick="openSettingsPanel(); return false;">
-                    <span>⚙️</span> <span>Settings</span>
+                <a href="{{ url_for('chats.kis_info') }}" class="nav-item">
+                    <span>ℹ️</span>
+                    <span>About Kiselgram</span>
                 </a>
             </div>
-            <div class="menu-footer-section">
-                <div class="user-info" style="margin-bottom: 12px;">
-                    <div style="font-size: 1rem; color: #1e2f3e; margin-bottom: 4px;">
-                        {{ current_user.username if current_user else 'Guest' }}
+
+            <!-- Divider -->
+            <div class="menu-divider"></div>
+
+            <!-- Settings & Preferences -->
+            <div class="nav-list">
+                <a href="#" class="nav-item" onclick="openSettingsPanel(); closePopout(); return false;">
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="nav-item" onclick="openPrivacyPanel(); closePopout(); return false;">
+                    <span>🔒</span>
+                    <span>Privacy</span>
+                </a>
+                <div class="nav-item" onclick="toggleDarkMode()">
+                    <span>🌙</span>
+                    <span>Dark Mode</span>
+                    <div class="toggle-switch small" id="darkModeToggle" data-setting="darkMode">
+                        <div class="toggle-slider"></div>
                     </div>
-                    <div style="font-size: 0.75rem; color: #2dce89;">● Online</div>
+                </div>
+            </div>
+
+            <!-- Menu Footer -->
+            <div class="menu-footer-section">
+                <div class="menu-footer-status">
+                    <span class="online-indicator">●</span>
+                    <span>Online</span>
                 </div>
                 <button class="logout-btn-sidebar" id="logoutBtnSidebar">
                     <span>🚪</span>
                     <span>Sign Out</span>
                 </button>
-                <span style="display: block; margin-top: 8px;">🔒 Kiselgram v3.0.7</span>
+                <span class="menu-version">🔒 Kiselgram v3.6.0</span>
             </div>
         </aside>
     {% endif %}
@@ -107,7 +142,7 @@
                             <div class="settings-item-desc">Receive push notifications</div>
                         </div>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'notifications')">
+                    <div class="toggle-switch active" data-setting="notifications" onclick="toggleSetting(this, 'notifications')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
@@ -119,7 +154,35 @@
                             <div class="settings-item-desc">Play sound for new messages</div>
                         </div>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'sound')">
+                    <div class="toggle-switch active" data-setting="sound" onclick="toggleSetting(this, 'sound')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Chat Settings</h3>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">📎</span>
+                        <div>
+                            <div class="settings-item-text">Auto-download Media</div>
+                            <div class="settings-item-desc">Download photos and videos automatically</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch" data-setting="autoDownload" onclick="toggleSetting(this, 'autoDownload')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">↩️</span>
+                        <div>
+                            <div class="settings-item-text">Enter to Send</div>
+                            <div class="settings-item-desc">Press Enter to send message</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch active" data-setting="enterToSend" onclick="toggleSetting(this, 'enterToSend')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
@@ -127,7 +190,7 @@
 
             <div class="settings-section">
                 <h3>Privacy & Security</h3>
-                <div class="settings-item" onclick="openPrivacyPanel()">
+                <div class="settings-item" onclick="openPrivacyPanel(); closeSettingsPanel();">
                     <div class="settings-item-label">
                         <span class="settings-item-icon">🔒</span>
                         <div>
@@ -137,12 +200,22 @@
                     </div>
                     <span>→</span>
                 </div>
-                <div class="settings-item">
+                <div class="settings-item" onclick="showBlockedUsers()">
                     <div class="settings-item-label">
                         <span class="settings-item-icon">🚫</span>
                         <div>
                             <div class="settings-item-text">Blocked Users</div>
                             <div class="settings-item-desc">Manage blocked users</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </div>
+                <div class="settings-item" onclick="showActiveSessions()">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">📱</span>
+                        <div>
+                            <div class="settings-item-text">Active Sessions</div>
+                            <div class="settings-item-desc">Manage your devices</div>
                         </div>
                     </div>
                     <span>→</span>
@@ -171,16 +244,67 @@
                     </div>
                     <span>→</span>
                 </div>
+                <div class="settings-item" onclick="clearCache()">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">💾</span>
+                        <div>
+                            <div class="settings-item-text">Clear Cache</div>
+                            <div class="settings-item-desc">Free up storage space</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </div>
             </div>
 
             <div class="settings-section">
                 <h3>Account</h3>
+                <div class="settings-item" onclick="changePassword()">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">🔑</span>
+                        <div>
+                            <div class="settings-item-text">Change Password</div>
+                            <div class="settings-item-desc">Update your password</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </div>
                 <div class="settings-item danger" onclick="deleteAccount()">
                     <div class="settings-item-label">
                         <span class="settings-item-icon">⚠️</span>
                         <div>
                             <div class="settings-item-text">Delete Account</div>
                             <div class="settings-item-desc">Permanently delete your account</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>About</h3>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">📋</span>
+                        <div>
+                            <div class="settings-item-text">Version</div>
+                            <div class="settings-item-desc">Kiselgram v3.6.0 - dev</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-item" onclick="window.location.href='/terms'">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">📄</span>
+                        <div>
+                            <div class="settings-item-text">Terms of Service</div>
+                        </div>
+                    </div>
+                    <span>→</span>
+                </div>
+                <div class="settings-item" onclick="window.location.href='/privacy'">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">🔏</span>
+                        <div>
+                            <div class="settings-item-text">Privacy Policy</div>
                         </div>
                     </div>
                     <span>→</span>
@@ -197,12 +321,15 @@
         </div>
         <div class="privacy-content">
             <div class="settings-section">
-                <h3>Who can see my profile</h3>
+                <h3>Profile Visibility</h3>
                 <select class="modal-input" id="profileVisibility">
                     <option value="everyone">Everyone</option>
                     <option value="contacts">Contacts Only</option>
                     <option value="nobody">Nobody</option>
                 </select>
+                <small style="color: var(--text-muted); display: block; margin-top: 8px;">
+                    Control who can see your profile information
+                </small>
             </div>
 
             <div class="settings-section">
@@ -215,7 +342,19 @@
                             <div class="settings-item-desc">Let others see when you're online</div>
                         </div>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'onlineStatus')">
+                    <div class="toggle-switch active" data-setting="onlineStatus" onclick="toggleSetting(this, 'onlineStatus')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">🕐</span>
+                        <div>
+                            <div class="settings-item-text">Last Seen</div>
+                            <div class="settings-item-desc">Show when you were last active</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch active" data-setting="lastSeen" onclick="toggleSetting(this, 'lastSeen')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
@@ -231,13 +370,48 @@
                             <div class="settings-item-desc">Show when you've read messages</div>
                         </div>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'readReceipts')">
+                    <div class="toggle-switch active" data-setting="readReceipts" onclick="toggleSetting(this, 'readReceipts')">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <span class="settings-item-icon">✏️</span>
+                        <div>
+                            <div class="settings-item-text">Typing Indicator</div>
+                            <div class="settings-item-desc">Show when you're typing</div>
+                        </div>
+                    </div>
+                    <div class="toggle-switch active" data-setting="typingIndicator" onclick="toggleSetting(this, 'typingIndicator')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
             </div>
 
+            <div class="settings-section">
+                <h3>Contact Settings</h3>
+                <select class="modal-input" id="whoCanMessage">
+                    <option value="everyone">Everyone</option>
+                    <option value="contacts">Contacts Only</option>
+                </select>
+                <small style="color: var(--text-muted); display: block; margin-top: 8px;">
+                    Who can send you messages
+                </small>
+            </div>
+
+            <div class="settings-section">
+                <h3>Group Invites</h3>
+                <select class="modal-input" id="whoCanAddGroups">
+                    <option value="everyone">Everyone</option>
+                    <option value="contacts">Contacts Only</option>
+                </select>
+                <small style="color: var(--text-muted); display: block; margin-top: 8px;">
+                    Who can add you to groups
+                </small>
+            </div>
+
             <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closePrivacyPanel()">Cancel</button>
                 <button class="modal-btn modal-btn-primary" onclick="savePrivacySettings()">Save Changes</button>
             </div>
         </div>
@@ -305,16 +479,34 @@
                             <div class="profile-info-value" id="profileBioValue"></div>
                         </div>
                     </div>
+                    <div class="profile-info-item" onclick="window.location.href='mailto:{{ current_user.email if current_user else '' }}'">
+                        <span class="profile-info-icon">📧</span>
+                        <div class="profile-info-content">
+                            <div class="profile-info-label">Email</div>
+                            <div class="profile-info-value">{{ current_user.email if current_user else 'Not set' }}</div>
+                        </div>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-icon">📅</span>
+                        <div class="profile-info-content">
+                            <div class="profile-info-label">Joined</div>
+                            <div class="profile-info-value">{{ current_user.created_at.strftime('%B %Y') if current_user and current_user.created_at else 'Recently' }}</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="profile-actions">
-                    <button class="profile-action-btn" onclick="openSettingsPanel()">
+                    <button class="profile-action-btn" onclick="closeProfileModal(); openSettingsPanel();">
                         <span>⚙️</span>
                         <span>Settings</span>
                     </button>
-                    <button class="profile-action-btn" onclick="openPrivacyPanel()">
+                    <button class="profile-action-btn" onclick="closeProfileModal(); openPrivacyPanel();">
                         <span>🔒</span>
                         <span>Privacy</span>
+                    </button>
+                    <button class="profile-action-btn" onclick="shareProfile()">
+                        <span>📤</span>
+                        <span>Share Profile</span>
                     </button>
                     <button class="profile-action-btn danger" onclick="logout()">
                         <span>🚪</span>
@@ -369,6 +561,89 @@
 
         // Load user profile data
         loadUserProfile();
+
+        // Initialize dark mode toggle
+        initDarkModeToggle();
+
+        // Close popout menu helper
+        function closePopout() {
+            document.body.classList.remove('popout-open');
+            const menuBtn = document.getElementById('menuBtn');
+            if (menuBtn) menuBtn.classList.remove('active');
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            setTheme(isDark ? 'light' : 'dark');
+            const toggle = document.getElementById('darkModeToggle');
+            if (toggle) {
+                if (!isDark) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            }
+        }
+
+        // Initialize dark mode toggle state
+        function initDarkModeToggle() {
+            const toggle = document.getElementById('darkModeToggle');
+            const savedTheme = localStorage.getItem('theme');
+            if (toggle) {
+                if (savedTheme === 'dark' || (savedTheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    toggle.classList.add('active');
+                }
+            }
+        }
+
+        // Additional functions
+        function shareProfile() {
+            const username = '{{ current_user.username if current_user else "" }}';
+            const profileUrl = `${window.location.origin}/profile/${username}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: `${username} on Kiselgram`,
+                    text: `Check out ${username} on Kiselgram!`,
+                    url: profileUrl
+                }).catch(() => {});
+            } else {
+                navigator.clipboard?.writeText(profileUrl).then(() => {
+                    showToast('Profile link copied to clipboard!', 'success');
+                }).catch(() => {
+                    showPromptModal('Share Profile', 'Copy this link:', (text) => {}, profileUrl);
+                });
+            }
+        }
+
+        function showBlockedUsers() {
+            closeSettingsPanel();
+            showToast('Blocked users list coming soon', 'info');
+        }
+
+        function showActiveSessions() {
+            closeSettingsPanel();
+            showToast('Active sessions coming soon', 'info');
+        }
+
+        function clearCache() {
+            showConfirmModal('Clear Cache', 'Clear all cached data? This will free up storage space.', () => {
+                if ('caches' in window) {
+                    caches.keys().then(keys => {
+                        keys.forEach(key => caches.delete(key));
+                    });
+                }
+                localStorage.clear();
+                sessionStorage.clear();
+                showToast('Cache cleared successfully!', 'success');
+            });
+        }
+
+        function changePassword() {
+            closeSettingsPanel();
+            showToast('Password change coming soon', 'info');
+        }
     </script>
 
     {% block scripts %}{% endblock %}
