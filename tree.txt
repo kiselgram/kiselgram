@@ -1,50 +1,119 @@
 .
+├── README.md
 ├── app
-│   ├── __init__.py
-│   ├── models.py
-│   ├── routes
-│   │   ├── __init__.py
-│   │   ├── api.py
-│   │   ├── auth.py
-│   │   ├── channels.py
-│   │   ├── chats.py
-│   │   ├── files.py
-│   │   ├── groups.py
-│   │   ├── search.py
-│   │   └── status.py
-│   ├── utils
-│   │   ├── __init__.py
-│   │   ├── bot_utils.py
-│   │   └── helpers.py
-│   └── utils.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── models.py
+│   ├── routes
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── api.py
+│   │   ├── auth.py
+│   │   ├── channels.py
+│   │   ├── chats.py
+│   │   ├── files.py
+│   │   ├── groups.py
+│   │   ├── search.py
+│   │   ├── status.py
+│   │   ├── utils_api.py
+│   │   └── video_integration.py
+│   ├── uploads
+│   │   └── images
+│   │       ├── 517b925341a84559a500a3861fa3e068.png
+│   │       ├── a738192b62e04f23bdd87e5183c4687e.png
+│   │       └── fc57a005805646f38c4a29fca62977d2.png
+│   ├── utils
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── bot_utils.py
+│   │   └── helpers.py
+│   └── utils.py
+├── backups
+│   └── video_server_20260302_194547
+│       └── __init__.py.backup
+├── config
+│   ├── banner.png
+│   ├── banner.txt
+│   └── kis.toml
 ├── instance
-│   └── kiselgram.db
+│   └── kiselgram.db
+├── logs
+│   ├── kis_main.log
+│   ├── kis_vid.log
+│   └── kiselgram.log
 ├── main.py
 ├── manage.py
 ├── requirements.txt
-├── restart.sh
 ├── static
-│   ├── css
-│   │   ├── animations.css
-│   │   ├── desktop.css
-│   │   └── mobile.css
-│   ├── manifest.json
-│   └── sw.js
+│   ├── banner.jpg
+│   ├── banner.png
+│   ├── css
+│   │   ├── animations.css
+│   │   ├── desktop.css
+│   │   └── mobile.css
+│   ├── favicon.ico
+│   ├── images
+│   ├── js
+│   ├── kiselgram-banner.jpg
+│   ├── manifest.json
+│   ├── sw.js
+│   └── videos
+├── status
+│   └── kiselgram.json
 ├── templates
-│   ├── base.html
-│   ├── channel.html
-│   ├── chat.html
-│   ├── chat_list.html
-│   ├── create_channel.html
-│   ├── create_group.html
-│   ├── group.html
-│   ├── login.html
-│   ├── menu.html
-│   ├── search.html
-│   ├── settings.html
-│   └── users_list.html
-├── tmp_runner.py
-└── uploads
-    ├── documents
-    ├── images
-    └── media
+│   ├── base.html
+│   ├── channel.html
+│   ├── chat_list.html
+│   ├── create_channel.html
+│   ├── create_group.html
+│   ├── direct_chat.html
+│   ├── edit_profile.html
+│   ├── group.html
+│   ├── kis_info.html
+│   ├── login.html
+│   ├── menu.html
+│   ├── privacy.html
+│   ├── search.html
+│   ├── settings.html
+│   ├── users_list.html
+│   ├── video_integration.html
+│   └── video_server_down.html
+├── tmp
+├── tree.txt
+├── uploads
+│   ├── documents
+│   ├── images
+│   │   ├── 028058f943fd459c89be03c60af300f7.png
+│   │   ├── 15f06911c20940648dc8ade577185165.png
+│   │   ├── 24061f8fe38f410386e38201eada9a16.png
+│   │   ├── 45080d6f40b84e749435e37ad90094cf.png
+│   │   ├── 51f2ebbe70944f3580bf86acde4c6530.png
+│   │   ├── 5d729df86a234b91b97a29db3e0b09a3.png
+│   │   └── bf85db42b5824ad0b9fd5d46aaa6f7ec.png
+│   ├── media
+│   └── videos
+└── video_server
+    ├── __init__.py
+    ├── __pycache__
+    ├── app.py
+    ├── auth_client.py
+    ├── backups
+    ├── instance
+    ├── requirements.txt
+    ├── run.sh
+    ├── static
+    │   ├── banner.jpg
+    │   ├── css
+    │   │   └── video.css
+    │   ├── favicon.ico
+    │   ├── js
+    │   └── kiselgram-banner.jpg
+    └── templates
+        └── video
+            ├── base.html
+            ├── menu.html
+            ├── room.html
+            ├── room_full.html
+            └── room_not_found.html
+
+36 directories, 81 files

@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import os
 import secrets
 
-
 load_dotenv()
 
 db = SQLAlchemy()
@@ -17,9 +16,16 @@ def create_app():
     app = Flask(__name__,
                 template_folder=os.path.join(basedir, 'templates'),
                 static_folder=os.path.join(basedir, 'static'))
+
+    # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'kiselgram-mobile-optimized-' + secrets.token_hex(16))
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///kiselgram.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # App metadata
+    app.config['APP_NAME'] = os.getenv('APP_NAME', 'Kiselgram')
+    app.config['VERSION'] = os.getenv('APP_VERSION', '2.0.0')
+    app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
 
     # File upload config
     app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -43,7 +49,7 @@ def create_app():
     # Import models here to avoid circular imports
     from app import models
 
-    # Register blueprints - IMPORTANT: Import inside create_app to avoid circular imports
+    # Register blueprints
     try:
         from app.routes.auth import auth_bp
         from app.routes.chats import chats_bp
@@ -53,7 +59,8 @@ def create_app():
         from app.routes.api import api_bp
         from app.routes.search import search_bp
         from app.routes.status import status_bp
-        from app.routes.video_integration import video_int_bp # New
+        from app.routes.video_integration import video_int_bp
+        from app.routes.utils_api import utils_api_bp  # New utility API
 
         app.register_blueprint(auth_bp)
         app.register_blueprint(chats_bp)
@@ -63,29 +70,42 @@ def create_app():
         app.register_blueprint(api_bp)
         app.register_blueprint(search_bp)
         app.register_blueprint(status_bp)
-        app.register_blueprint(video_int_bp) # New
+        app.register_blueprint(video_int_bp)
+        app.register_blueprint(utils_api_bp)  # Register utility API
+
+        print("✅ All blueprints registered successfully")
+        print("✅ Utility API available at /api/utils")
+        # CHANGE VERSION HERE
+        # TODO: change version here before commit
+        app.config['VERSION'] = '3.0.5'
 
     except ImportError as e:
-        print(f"Error importing blueprints: {e}")
-        print("Make sure all route files exist in app/routes/")
+        print(f"❌ Error importing blueprints: {e}")
 
     # Register template filter
     try:
         from app.utils.helpers import highlight_text
         app.jinja_env.filters['highlight_text'] = highlight_text
     except ImportError:
-        print("Warning: highlight_text filter not available")
+        print("⚠️ Warning: highlight_text filter not available")
 
-    # Add to your app factory or main app file
-
+    # Add context processor for templates
     @app.context_processor
     def utility_processor():
-        from app.utils.helpers import get_current_user, get_current_user_id
-        return {
-            'current_user': get_current_user(),
-            'session': {'user_id': get_current_user_id()}
-        }
-
+        try:
+            from app.utils.helpers import get_current_user, get_current_user_id
+            return {
+                'current_user': get_current_user(),
+                'session': {'user_id': get_current_user_id()},
+                'app_version': app.config.get('VERSION', '2.0.0'),
+                'app_name': app.config.get('APP_NAME', 'Kiselgram')
+            }
+        except ImportError:
+            return {
+                'current_user': None,
+                'session': {'user_id': None},
+                'app_version': app.config.get('VERSION', '2.0.0'),
+                'app_name': app.config.get('APP_NAME', 'Kiselgram')
+            }
 
     return app
-

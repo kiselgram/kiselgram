@@ -6,7 +6,7 @@
 
 <div align="center">
   <!-- Main Animated Banner -->
-  <img src="banner.png" alt="Kiselgram Banner" width="100%" style="
+  <img src="banner-1.png" alt="Kiselgram Banner" width="100%" style="
     animation: bannerFloat 6s ease-in-out infinite;
     filter: brightness(1.1) contrast(1.05);
     border-radius: 12px;

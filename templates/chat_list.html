@@ -10,6 +10,7 @@
         height: 100vh;
         width: 100%;
         overflow: hidden;
+        position: relative;
     }
 
     /* Left Column - Chat List */
@@ -35,13 +36,9 @@
 
     /* Chat List Header */
     .panel-header {
-        padding-left: 50px;
         padding: 20px 20px 12px;
         border-bottom: 1px solid var(--border-color);
         background: var(--sidebar-bg);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
 
     .panel-header h2 {
@@ -53,61 +50,6 @@
         -webkit-text-fill-color: transparent;
         background-clip: text;
         margin: 0;
-    }
-
-    /* Plus Button - Top Right Corner */
-    .add-btn {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-        border: none;
-        border-radius: 50%;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .add-btn:hover {
-        transform: scale(1.05);
-        box-shadow: var(--shadow-md);
-    }
-
-    /* FAB Menu - Below the button */
-    .fab-menu {
-        position: absolute;
-        top: 70px;
-        right: 20px;
-        background: var(--sidebar-bg);
-        border-radius: 16px;
-        box-shadow: var(--shadow-lg);
-        overflow: hidden;
-        display: none;
-        z-index: 100;
-        min-width: 180px;
-    }
-
-    .fab-menu.active {
-        display: block;
-        animation: fadeIn 0.2s ease-out;
-    }
-
-    .fab-menu-item {
-        padding: 12px 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: background 0.2s;
-        color: var(--text-primary);
-    }
-
-    .fab-menu-item:hover {
-        background: var(--hover-bg);
     }
 
     /* Search Bar */
@@ -409,7 +351,7 @@
             left: -380px;
             top: 0;
             height: 100vh;
-            z-index: 1002;
+            z-index: 100;
             transition: left 0.3s ease;
         }
 
@@ -435,7 +377,7 @@
         color: white;
         font-size: 24px;
         cursor: pointer;
-        z-index: 100;
+        z-index: 99;
         box-shadow: var(--shadow-lg);
     }
 
@@ -455,22 +397,6 @@
     <div class="chat-list-panel" id="chatListPanel">
         <div class="panel-header">
             <h2>Chats - <a href="/kis_info">Kiselgram v3-dev</a></h2>
-            <button class="add-btn" id="addBtn">+</button>
-        </div>
-
-        <div class="fab-menu" id="fabMenu">
-            <div class="fab-menu-item" onclick="window.location.href='/create_group'">
-                <span>👥</span>
-                <span>New Group</span>
-            </div>
-            <div class="fab-menu-item" onclick="window.location.href='/create_channel'">
-                <span>📢</span>
-                <span>New Channel</span>
-            </div>
-            <div class="fab-menu-item" onclick="window.location.href='/search'">
-                <span>🔍</span>
-                <span>Search Users</span>
-            </div>
         </div>
 
         <div class="search-bar">
@@ -508,7 +434,7 @@
                 <div class="empty-state">
                     <div class="empty-state-icon">💬</div>
                     <h3>No chats yet</h3>
-                    <p>Click the + button to create a group or channel</p>
+                    <p>Open the menu to create a group or channel</p>
                 </div>
             {% endif %}
         </div>
@@ -717,14 +643,6 @@
         });
     });
 
-    const addBtn = document.getElementById('addBtn');
-    const fabMenu = document.getElementById('fabMenu');
-    addBtn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fabMenu.classList.toggle('active');
-    });
-    document.addEventListener('click', () => fabMenu?.classList.remove('active'));
-
     const messageInput = document.getElementById('messageInput');
     messageInput?.addEventListener('input', updateSendButton);
     messageInput?.addEventListener('keypress', (e) => {
@@ -733,6 +651,7 @@
             sendMessage();
         }
     });
+
     document.getElementById('sendBtn')?.addEventListener('click', sendMessage);
     document.getElementById('mobileShowBtn')?.addEventListener('click', () => {
         document.getElementById('chatListPanel').classList.add('active');

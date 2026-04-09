@@ -18,9 +18,9 @@ import atexit
 import json
 import logging
 import logging.handlers
+import secrets
 from pathlib import Path
 from datetime import datetime
-from video_server.app import run as run_video_server
 
 # Try to import TOML support
 try:
@@ -31,18 +31,30 @@ except ImportError:
     except ImportError:
         tomllib = None
 
+# Try to import requests for API calls
+try:
+    import requests
+
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
 # Global variables for managing processes
 flask_process = None
 video_process = None
 is_running = False
 process_pid = None
-STATUS_FILE = '.kiselgram_status.json'
-VIDEO_STATUS_FILE = '.kiselgram_video_status.json'
+STATUS_FILE = 'status/kiselgram.json'
+VIDEO_STATUS_FILE = 'status/kiselgram-video.json'
+TOKEN_FILE = '.kiselgram_token'
 
-# Logger instances
+# Logger instances and file handles
 kiselgram_logger = None
 video_logger = None
 main_logger = None
+kiselgram_log_fh = None
+video_log_fh = None
+main_log_fh = None
 
 
 class KiselgramFormatter(logging.Formatter):
@@ -75,6 +87,7 @@ class MainFormatter(logging.Formatter):
 def setup_logging(config=None):
     """Setup logging with configuration from kis.toml - file only, no console"""
     global kiselgram_logger, video_logger, main_logger
+    global kiselgram_log_fh, video_log_fh, main_log_fh
 
     # Default log settings
     log_settings = {
@@ -125,6 +138,9 @@ def setup_logging(config=None):
     kiselgram_logger.addHandler(kiselgram_handler)
     kiselgram_logger.propagate = False
 
+    # Store file handle for subprocess redirection
+    kiselgram_log_fh = open(f"logs/{log_settings['kiselgram']['file']}", 'a', encoding='utf-8')
+
     # Setup video logger
     video_logger = logging.getLogger('video')
     video_logger.setLevel(getattr(logging, log_settings['video']['level'].upper()))
@@ -140,6 +156,9 @@ def setup_logging(config=None):
     video_logger.addHandler(video_handler)
     video_logger.propagate = False
 
+    # Store file handle for subprocess redirection
+    video_log_fh = open(f"logs/{log_settings['video']['file']}", 'a', encoding='utf-8')
+
     # Setup main logger
     main_logger = logging.getLogger('main')
     main_logger.setLevel(getattr(logging, log_settings['main']['level'].upper()))
@@ -154,6 +173,9 @@ def setup_logging(config=None):
     main_handler.setFormatter(MainFormatter())
     main_logger.addHandler(main_handler)
     main_logger.propagate = False
+
+    # Store file handle for subprocess redirection
+    main_log_fh = open(f"logs/{log_settings['main']['file']}", 'a', encoding='utf-8')
 
     return True
 
@@ -178,12 +200,39 @@ def log_main(level, message, domain='general'):
         getattr(main_logger, level.lower())(message, extra=extra)
 
 
+def get_shutdown_token():
+    """Get or create shutdown token"""
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'r') as f:
+            return f.read().strip()
+    else:
+        token = secrets.token_urlsafe(32)
+        with open(TOKEN_FILE, 'w') as f:
+            f.write(token)
+        try:
+            os.chmod(TOKEN_FILE, 0o600)  # Restrict permissions on Unix-like systems
+        except:
+            pass
+        return token
+
+
+SHUTDOWN_TOKEN = get_shutdown_token()
+
+
 def load_config():
     """Load configuration from kis.toml"""
     config = {}
 
-    if not os.path.exists('kis.toml'):
-        print("⚠️  kis.toml not found, using default configuration")
+    config_paths = ['config/kis.toml', 'kis-1.toml']
+    config_file = None
+
+    for path in config_paths:
+        if os.path.exists(path):
+            config_file = path
+            break
+
+    if not config_file:
+        print("⚠️  Config file not found, using default configuration")
         return create_default_config()
 
     if tomllib is None:
@@ -191,13 +240,13 @@ def load_config():
         return create_default_config()
 
     try:
-        with open('kis.toml', 'rb') as f:
+        with open(config_file, 'rb') as f:
             config = tomllib.load(f)
-        print("✅ Configuration loaded from kis.toml")
+        print(f"✅ Configuration loaded from {config_file}")
         setup_logging(config)
         return config
     except Exception as e:
-        print(f"❌ Error loading kis.toml: {e}")
+        print(f"❌ Error loading config: {e}")
         print("Using default configuration")
         setup_logging()
         return create_default_config()
@@ -271,7 +320,8 @@ file_sharing = true
 reactions = true
 """
 
-    with open('kis.toml', 'w') as f:
+    os.makedirs('config', exist_ok=True)
+    with open('config/kis.toml', 'w') as f:
         f.write(default_config)
     print("✅ Created default kis.toml configuration file")
 
@@ -291,10 +341,10 @@ reactions = true
 def print_header():
     """Print fancy header for Kiselgram"""
     try:
-        with open('banner.txt', 'r') as banner:
+        with open('config/banner.txt', 'r') as banner:
             printbanner = banner.read()
 
-        with open('banner.txt', 'r') as banner:
+        with open('config/banner.txt', 'r') as banner:
             legnth = len(banner.readline())
 
         print("\n" + "=" * legnth)
@@ -364,6 +414,7 @@ def check_port_available(port):
 def save_status(port, pid, service='main'):
     """Save application status to file"""
     status_file = VIDEO_STATUS_FILE if service == 'video' else STATUS_FILE
+    Path(status_file).parent.mkdir(parents=True, exist_ok=True)
     status = {
         'running': True,
         'port': port,
@@ -391,6 +442,30 @@ def clear_status(service='main'):
         os.remove(status_file)
 
 
+def stop_via_api(port, token):
+    """Stop the application via API call"""
+    if not REQUESTS_AVAILABLE:
+        log_main('WARNING', 'Requests library not available, cannot use API shutdown', 'shutdown')
+        return False
+
+    try:
+        url = f"http://localhost:{port}/api/utils/test/env/shutdown"
+        response = requests.post(
+            url,
+            headers={'X-API-Token': token},
+            timeout=5
+        )
+        if response.status_code == 200:
+            log_main('INFO', f'Successfully sent shutdown request to port {port}', 'shutdown')
+            return True
+        else:
+            log_main('WARNING', f'API shutdown returned status {response.status_code}', 'shutdown')
+            return False
+    except Exception as e:
+        log_main('ERROR', f'API shutdown failed: {e}', 'shutdown')
+        return False
+
+
 def run_flask_app(host, port, debug, no_browser=False):
     """Run Flask application in a subprocess"""
     global flask_process, process_pid, is_running
@@ -407,14 +482,18 @@ def run_flask_app(host, port, debug, no_browser=False):
     try:
         env = os.environ.copy()
         env['FLASK_ENV'] = 'development' if debug else 'production'
+        env['KISELGRAM_TOKEN'] = SHUTDOWN_TOKEN
+        host_fl = 'localhost' if 'host' != '0.0.0.0' else host
 
-        if os.path.exists('run_modular.py'):
-            cmd = [sys.executable, 'run_modular.py']
-        elif os.path.exists('app'):
-            runner_content = f'''#!/usr/bin/env python3
+        # Create runner in /tmp but working directory is project root
+        runner_content = f'''#!/usr/bin/env python3
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Set working directory to project root
+project_root = "{os.getcwd()}"
+os.chdir(project_root)
+sys.path.insert(0, project_root)
 
 from app import create_app, db
 from app.utils import setup_bots
@@ -436,50 +515,67 @@ def start_bot_simulation(app):
 if __name__ == '__main__':
     init_database()
     start_bot_simulation(app)
+    print("\\n🚀 Kiselgram is running!")
+    print(f"🌐 Access at: http:/{host_fl}:{port}")
+    print("📝 Press Ctrl+C to stop\\n")
     app.run(host='{host}', port={port}, debug={debug})
 '''
 
-            with open('tmp_runner.py', 'w') as f:
-                f.write(runner_content)
-            cmd = [sys.executable, 'tmp_runner.py']
-        else:
-            print("❌ No Flask application found!")
-            return False
+        # Write runner to /tmp
+        runner_path = '/tmp/run_kiselgram.py'
+        with open(runner_path, 'w') as f:
+            f.write(runner_content)
+        os.chmod(runner_path, 0o755)
+
+        cmd = [sys.executable, runner_path]
 
         print(f"🚀 Starting Flask on http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
+        print(f"🔑 Shutdown token: {SHUTDOWN_TOKEN}")
+
+        # Open log files for redirection
+        main_log_fh.seek(0, 2)  # Seek to end
+        kiselgram_log_fh.seek(0, 2)  # Seek to end
 
         flask_process = subprocess.Popen(
             cmd,
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stdout=main_log_fh,  # stdout -> kis_main.log
+            stderr=kiselgram_log_fh,  # stderr -> kiselgram.log
             universal_newlines=True,
-            bufsize=1
+            bufsize=1,
+            cwd=os.getcwd()  # Working directory is project root
         )
 
         process_pid = flask_process.pid
         is_running = True
         save_status(port, process_pid, 'main')
 
-        def monitor_output():
-            for line in flask_process.stdout:
-                line = line.rstrip()
-                if line:
-                    log_main('INFO', line, 'flask-output')
-                    if not no_browser and "Running on" in line and "http://" in line:
-                        try:
-                            time.sleep(2)
-                            url = f"http://localhost:{port}"
-                            webbrowser.open(url)
-                        except:
-                            pass
+        log_main('INFO', f'Flask process started with PID {process_pid}', 'flask')
 
-        monitor_thread = threading.Thread(target=monitor_output, daemon=True)
+        # Monitor process in background
+        def monitor_process():
+            flask_process.wait()
+            log_main('INFO', f'Flask process {process_pid} exited with code {flask_process.returncode}', 'flask')
+            global is_running
+            is_running = False
+            clear_status('main')
+
+        monitor_thread = threading.Thread(target=monitor_process, daemon=True)
         monitor_thread.start()
 
-        flask_process.wait()
-        is_running = False
-        clear_status('main')
+        # Open browser if requested
+        if not no_browser:
+            def open_browser():
+                time.sleep(2)
+                try:
+                    url = f"http://localhost:{port}"
+                    webbrowser.open(url)
+                    log_main('INFO', f'Opened browser at {url}', 'browser')
+                except Exception as e:
+                    log_main('WARNING', f'Failed to open browser: {e}', 'browser')
+
+            browser_thread = threading.Thread(target=open_browser, daemon=True)
+            browser_thread.start()
 
         return True
 
@@ -503,43 +599,64 @@ def run_video_server_process(port=5001, host='0.0.0.0'):
     log_main('INFO', f'Starting video server on {host}:{port}', 'video')
 
     try:
+        env = os.environ.copy()
+        env['VIDEO_PORT'] = str(port)
+        env['VIDEO_HOST'] = host
+
+        # Create runner in /tmp but working directory is project root
         runner_content = f'''#!/usr/bin/env python3
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Set working directory to project root
+project_root = "{os.getcwd()}"
+os.chdir(project_root)
+sys.path.insert(0, project_root)
 
 from video_server.app import run
 
 if __name__ == '__main__':
-    os.environ['VIDEO_PORT'] = '{port}'
-    os.environ['VIDEO_HOST'] = '{host}'
+    print("\\n🎥 Video Server is running!")
+    print(f"🌐 Access at: http://{'localhost' if '{host}' == '0.0.0.0' else '{host}'}:{port}")
+    print("📝 Press Ctrl+C to stop\\n")
     run()
 '''
 
-        with open('tmp_video_runner.py', 'w') as f:
+        # Write runner to /tmp
+        runner_path = '/tmp/run_video_server.py'
+        with open(runner_path, 'w') as f:
             f.write(runner_content)
+        os.chmod(runner_path, 0o755)
 
-        cmd = [sys.executable, 'tmp_video_runner.py']
+        cmd = [sys.executable, runner_path]
 
         print(f"🎥 Starting Video Server on http://{host if host != '0.0.0.0' else 'localhost'}:{port}")
 
+        # Open log files for redirection
+        video_log_fh.seek(0, 2)  # Seek to end
+        kiselgram_log_fh.seek(0, 2)  # Seek to end
+
         video_process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            env=env,
+            stdout=video_log_fh,  # stdout -> kis_vid.log
+            stderr=kiselgram_log_fh,  # stderr -> kiselgram.log
             universal_newlines=True,
-            bufsize=1
+            bufsize=1,
+            cwd=os.getcwd()  # Working directory is project root
         )
 
         save_status(port, video_process.pid, 'video')
+        log_main('INFO', f'Video server process started with PID {video_process.pid}', 'video')
 
-        def monitor_video_output():
-            for line in video_process.stdout:
-                line = line.rstrip()
-                if line:
-                    log_video('INFO', line)
+        # Monitor process in background
+        def monitor_video():
+            video_process.wait()
+            log_main('INFO', f'Video server process {video_process.pid} exited with code {video_process.returncode}',
+                     'video')
+            clear_status('video')
 
-        monitor_thread = threading.Thread(target=monitor_video_output, daemon=True)
+        monitor_thread = threading.Thread(target=monitor_video, daemon=True)
         monitor_thread.start()
 
         return True
@@ -559,18 +676,24 @@ def stop_application(service='all'):
         if status and status.get('running'):
             port = status.get('port', 5000)
             print(f"🛑 Stopping Kiselgram main app on port {port}...")
+
+            # Try graceful shutdown via API first
+            if stop_via_api(port, SHUTDOWN_TOKEN):
+                print("✅ Sent graceful shutdown request via API")
+                time.sleep(3)  # Give it time to shutdown
+            else:
+                print("⚠️ API shutdown failed, using process termination")
+                kill_process_on_port(port)
         else:
             port = 5000
             print(f"🛑 Stopping Kiselgram main app (if running)...")
+            kill_process_on_port(port)
 
-        kill_process_on_port(port)
         clear_status('main')
 
+        # Kill any remaining processes
         if platform.system() != 'Windows':
-            subprocess.run(['pkill', '-f', 'run_modular.py'],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-            subprocess.run(['pkill', '-f', 'tmp_runner.py'],
+            subprocess.run(['pkill', '-f', 'run_kiselgram.py'],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
 
@@ -589,7 +712,7 @@ def stop_application(service='all'):
         clear_status('video')
 
         if platform.system() != 'Windows':
-            subprocess.run(['pkill', '-f', 'tmp_video_runner.py'],
+            subprocess.run(['pkill', '-f', 'run_video_server.py'],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
             subprocess.run(['pkill', '-f', 'video_server'],
@@ -598,9 +721,13 @@ def stop_application(service='all'):
 
         print("✅ Video server stopped")
 
-    for tmp_file in ['tmp_runner.py', 'tmp_video_runner.py', 'init_db.py', '.kiselgram.pid']:
+    # Clean up tmp files
+    for tmp_file in ['/tmp/run_kiselgram.py', '/tmp/run_video_server.py']:
         if os.path.exists(tmp_file):
-            os.remove(tmp_file)
+            try:
+                os.remove(tmp_file)
+            except:
+                pass
 
     return True
 
@@ -618,9 +745,9 @@ def kill_process_on_port(port):
                         subprocess.run(['taskkill', '/F', '/PID', pid],
                                        stdout=subprocess.DEVNULL,
                                        stderr=subprocess.DEVNULL)
+                        log_main('INFO', f'Killed process {pid} on port {port}', 'shutdown')
                         print(f"✓ Killed process {pid} on port {port}")
         else:
-            import signal
             try:
                 result = subprocess.run(['lsof', '-ti', f':{port}'],
                                         capture_output=True, text=True)
@@ -630,17 +757,24 @@ def kill_process_on_port(port):
                         try:
                             os.kill(int(pid), signal.SIGTERM)
                             time.sleep(0.5)
-                            os.kill(int(pid), signal.SIGKILL)
+                            # Check if still running
+                            try:
+                                os.kill(int(pid), 0)
+                                os.kill(int(pid), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            log_main('INFO', f'Killed process {pid} on port {port}', 'shutdown')
                             print(f"✓ Killed process {pid} on port {port}")
                         except ProcessLookupError:
                             pass
             except FileNotFoundError:
-                subprocess.run(['pkill', '-f', f'port.*{port}'],
+                subprocess.run(['fuser', '-k', f'{port}/tcp'],
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL)
                 print(f"✓ Sent kill signal to processes on port {port}")
     except Exception as e:
         print(f"⚠️  Error killing process on port {port}: {e}")
+        log_main('ERROR', f'Error killing process on port {port}: {e}', 'shutdown')
 
 
 def check_application(service='all'):
@@ -652,8 +786,18 @@ def check_application(service='all'):
             port = status.get('port', 5000)
             started = status.get('started_at', 'unknown')
 
+            # Check if process is still alive
+            try:
+                os.kill(int(pid), 0)
+                alive = True
+            except (ProcessLookupError, OSError):
+                alive = False
+
             print(f"\n📱 MAIN APPLICATION:")
-            print(f"   Status: ✅ RUNNING")
+            if alive:
+                print(f"   Status: ✅ RUNNING")
+            else:
+                print(f"   Status: ⚠️ STALE (process dead)")
             print(f"   PID: {pid}")
             print(f"   Port: {port}")
             print(f"   Started: {started}")
@@ -673,8 +817,18 @@ def check_application(service='all'):
             port = video_status.get('port', 5001)
             started = video_status.get('started_at', 'unknown')
 
+            # Check if process is still alive
+            try:
+                os.kill(int(pid), 0)
+                alive = True
+            except (ProcessLookupError, OSError):
+                alive = False
+
             print(f"\n🎥 VIDEO SERVER:")
-            print(f"   Status: ✅ RUNNING")
+            if alive:
+                print(f"   Status: ✅ RUNNING")
+            else:
+                print(f"   Status: ⚠️ STALE (process dead)")
             print(f"   PID: {pid}")
             print(f"   Port: {port}")
             print(f"   Started: {started}")
@@ -695,7 +849,9 @@ def setup_environment():
     print("\n🔧 Setting up Kiselgram environment...")
 
     directories = [
+        'config',
         'logs',
+        'status',
         'uploads/images',
         'uploads/documents',
         'uploads/media',
@@ -714,35 +870,11 @@ def setup_environment():
         Path(directory).mkdir(parents=True, exist_ok=True)
         print(f"✓ Created: {directory}")
 
-    if not os.path.exists('.env'):
-        env_content = """# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+    config_paths = ['config/kis.toml', 'kis-1.toml']
+    config_exists = any(os.path.exists(p) for p in config_paths)
 
-# Flask Configuration
-SECRET_KEY=your-secret-key-change-in-production
-DATABASE_URL=sqlite:///kiselgram.db
-
-# Server Configuration
-HOST=0.0.0.0
-PORT=5000
-DEBUG=True
-
-# Video Server Configuration
-VIDEO_PORT=5001
-VIDEO_HOST=0.0.0.0
-VIDEO_QUALITY=medium
-MAX_VIDEO_SIZE=104857600
-VIDEO_AUTO_START=True
-
-# File Uploads
-UPLOAD_FOLDER=uploads
-MAX_CONTENT_LENGTH=16777216
-"""
-        with open('.env', 'w') as f:
-            f.write(env_content)
-        print("✓ Created .env file")
-    else:
-        print("✓ .env file already exists")
+    if not config_exists:
+        create_default_config()
 
     if not os.path.exists('requirements.txt'):
         req_content = """Flask>=2.3.0
@@ -753,6 +885,8 @@ pyTelegramBotAPI>=4.12.0
 opencv-python>=4.8.0
 flask-socketio>=5.3.0
 tomli>=2.0.0
+requests>=2.28.0
+psutil>=5.9.0
 """
         with open('requirements.txt', 'w') as f:
             f.write(req_content)
@@ -765,7 +899,7 @@ tomli>=2.0.0
     print("\n✅ Setup completed!")
     print("\nNext steps:")
     print("1. Install dependencies: pip install -r requirements.txt")
-    print("2. Configure kis.toml and .env files")
+    print("2. Configure config/kis.toml")
     print("3. Run: python manage.py start")
 
     return True
@@ -802,10 +936,10 @@ def show_help():
 
     print("\nUtility Commands:")
     print("  python manage.py setup                 Setup environment")
-    print("  python manage.py clean                  Clean temporary files")
-    print("  python manage.py reset-db               Reset database (⚠️ deletes data)")
-    print("  python manage.py test                   Run basic tests")
-    print("  python manage.py help                   Show this help")
+    print("  python manage.py clean                 Clean temporary files")
+    print("  python manage.py reset-db              Reset database (⚠️ deletes data)")
+    print("  python manage.py test                  Run basic tests")
+    print("  python manage.py help                  Show this help")
 
     return True
 
@@ -815,37 +949,31 @@ def clean_temporary_files():
     print("\n🧹 Cleaning temporary files...")
 
     files_to_remove = [
-        'tmp_runner.py',
-        'tmp_video_runner.py',
-        'init_db.py',
+        '/tmp/run_kiselgram.py',
+        '/tmp/run_video_server.py',
         '.kiselgram.pid',
-        '.kiselgram_status.json',
-        '.kiselgram_video_status.json'
+        'status/kiselgram.json',
+        'status/kiselgram-video.json'
     ]
 
     for item in files_to_remove:
         if os.path.exists(item):
-            if os.path.isdir(item):
-                import shutil
-                shutil.rmtree(item)
-                print(f"✓ Removed directory: {item}")
-            else:
+            try:
                 os.remove(item)
-                print(f"✓ Removed file: {item}")
+                print(f"✓ Removed: {item}")
+            except Exception as e:
+                print(f"⚠️ Could not remove {item}: {e}")
 
+    # Clean __pycache__ directories
     import shutil
     for root, dirs, files in os.walk('.'):
         if '__pycache__' in dirs:
             pycache_path = os.path.join(root, '__pycache__')
-            shutil.rmtree(pycache_path)
-            print(f"✓ Removed: {pycache_path}")
-
-    for root, dirs, files in os.walk('.'):
-        for file in files:
-            if file.endswith('.pyc'):
-                filepath = os.path.join(root, file)
-                os.remove(filepath)
-                print(f"✓ Removed: {filepath}")
+            try:
+                shutil.rmtree(pycache_path)
+                print(f"✓ Removed: {pycache_path}")
+            except:
+                pass
 
     print("✅ Cleanup completed")
     return True
@@ -870,15 +998,6 @@ def reset_database():
         if os.path.exists(db_file):
             os.remove(db_file)
             print(f"✓ Removed: {db_file}")
-
-    if os.path.exists('uploads'):
-        import shutil
-        shutil.rmtree('uploads')
-        os.makedirs('uploads/images', exist_ok=True)
-        os.makedirs('uploads/documents', exist_ok=True)
-        os.makedirs('uploads/media', exist_ok=True)
-        os.makedirs('uploads/videos', exist_ok=True)
-        print("✓ Cleared uploads directory")
 
     print("\n✅ Database reset complete")
     print("Next: Run 'python manage.py start' to recreate database")
@@ -916,7 +1035,8 @@ def run_tests():
         print("✗ Missing directories")
         tests_failed += 1
 
-    if os.path.exists('kis.toml'):
+    config_paths = ['config/kis.toml', 'kis-1.toml']
+    if any(os.path.exists(p) for p in config_paths):
         print("✓ Config file exists")
         tests_passed += 1
     else:
@@ -973,7 +1093,7 @@ def video_command(args):
         time.sleep(3)
 
         if check_port_available(port):
-            print("\n⚠️ Video server may not have started properly. Check logs above.")
+            print("\n⚠️ Video server may not have started properly. Check logs/video.log")
         else:
             print("\n✅ Video server started!")
             print(f"🌐 Access at: http://localhost:{port}")
@@ -1116,7 +1236,14 @@ def start_all_services(args):
     print(f"   Video Server: {video_url}")
     print(f"   Debug: {debug}")
     print(f"   Open Browser: {not no_browser}")
+    print(f"   Logs:")
+    print(f"     - Main: logs/kis_main.log")
+    print(f"     - Video: logs/kis_vid.log")
+    print(f"     - Combined: logs/kiselgram.log")
     print("-" * 40)
+
+    # Open log files for the session
+    global main_log_fh, video_log_fh, kiselgram_log_fh
 
     flask_thread = threading.Thread(
         target=run_flask_app,
@@ -1143,6 +1270,7 @@ def start_all_services(args):
     if main_started:
         print("✅ Main application started successfully!")
         print(f"🌐 Main App: http://localhost:{main_port}")
+        print(f"🔑 Shutdown token: {SHUTDOWN_TOKEN}")
     else:
         print("⚠️  Main application may not have started properly. Check logs above.")
 
@@ -1155,6 +1283,7 @@ def start_all_services(args):
 
     print("\n🛑 To stop all services: python manage.py stop")
     print("   To stop only video: python manage.py video stop")
+    print("   Graceful shutdown: POST to /api/utils/test/env/shutdown with token")
     print("Press Ctrl+C to exit this script (services will continue running)")
 
     try:
@@ -1162,6 +1291,7 @@ def start_all_services(args):
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n👋 Management script stopped. Services continue running.")
+        print(f"   Use 'python manage.py stop' to stop services")
 
     return True
 
@@ -1249,7 +1379,6 @@ def main():
         print("\n🔄 Restarting all services...")
         stop_application('all')
         time.sleep(3)
-        clean_temporary_files()
         start_all_services(args)
     elif args.command == 'status':
         print_header()
@@ -1283,7 +1412,18 @@ def main():
 
 def cleanup():
     """Cleanup function called on exit"""
-    for tmp_file in ['tmp_runner.py', 'tmp_video_runner.py', 'init_db.py']:
+    global kiselgram_log_fh, video_log_fh, main_log_fh
+
+    # Close log file handles
+    for fh in [kiselgram_log_fh, video_log_fh, main_log_fh]:
+        if fh:
+            try:
+                fh.close()
+            except:
+                pass
+
+    # Clean up tmp files
+    for tmp_file in ['/tmp/run_kiselgram.py', '/tmp/run_video_server.py']:
         if os.path.exists(tmp_file):
             try:
                 os.remove(tmp_file)
@@ -1300,4 +1440,5 @@ if __name__ == '__main__':
         print("\n👋 Goodbye!")
     except Exception as e:
         print(f"\n❌ Error: {e}")
+        log_main('ERROR', f'Fatal error: {e}', 'main')
         sys.exit(1)
