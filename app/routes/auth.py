@@ -49,6 +49,48 @@ def login():
     return render_template('login.html', login=True)
 
 
+@auth_bp.route('/api/login', methods=['GET', 'POST'])
+def api_login():
+    """
+    request body
+    {"username":str, "password":str}
+    returns
+
+    """
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if not username or not password:
+            return render_template('login.html', error="Username and password required", login=True)
+
+        password_hash = hash_password(password)
+        user = User.query.filter_by(username=username).first()
+
+        if user:
+            if user.password_hash == password_hash:
+                session['username'] = username
+                session['user_id'] = user.id
+                user.is_online = True
+                user.last_seen = datetime.utcnow()
+                db.session.commit()
+                return redirect('/chat_list')
+            else:
+                return render_template('login.html', error="Invalid password", login=True)
+        else:
+            try:
+                new_user = User(username=username, password_hash=password_hash)
+                db.session.add(new_user)
+                db.session.commit()
+                session['username'] = username
+                session['user_id'] = new_user.id
+                return redirect('/chat_list')
+            except:
+                db.session.rollback()
+                return render_template('login.html', error="Username exists", login=True)
+
+    return render_template('login.html', login=True)
+
+
 @auth_bp.route('/logout')
 def logout():
     user_id = session.get('user_id')

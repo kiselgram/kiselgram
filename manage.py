@@ -77,6 +77,9 @@ def setup_logging(config=None):
 
     Path('logs').mkdir(exist_ok=True)
 
+    log_format = "%(asctime)s - %(name)s - %(levelname)s : %(message)s"
+    formatter = logging.Formatter(log_format)
+
     # Setup kiselgram logger
     kiselgram_logger = logging.getLogger('kiselgram')
     kiselgram_logger.setLevel(getattr(logging, log_settings['kiselgram']['level'].upper()))
@@ -87,6 +90,7 @@ def setup_logging(config=None):
         backupCount=log_settings['kiselgram']['backup_count'],
         encoding='utf-8'
     )
+    kiselgram_handler.setFormatter(formatter)
     kiselgram_logger.addHandler(kiselgram_handler)
     kiselgram_log_fh = open(f"logs/{log_settings['kiselgram']['file']}", 'a', encoding='utf-8')
 
@@ -100,6 +104,7 @@ def setup_logging(config=None):
         backupCount=log_settings['video']['backup_count'],
         encoding='utf-8'
     )
+    video_handler.setFormatter(formatter)
     video_logger.addHandler(video_handler)
     video_log_fh = open(f"logs/{log_settings['video']['file']}", 'a', encoding='utf-8')
 
@@ -113,6 +118,7 @@ def setup_logging(config=None):
         backupCount=log_settings['main']['backup_count'],
         encoding='utf-8'
     )
+    main_handler.setFormatter(formatter)
     main_logger.addHandler(main_handler)
     main_log_fh = open(f"logs/{log_settings['main']['file']}", 'a', encoding='utf-8')
 

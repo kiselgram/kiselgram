@@ -166,7 +166,6 @@ def chat_list_api():
                         else:
                             timestamp = last.timestamp.strftime('%d.%m.%Y')
 
-                    # Count members using query
                     member_count = GroupMember.query.filter_by(group_id=group.id).count()
 
                     chats.append({
@@ -204,7 +203,6 @@ def chat_list_api():
                         else:
                             timestamp = last.timestamp.strftime('%d.%m.%Y')
 
-                    # Count subscribers using query
                     subscriber_count = ChannelSubscriber.query.filter_by(channel_id=channel.id).count()
 
                     chats.append({
@@ -752,21 +750,221 @@ def get_stories():
         if not current_user_id:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
 
-        # Return empty stories for now
-        return jsonify({'success': True, 'stories': []})
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+
+        # Get contacts/users the current user has messaged
+        sent = db.session.query(Message.receiver_id).filter_by(sender_id=current_user_id).distinct().all()
+        recv = db.session.query(Message.sender_id).filter_by(receiver_id=current_user_id).distinct().all()
+        contact_ids = set([id[0] for id in sent] + [id[0] for id in recv])
+
+        # Add current user
+        contact_ids.add(current_user_id)
+
+        # Get stories from these users
+        stories = Story.query.filter(
+            Story.user_id.in_(contact_ids),
+            Story.created_at >= cutoff
+        ).order_by(Story.created_at.desc()).all()
+
+        # Group stories by user
+        user_stories = {}
+        viewed_story_ids = set()
+
+        # Get viewed stories for current user
+        story_views = StoryView.query.filter_by(viewer_id=current_user_id).all()
+        viewed_story_ids = {sv.story_id for sv in story_views}
+
+        for story in stories:
+            user = story.user
+            if user.id not in user_stories:
+                user_stories[user.id] = {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'display_name': user.display_name or user.username,
+                    'avatar_url': user.avatar_url,
+                    'avatar_letter': user.username[0].upper() if user.username else '?',
+                    'stories': [],
+                    'has_unviewed': False
+                }
+
+            # Check if story is liked by current user
+            liked = StoryLike.query.filter_by(
+                story_id=story.id,
+                user_id=current_user_id
+            ).first() is not None
+
+            story_data = {
+                'id': story.id,
+                'media_url': f"/uploads/{story.media_path}" if story.media_path else None,
+                'media_type': story.media_type,
+                'caption': story.caption,
+                'created_at': story.created_at.isoformat(),
+                'expires_at': (story.created_at + timedelta(hours=24)).isoformat(),
+                'viewed': story.id in viewed_story_ids,
+                'view_count': StoryView.query.filter_by(story_id=story.id).count(),
+                'like_count': StoryLike.query.filter_by(story_id=story.id).count(),
+                'liked': liked
+            }
+
+            user_stories[user.id]['stories'].append(story_data)
+            if not story_data['viewed']:
+                user_stories[user.id]['has_unviewed'] = True
+
+        # Sort users: current user first, then users with unviewed stories, then by most recent story
+        def get_sort_key(item):
+            is_current = 0 if item['user_id'] == current_user_id else 1
+            has_unviewed = 0 if item['has_unviewed'] else 1
+            max_time = max([s['created_at'] for s in item['stories']]) if item['stories'] else '0'
+            return (is_current, has_unviewed, max_time)
+
+        sorted_stories = sorted(user_stories.values(), key=get_sort_key)
+
+        return jsonify({'success': True, 'stories': sorted_stories})
+
     except Exception as e:
         print(f"Error in get_stories: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@spa_bp.route('/stories/create', methods=['POST'])
+def create_story():
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        caption = request.form.get('caption', '').strip()
+
+        if 'media' not in request.files:
+            return jsonify({'success': False, 'error': 'No media provided'}), 400
+
+        file = request.files['media']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+        if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+            media_type = 'image'
+        elif file_ext in ['mp4', 'mov', 'avi', 'webm']:
+            media_type = 'video'
+        else:
+            return jsonify({'success': False, 'error': 'Unsupported media type'}), 400
+
+        unique_filename = f"story_{current_user_id}_{secrets.token_urlsafe(8)}.{file_ext}"
+
+        upload_dir = os.path.join('uploads', 'stories')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, unique_filename)
+        relative_path = os.path.join('stories', unique_filename)
+
+        file.save(file_path)
+
+        new_story = Story(
+            user_id=current_user_id,
+            media_path=relative_path,
+            media_type=media_type,
+            caption=caption
+        )
+        db.session.add(new_story)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'story': {
+                'id': new_story.id,
+                'media_url': f"/uploads/{relative_path}",
+                'media_type': media_type,
+                'caption': caption
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in create_story: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @spa_bp.route('/stories/<int:story_id>/view', methods=['POST'])
 def view_story(story_id):
-    return jsonify({'success': True})
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        existing = StoryView.query.filter_by(
+            story_id=story_id,
+            viewer_id=current_user_id
+        ).first()
+
+        if not existing:
+            db.session.add(StoryView(story_id=story_id, viewer_id=current_user_id))
+            db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @spa_bp.route('/stories/<int:story_id>/like', methods=['POST'])
 def like_story(story_id):
-    return jsonify({'success': True})
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        existing = StoryLike.query.filter_by(
+            story_id=story_id,
+            user_id=current_user_id
+        ).first()
+
+        if existing:
+            db.session.delete(existing)
+            liked = False
+        else:
+            db.session.add(StoryLike(story_id=story_id, user_id=current_user_id))
+            liked = True
+
+        db.session.commit()
+
+        like_count = StoryLike.query.filter_by(story_id=story_id).count()
+
+        return jsonify({'success': True, 'liked': liked, 'like_count': like_count})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@spa_bp.route('/stories/<int:story_id>', methods=['DELETE'])
+def delete_story(story_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        story = Story.query.get_or_404(story_id)
+
+        if story.user_id != current_user_id:
+            return jsonify({'success': False, 'error': 'Not authorized'}), 403
+
+        # Delete media file
+        if story.media_path:
+            file_path = os.path.join('uploads', story.media_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        db.session.delete(story)
+        db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============ GROUPS/CREATE ============

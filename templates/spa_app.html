@@ -95,21 +95,60 @@
             <div class="settings-section">
                 <h3>Font</h3>
                 <div class="font-options" id="fontOptions">
-                    <div class="font-option" data-font="'Segoe UI', Roboto, sans-serif" onclick="setFont(this)">
-                        <div class="font-preview" style="font-family: 'Segoe UI', Roboto, sans-serif;">Segoe UI</div>
-                        <div class="font-name">Default</div>
+                    <div class="font-option active" data-font="'Inter', -apple-system, sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Inter', sans-serif;">Inter</div>
+                        <div class="font-preview small" style="font-family: 'Inter', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Inter <span class="font-tag">Default</span></div>
                     </div>
-                    <div class="font-option" data-font="'Inter', -apple-system, sans-serif" onclick="setFont(this)">
-                        <div class="font-preview" style="font-family: 'Inter', -apple-system, sans-serif;">Inter</div>
-                        <div class="font-name">Modern</div>
+                    <div class="font-option" data-font="'Satoshi', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Satoshi', sans-serif;">Satoshi</div>
+                        <div class="font-preview small" style="font-family: 'Satoshi', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Satoshi <span class="font-tag">Modern</span></div>
                     </div>
-                    <div class="font-option" data-font="Georgia, 'Times New Roman', serif" onclick="setFont(this)">
-                        <div class="font-preview" style="font-family: Georgia, serif;">Georgia</div>
-                        <div class="font-name">Serif</div>
+                    <div class="font-option" data-font="'DM Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'DM Sans', sans-serif;">DM Sans</div>
+                        <div class="font-preview small" style="font-family: 'DM Sans', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">DM Sans <span class="font-tag">Geometric</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Roboto', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Roboto', sans-serif;">Roboto</div>
+                        <div class="font-preview small" style="font-family: 'Roboto', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Roboto <span class="font-tag">Android</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Poppins', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Poppins', sans-serif;">Poppins</div>
+                        <div class="font-preview small" style="font-family: 'Poppins', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Poppins <span class="font-tag">Friendly</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Public Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Public Sans', sans-serif;">Public Sans</div>
+                        <div class="font-preview small" style="font-family: 'Public Sans', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Public Sans <span class="font-tag">Neutral</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Work Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Work Sans', sans-serif;">Work Sans</div>
+                        <div class="font-preview small" style="font-family: 'Work Sans', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Work Sans <span class="font-tag">Body Text</span></div>
+                    </div>
+                    <div class="font-option" data-font="'SF Pro', -apple-system, sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'SF Pro', -apple-system, sans-serif;">SF Pro</div>
+                        <div class="font-preview small" style="font-family: 'SF Pro', -apple-system, sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">SF Pro <span class="font-tag">Apple</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Nunito', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Nunito', sans-serif;">Nunito</div>
+                        <div class="font-preview small" style="font-family: 'Nunito', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Nunito <span class="font-tag">Rounded</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Space Grotesk', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family: 'Space Grotesk', sans-serif;">Space Grotesk</div>
+                        <div class="font-preview small" style="font-family: 'Space Grotesk', sans-serif;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Space Grotesk <span class="font-tag">Display</span></div>
                     </div>
                     <div class="font-option" data-font="'Courier New', monospace" onclick="setFont(this)">
                         <div class="font-preview" style="font-family: 'Courier New', monospace;">Courier</div>
-                        <div class="font-name">Monospace</div>
+                        <div class="font-preview small" style="font-family: 'Courier New', monospace;">The quick brown fox jumps over the lazy dog</div>
+                        <div class="font-name">Courier <span class="font-tag">Monospace</span></div>
                     </div>
                 </div>
             </div>
@@ -165,7 +204,7 @@
                     <div class="settings-item-label">
                         <span>Show Online Status</span>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'onlineStatus')">
+                    <div class="toggle-switch active" data-setting="onlineStatus" onclick="toggleSetting(this, 'onlineStatus')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>
@@ -176,7 +215,7 @@
                     <div class="settings-item-label">
                         <span>Show Read Receipts</span>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this, 'readReceipts')">
+                    <div class="toggle-switch active" data-setting="readReceipts" onclick="toggleSetting(this, 'readReceipts')">
                         <div class="toggle-slider"></div>
                     </div>
                 </div>

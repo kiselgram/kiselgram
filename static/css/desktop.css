@@ -1845,3 +1845,513 @@ body.popout-open .popout-menu-column {
 .fade-in {
     animation: fadeIn 0.2s ease-out;
 }
+
+
+
+/* Story Viewer */
+.story-viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+}
+
+.story-viewer-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+}
+
+.story-progress-container {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.story-progress-bar-container {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.story-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: white;
+    border-radius: 2px;
+    transition: width 0.05s linear;
+}
+
+.story-progress-bar.completed {
+    width: 100% !important;
+}
+
+.story-viewer-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.story-viewer-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+}
+
+.story-viewer-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.story-viewer-name {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.story-viewer-time {
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+}
+
+.story-viewer-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 11;
+}
+
+.story-viewer-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.story-viewer-content img,
+.story-viewer-content video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.story-caption {
+    position: absolute;
+    bottom: 100px;
+    left: 16px;
+    right: 16px;
+    color: white;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    font-size: 16px;
+}
+
+.story-viewer-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 16px 40px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    z-index: 10;
+}
+
+.story-reply-input {
+    display: flex;
+    gap: 8px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 4px 4px 4px 16px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.story-reply-input input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+.story-reply-input input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.story-reply-input button {
+    background: var(--accent-blue);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.story-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
+.story-actions button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.story-nav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    pointer-events: none;
+}
+
+.story-nav-left,
+.story-nav-right {
+    flex: 1;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Story Create Modal */
+.story-create-modal {
+    max-width: 400px;
+}
+
+.story-media-upload {
+    aspect-ratio: 9/16;
+    background: var(--bg-surface);
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.upload-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.upload-placeholder span {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+
+.upload-placeholder p {
+    font-size: 14px;
+}
+
+/* Story avatar styles */
+.story-avatar {
+    position: relative;
+}
+
+.story-avatar.unviewed {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+
+.story-avatar.viewed {
+    background: var(--border-color);
+}
+
+.story-avatar.add-story {
+    background: var(--bg-surface);
+    border: 2px dashed var(--border-color);
+}
+
+.add-story-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--text-muted);
+}
+
+.story-avatar-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
+    border: 2px solid var(--sidebar-bg);
+}
+
+/* Chat avatar with story indicator */
+.chat-avatar.has-story {
+    position: relative;
+}
+
+.chat-avatar.has-story::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    z-index: -1;
+}
+
+
+
+/* Message enhancements */
+.message-sender {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    margin-left: 8px;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.message-status {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.message-date-divider {
+    text-align: center;
+    margin: 16px 0;
+    position: relative;
+}
+
+.message-date-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--border-color);
+    z-index: 1;
+}
+
+.message-date-divider {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--bg-surface);
+    padding: 0 16px;
+    display: inline-block;
+    margin: 16px auto;
+    position: relative;
+    z-index: 2;
+}
+
+.message-video,
+.message-audio {
+    max-width: 300px;
+    border-radius: 8px;
+}
+
+/* Reaction picker */
+.reaction-picker {
+    animation: fadeIn 0.2s ease;
+}
+
+/* Forward chat item */
+.forward-chat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.forward-chat-item:hover {
+    background: var(--hover-bg);
+}
+
+.forward-chat-item .chat-type {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: capitalize;
+}
+
+/* Message link styling */
+.message-text a {
+    color: inherit;
+    text-decoration: underline;
+    opacity: 0.9;
+}
+
+.message-text a:hover {
+    opacity: 1;
+}
+
+
+
+/* Add to desktop.css */
+
+/* Chat Menu Dropdown */
+.chat-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-primary);
+}
+
+.chat-menu-item:hover {
+    background: var(--hover-bg);
+}
+
+.chat-menu-item.danger {
+    color: var(--accent-red);
+}
+
+.chat-menu-item.danger:hover {
+    background: rgba(245, 54, 92, 0.1);
+}
+
+.chat-menu-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 0;
+}
+
+/* Color options */
+.color-option {
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+    border-color: white !important;
+}
+
+/* Wallpaper classes for messages container */
+.messages-container.wallpaper-gradient1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.messages-container.wallpaper-gradient2 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.messages-container.wallpaper-gradient3 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.messages-container.wallpaper-gradient4 {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+}
+
+.messages-container.wallpaper-gradient5 {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+}
+
+.messages-container.wallpaper-gradient6 {
+    background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%) !important;
+}
+
+/* Text size classes */
+.messages-container.text-small .message-text {
+    font-size: 12px;
+}
+
+.messages-container.text-medium .message-text {
+    font-size: 14px;
+}
+
+.messages-container.text-large .message-text {
+    font-size: 16px;
+}
+
+/* Wallpaper options grid */
+.wallpaper-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.wallpaper-option {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.wallpaper-option:hover {
+    transform: scale(1.02);
+    border-color: var(--accent-blue);
+}
+
+.wallpaper-option.gradient1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+.wallpaper-option.gradient2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.wallpaper-option.gradient3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.wallpaper-option.gradient4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+.wallpaper-option.gradient5 { background: linear-gradient(135deg, #fa709a, #fee140); }
+.wallpaper-option.gradient6 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+
+/* Chat menu dropdown positioning */
+.chat-menu-dropdown {
+    animation: fadeIn 0.2s ease;
+}

@@ -1,233 +1,156 @@
-/* static/js/spa_app.js - Kiselgram V3.1 SPA Application */
+// static/js/spa_app.js
 
 // ============ GLOBAL STATE ============
-let currentUser = null;
-let currentChat = null;
-let currentChatType = null;
-let currentView = 'empty';
-let currentChatId = null;
-let chatsList = [];
-let contactsList = [];
-let usersList = [];
-let storiesList = [];
-let selectedMembers = new Set();
-let replyToMsg = null;
-let selectedFile = null;
-let groupAvatarFile = null;
-let channelAvatarFile = null;
-let pollingInterval = null;
-let messagePollingInterval = null;
-let lastMessageId = 0;
-let isLoadingMessages = false;
-let chatSettings = {
-    fontSize: 'medium',
-    borderRadius: '18px',
-    fontFamily: "'Segoe UI', Roboto, sans-serif",
-    ownMessageColor: '#5e72e4',
-    otherMessageColor: '#ffffff',
-    wallpaper: null
-};
+
+// Current user info
+let currentUserId = null;
+let currentUserUsername = '';
+let currentUserDisplayName = '';
+let currentUserAvatar = '?';
+
+// App state
+let activeChat = null; // { type: 'personal'|'group'|'channel', id: number }
+let currentStories = [];
+let currentStoryIndex = 0;
+let currentStoryUser = null;
+let storyViewerActive = false;
+let storyProgressInterval = null;
+let selectedMembers = [];
+let replyToMessage = null;
 
 // ============ INITIALIZATION ============
-document.addEventListener('DOMContentLoaded', function() {
-    initMenu();
-    loadUserProfile();
-    loadChats();
-    loadStories();
-    initTheme();
-    initSettings();
-    initGlobalSearch();
 
-    pollingInterval = setInterval(() => {
-        loadChats();
-    }, 3000);
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load current user info
+    await loadCurrentUser();
 
+    // Load initial data
+    await loadChatList();
+    await loadStories();
+
+    // Set up event listeners
     setupEventListeners();
+
+    // Load saved preferences
+    loadThemePreference();
+    loadFontPreference();
+
+    // Refresh data periodically
+    setInterval(loadStories, 120000);
+    setInterval(loadChatList, 30000);
+
+    // If a chat is open, refresh messages
+    setInterval(() => {
+        if (activeChat) {
+            loadMessages(activeChat.type, activeChat.id);
+        }
+    }, 5000);
 });
 
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (savedTheme === 'auto') {
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+// Load current user info
+async function loadCurrentUser() {
+    try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            currentUserId = data.user.id;
+            currentUserUsername = data.user.username;
+            currentUserDisplayName = data.user.display_name || data.user.username;
+            currentUserAvatar = data.user.username[0].toUpperCase();
+            updateUserUI();
+        } else {
+            // Fallback to server-rendered values
+            const menuUsername = document.getElementById('menuUserUsername');
+            if (menuUsername) {
+                const username = menuUsername.textContent.replace('@', '');
+                currentUserUsername = username;
+                currentUserAvatar = username[0]?.toUpperCase() || '?';
+            }
+            const menuAvatar = document.getElementById('menuUserAvatar');
+            if (menuAvatar) {
+                currentUserAvatar = menuAvatar.textContent || '?';
+            }
         }
-    }
-
-    const savedFont = localStorage.getItem('fontFamily');
-    if (savedFont) {
-        document.documentElement.style.setProperty('--font-family', savedFont);
-        chatSettings.fontFamily = savedFont;
+    } catch (error) {
+        console.error('Error loading current user:', error);
     }
 }
 
-function initSettings() {
-    const saved = localStorage.getItem('chatSettings');
-    if (saved) {
-        chatSettings = { ...chatSettings, ...JSON.parse(saved) };
-        applyChatSettings();
-    }
+// Update UI with current user info
+function updateUserUI() {
+    const menuAvatar = document.getElementById('menuUserAvatar');
+    const menuName = document.getElementById('menuUserName');
+    const menuUsername = document.getElementById('menuUserUsername');
+
+    if (menuAvatar) menuAvatar.textContent = currentUserAvatar;
+    if (menuName) menuName.textContent = currentUserDisplayName;
+    if (menuUsername) menuUsername.textContent = '@' + currentUserUsername;
 }
 
-function initGlobalSearch() {
-    const searchInput = document.getElementById('globalSearchInput');
-    const searchResults = document.getElementById('searchResults');
-
-    if (!searchInput || !searchResults) return;
-
-    let searchTimeout;
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        const query = this.value.trim();
-
-        if (query.length < 2) {
-            searchResults.classList.remove('active');
-            return;
-        }
-
-        searchTimeout = setTimeout(() => {
-            fetch(`/api/search/global?q=${encodeURIComponent(query)}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        renderSearchResults(data.results);
-                    }
-                });
-        }, 300);
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.remove('active');
-        }
-    });
-
-    searchInput.addEventListener('focus', function() {
-        if (this.value.length >= 2) {
-            searchResults.classList.add('active');
-        }
-    });
-}
-
-function renderSearchResults(results) {
-    const container = document.getElementById('searchResults');
-    if (!container) return;
-
-    const allResults = [
-        ...(results.users || []).map(u => ({ ...u, resultType: 'user' })),
-        ...(results.groups || []).map(g => ({ ...g, resultType: 'group' })),
-        ...(results.channels || []).map(c => ({ ...c, resultType: 'channel' }))
-    ];
-
-    if (allResults.length === 0) {
-        container.innerHTML = '<div class="search-result-item"><span>No results found</span></div>';
-        container.classList.add('active');
-        return;
-    }
-
-    container.innerHTML = allResults.map(item => {
-        let icon = '👤';
-        if (item.resultType === 'group') icon = '👥';
-        if (item.resultType === 'channel') icon = '📢';
-
-        return `
-            <div class="search-result-item" onclick="navigateToSearchResult('${item.resultType}', ${item.id})">
-                <div class="search-result-avatar">${icon}</div>
-                <div class="search-result-info">
-                    <div class="search-result-name">${escapeHtml(item.name || item.username)}</div>
-                    <div class="search-result-type">${item.resultType}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    container.classList.add('active');
-}
-
-function navigateToSearchResult(type, id) {
-    document.getElementById('searchResults').classList.remove('active');
-    document.getElementById('globalSearchInput').value = '';
-
-    if (type === 'user') {
-        selectChat('personal', id, `User ${id}`);
-    } else if (type === 'group') {
-        selectChat('group', id, `Group ${id}`);
-    } else if (type === 'channel') {
-        selectChat('channel', id, `Channel ${id}`);
-    }
-}
-
+// Setup event listeners
 function setupEventListeners() {
+    // Menu button
+    const menuBtn = document.getElementById('menuBtn');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', togglePopoutMenu);
+    }
+
+    // Global search
+    const searchInput = document.getElementById('globalSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(handleGlobalSearch, 300));
+        searchInput.addEventListener('focus', () => {
+            document.getElementById('searchResults')?.classList.add('active');
+        });
+    }
+
+    // Click outside search results
+    document.addEventListener('click', (e) => {
+        const searchContainer = document.querySelector('.global-search');
+        if (searchContainer && !searchContainer.contains(e.target)) {
+            document.getElementById('searchResults')?.classList.remove('active');
+        }
+    });
+
+    // Message input
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
-        messageInput.addEventListener('input', updateSendButton);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+        messageInput.addEventListener('input', handleMessageInput);
+        messageInput.addEventListener('keydown', handleMessageKeydown);
     }
 
-    const sendBtn = document.getElementById('sendBtn');
-    if (sendBtn) {
-        sendBtn.addEventListener('click', sendMessage);
-    }
-
+    // Contact search
     const contactSearch = document.getElementById('contactSearchInput');
     if (contactSearch) {
-        contactSearch.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = contactsList.filter(c =>
-                c.username.toLowerCase().includes(term) ||
-                (c.display_name || '').toLowerCase().includes(term)
-            );
-            renderContactsList(filtered);
-        });
+        contactSearch.addEventListener('input', debounce(handleContactSearch, 300));
     }
 
+    // Member search for group creation
     const memberSearch = document.getElementById('memberSearchInput');
     if (memberSearch) {
-        memberSearch.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = usersList.filter(u =>
-                u.username.toLowerCase().includes(term)
-            );
-            renderUserListForGroup(filtered);
-        });
+        memberSearch.addEventListener('input', debounce(handleMemberSearch, 300));
     }
 }
 
-// ============ MENU FUNCTIONS ============
-function initMenu() {
-    const menuBtn = document.getElementById('menuBtn');
-    const popoutMenu = document.getElementById('popoutMenu');
-    const body = document.body;
+// Debounce utility
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
-    if (menuBtn) {
-        menuBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            body.classList.toggle('popout-open');
-            menuBtn.classList.toggle('active');
-        });
-    }
+// ============ POPOUT MENU ============
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && body.classList.contains('popout-open')) {
-            body.classList.remove('popout-open');
-            menuBtn?.classList.remove('active');
-        }
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!body.classList.contains('popout-open')) return;
-        if (popoutMenu && popoutMenu.contains(event.target)) return;
-        if (menuBtn && menuBtn.contains(event.target)) return;
-        body.classList.remove('popout-open');
-        menuBtn?.classList.remove('active');
-    });
+function togglePopoutMenu() {
+    document.body.classList.toggle('popout-open');
+    document.getElementById('menuBtn')?.classList.toggle('active');
 }
 
 function closePopout() {
@@ -235,514 +158,1216 @@ function closePopout() {
     document.getElementById('menuBtn')?.classList.remove('active');
 }
 
-// ============ VIEW MANAGEMENT ============
-function showView(viewName) {
-    const views = ['emptyChat', 'chatView', 'contactsView', 'createGroupView', 'createChannelView'];
-    views.forEach(v => {
-        const el = document.getElementById(v);
-        if (el) el.style.display = 'none';
-    });
+// ============ PANELS ============
 
-    currentView = viewName;
+function closeAllPanels() {
+    document.getElementById('settingsPanel')?.classList.remove('open');
+    document.getElementById('privacyPanel')?.classList.remove('open');
+    document.getElementById('panelOverlay')?.classList.remove('visible');
+}
 
-    switch(viewName) {
-        case 'empty':
-            document.getElementById('emptyChat').style.display = 'flex';
-            break;
-        case 'chat':
-            document.getElementById('chatView').style.display = 'flex';
-            break;
-        case 'contacts':
-            document.getElementById('contactsView').style.display = 'flex';
-            loadContacts();
-            break;
-        case 'createGroup':
-            document.getElementById('createGroupView').style.display = 'flex';
-            loadUsersForGroup();
-            break;
-        case 'createChannel':
-            document.getElementById('createChannelView').style.display = 'flex';
-            break;
+function openSettingsPanel() {
+    closeAllPanels();
+    document.getElementById('settingsPanel')?.classList.add('open');
+    document.getElementById('panelOverlay')?.classList.add('visible');
+    closePopout();
+}
+
+function closeSettingsPanel() {
+    document.getElementById('settingsPanel')?.classList.remove('open');
+    document.getElementById('panelOverlay')?.classList.remove('visible');
+}
+
+function openPrivacyPanel() {
+    closeAllPanels();
+    document.getElementById('privacyPanel')?.classList.add('open');
+    document.getElementById('panelOverlay')?.classList.add('visible');
+    closePopout();
+}
+
+function closePrivacyPanel() {
+    document.getElementById('privacyPanel')?.classList.remove('open');
+    document.getElementById('panelOverlay')?.classList.remove('visible');
+}
+
+// ============ THEME & FONT ============
+
+function setTheme(theme) {
+    document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
     }
 
-    if (window.innerWidth <= 768) {
-        document.getElementById('chatSidebar').classList.remove('mobile-open');
+    localStorage.setItem('kiselgram_theme', theme);
+}
+
+function loadThemePreference() {
+    const theme = localStorage.getItem('kiselgram_theme');
+    if (theme) {
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            const text = opt.textContent.trim();
+            if ((theme === 'light' && text.includes('Light')) ||
+                (theme === 'dark' && text.includes('Dark')) ||
+                (theme === 'auto' && text.includes('Auto'))) {
+                opt.classList.add('active');
+            }
+        });
     }
 }
 
-function showContactsView() {
-    showView('contacts');
-    closePopout();
+function setFont(element) {
+    document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('active'));
+    element.classList.add('active');
+
+    const fontFamily = element.dataset.font;
+    document.body.style.setProperty('--font-family', fontFamily);
+    localStorage.setItem('kiselgram_font', fontFamily);
+
+    showToast('Font updated', 'success');
 }
 
-function showCreateGroupView() {
-    showView('createGroup');
-    closePopout();
+function loadFontPreference() {
+    const savedFont = localStorage.getItem('kiselgram_font');
+    if (savedFont) {
+        document.body.style.setProperty('--font-family', savedFont);
+
+        document.querySelectorAll('.font-option').forEach(opt => {
+            if (opt.dataset.font === savedFont) {
+                opt.classList.add('active');
+            }
+        });
+    }
 }
 
-function showCreateChannelView() {
-    showView('createChannel');
-    closePopout();
+function toggleSetting(element, setting) {
+    element.classList.toggle('active');
+    const isEnabled = element.classList.contains('active');
+    localStorage.setItem(`kiselgram_${setting}`, isEnabled);
 }
 
-function hideContactsView() {
-    showView(currentChat ? 'chat' : 'empty');
-}
+// ============ TOAST NOTIFICATIONS ============
 
-function hideCreateGroupView() {
-    showView(currentChat ? 'chat' : 'empty');
-    selectedMembers.clear();
-    groupAvatarFile = null;
-    document.getElementById('groupAvatarPreview').innerHTML = '👥';
-}
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? 'var(--accent-green)' : type === 'error' ? 'var(--accent-red)' : 'var(--accent-blue)'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 500;
+        z-index: 9999;
+        box-shadow: var(--shadow-lg);
+        animation: fadeIn 0.3s ease;
+    `;
 
-function hideCreateChannelView() {
-    showView(currentChat ? 'chat' : 'empty');
-    channelAvatarFile = null;
-    document.getElementById('channelAvatarPreview').innerHTML = '📢';
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // ============ CHAT LIST ============
-async function loadChats() {
+
+async function loadChatList() {
     try {
         const response = await fetch('/api/chat_list');
         const data = await response.json();
-        if (data.chats) {
-            chatsList = data.chats;
-            renderChatList(chatsList);
+
+        if (data.success) {
+            renderChatList(data.chats);
         }
     } catch (error) {
-        console.error('Error loading chats:', error);
+        console.error('Error loading chat list:', error);
     }
 }
 
 function renderChatList(chats) {
-    const container = document.getElementById('chatList');
-    if (!container) return;
+    const chatList = document.getElementById('chatList');
+    if (!chatList) return;
 
     if (!chats || chats.length === 0) {
-        container.innerHTML = `
-            <div class="empty-chat" style="padding: 40px;">
-                <div class="empty-chat-icon">💬</div>
-                <h3>No chats yet</h3>
-                <p>Start a conversation from Contacts</p>
+        chatList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>No chats yet</p>
+                <p style="font-size: 13px; margin-top: 8px;">Start a conversation from Contacts</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = chats.map(chat => `
-        <div class="chat-item ${chat.is_pinned ? 'pinned' : ''}"
-             data-type="${chat.type}" data-id="${chat.id}"
-             onclick="selectChat('${chat.type}', ${chat.id}, '${escapeHtml(chat.name)}')">
-            <div class="chat-avatar ${chat.type === 'group' ? 'group' : chat.type === 'channel' ? 'channel' : ''}">
-                ${chat.avatar_url ? `<img src="${chat.avatar_url}" alt="${escapeHtml(chat.name)}">` : (chat.avatar || chat.name.charAt(0).toUpperCase())}
-                ${chat.is_online ? '<span class="online-indicator"></span>' : ''}
-            </div>
-            <div class="chat-info">
-                <div class="chat-name-row">
-                    <span class="chat-name">
-                        ${chat.is_pinned ? '<span class="pin-indicator">📌</span>' : ''}
-                        ${escapeHtml(chat.name)}
-                    </span>
-                    <span class="chat-time">${chat.timestamp || ''}</span>
+    let html = '';
+
+    for (const chat of chats) {
+        const isActive = activeChat && activeChat.type === chat.type && activeChat.id === chat.id;
+
+        let avatarHtml = '';
+        if (chat.avatar_url) {
+            avatarHtml = `<img src="${chat.avatar_url}" alt="${escapeHtml(chat.name)}">`;
+        } else {
+            avatarHtml = chat.avatar || '?';
+        }
+
+        let statusHtml = '';
+        if (chat.type === 'personal' && chat.is_online) {
+            statusHtml = '<span class="online-indicator"></span>';
+        }
+
+        let unreadHtml = '';
+        if (chat.unread_count > 0) {
+            unreadHtml = `<span class="unread-badge">${chat.unread_count}</span>`;
+        }
+
+        let pinHtml = '';
+        if (chat.is_pinned) {
+            pinHtml = '<span class="pin-indicator">📌</span>';
+        }
+
+        html += `
+            <div class="chat-item ${isActive ? 'active' : ''} ${chat.is_pinned ? 'pinned' : ''}"
+                 data-chat-type="${chat.type}"
+                 data-chat-id="${chat.id}"
+                 data-user-id="${chat.type === 'personal' ? chat.id : ''}"
+                 onclick="openChat('${chat.type}', ${chat.id})">
+                <div class="chat-avatar ${chat.type} ${chat.has_story ? 'has-story' : ''}">
+                    ${avatarHtml}
+                    ${statusHtml}
                 </div>
-                <div class="chat-preview">
-                    <span>${escapeHtml(chat.last_message || 'No messages yet')}</span>
-                    ${chat.unread_count > 0 ? `<span class="unread-badge">${chat.unread_count}</span>` : ''}
+                <div class="chat-info">
+                    <div class="chat-name-row">
+                        <span class="chat-name">${escapeHtml(chat.name)}</span>
+                        <span class="chat-time">${chat.timestamp || ''}</span>
+                    </div>
+                    <div class="chat-preview">
+                        <span>${pinHtml}${escapeHtml(chat.last_message || '')}</span>
+                        ${unreadHtml}
+                    </div>
                 </div>
-            </div>
-        </div>
-    `).join('');
-
-    if (currentChat) {
-        const activeItem = document.querySelector(`.chat-item[data-id="${currentChat.id}"]`);
-        if (activeItem) activeItem.classList.add('active');
-    }
-}
-
-async function selectChat(type, id, name) {
-    if (messagePollingInterval) {
-        clearInterval(messagePollingInterval);
-        messagePollingInterval = null;
-    }
-
-    currentChat = { type, id, name };
-    currentChatType = type;
-    currentChatId = id;
-    lastMessageId = 0;
-    isLoadingMessages = false;
-
-    const container = document.getElementById('messagesContainer');
-    if (container) {
-        container.innerHTML = `
-            <div class="loading-messages">
-                <div class="loading-spinner"></div>
-                <p>Loading messages...</p>
             </div>
         `;
     }
 
-    showView('chat');
+    chatList.innerHTML = html;
+}
 
-    document.getElementById('chatHeaderName').textContent = name;
+// ============ CHAT VIEW ============
 
-    const avatarDiv = document.getElementById('chatHeaderAvatar');
-    avatarDiv.className = 'chat-header-avatar';
-    if (type === 'group') {
-        avatarDiv.textContent = '👥';
-        avatarDiv.classList.add('group');
-    } else if (type === 'channel') {
-        avatarDiv.textContent = '📢';
-        avatarDiv.classList.add('channel');
-    } else {
-        avatarDiv.textContent = name.charAt(0).toUpperCase();
-    }
+function hideAllPanels() {
+    document.getElementById('emptyChat').style.display = 'none';
+    document.getElementById('chatView').style.display = 'none';
+    document.getElementById('contactsView').style.display = 'none';
+    document.getElementById('createGroupView').style.display = 'none';
+    document.getElementById('createChannelView').style.display = 'none';
+}
 
-    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
-    const activeItem = document.querySelector(`.chat-item[data-id="${id}"]`);
-    if (activeItem) activeItem.classList.add('active');
+async function openChat(type, id) {
+    activeChat = { type, id };
 
-    await loadMessages();
+    // Update UI
+    document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`.chat-item[data-chat-type="${type}"][data-chat-id="${id}"]`)?.classList.add('active');
+
+    hideAllPanels();
+    document.getElementById('chatView').style.display = 'flex';
+
+    await loadChatInfo(type, id);
+    await loadMessages(type, id);
 
     if (type === 'personal') {
         await fetch(`/api/mark_read/${id}`, { method: 'POST' });
     }
 
-    messagePollingInterval = setInterval(async () => {
-        if (currentChatId === id) {
-            await loadNewMessages();
+    document.getElementById('messageInput')?.focus();
+}
+
+async function loadChatInfo(type, id) {
+    try {
+        let info = null;
+
+        if (type === 'personal') {
+            const response = await fetch('/api/users');
+            const data = await response.json();
+            info = data.users?.find(u => u.id === id);
         }
-    }, 2000);
+
+        const headerAvatar = document.getElementById('chatHeaderAvatar');
+        const headerName = document.getElementById('chatHeaderName');
+        const headerStatus = document.getElementById('chatHeaderStatus');
+
+        if (info) {
+            headerName.textContent = info.display_name || info.username;
+            headerStatus.textContent = info.is_online ? 'Online' : 'Offline';
+            headerStatus.classList.toggle('online', info.is_online);
+
+            if (info.avatar_url) {
+                headerAvatar.innerHTML = `<img src="${info.avatar_url}" alt="${info.display_name}">`;
+            } else {
+                headerAvatar.textContent = info.username[0].toUpperCase();
+            }
+            headerAvatar.className = `chat-header-avatar ${type}`;
+        } else {
+            headerName.textContent = type === 'personal' ? 'Chat' : (type === 'group' ? 'Group' : 'Channel');
+            headerAvatar.textContent = type === 'personal' ? '💬' : (type === 'group' ? '👥' : '📢');
+            headerAvatar.className = `chat-header-avatar ${type}`;
+        }
+    } catch (error) {
+        console.error('Error loading chat info:', error);
+    }
+}
+
+async function loadMessages(type, id, afterId = 0) {
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = '<div class="loading-messages"><div class="loading-spinner"></div><p>Loading messages...</p></div>';
+
+    try {
+        let url = '';
+        if (type === 'personal') url = `/api/messages/${id}`;
+        else if (type === 'group') url = `/api/group_messages/${id}`;
+        else if (type === 'channel') url = `/api/channel_messages/${id}`;
+
+        const response = await fetch(`${url}?after=${afterId}&limit=50`);
+        const data = await response.json();
+
+        if (data.success && data.messages) {
+            renderMessages(data.messages);
+        } else {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><p>No messages yet</p></div>';
+        }
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        container.innerHTML = '<div class="empty-state"><p>Error loading messages</p></div>';
+    }
+}
+
+function renderMessages(messages) {
+    const container = document.getElementById('messagesContainer');
+
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>No messages yet</p>
+                <p style="font-size: 13px;">Send a message to start the conversation</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    let lastDate = null;
+
+    for (const msg of messages) {
+        const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
+        const dateStr = msgDate.toLocaleDateString();
+
+        if (dateStr !== lastDate) {
+            html += `<div class="message-date-divider">${formatDateDivider(msgDate)}</div>`;
+            lastDate = dateStr;
+        }
+
+        html += renderMessage(msg);
+    }
+
+    container.innerHTML = html;
+    scrollToBottom();
+}
+
+function renderMessage(msg) {
+    const isOwn = msg.is_own || msg.sender_id === currentUserId;
+    const wrapperClass = isOwn ? 'outgoing' : 'incoming';
+
+    let attachmentHtml = '';
+    if (msg.has_attachment) {
+        if (msg.file_type === 'image') {
+            attachmentHtml = `<img src="${msg.file_url}" alt="${msg.file_name || 'Image'}" class="message-image" onclick="openImageViewer('${msg.file_url}')">`;
+        } else {
+            attachmentHtml = `
+                <div class="file-attachment">
+                    <span>📎</span>
+                    <a href="${msg.file_url}" target="_blank" class="file-link">${msg.file_name || 'File'}</a>
+                    <span style="margin-left: auto; font-size: 11px;">${msg.formatted_size || ''}</span>
+                </div>
+            `;
+        }
+    }
+
+    let replyHtml = '';
+    if (msg.reply_to_id) {
+        replyHtml = `
+            <div class="reply-indicator">
+                <span>↩️ Reply</span>
+                <div style="font-size: 11px; opacity: 0.8;">${escapeHtml(msg.reply_to_content || '')}</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="message-wrapper ${wrapperClass}" data-message-id="${msg.id}" id="msg-${msg.id}">
+            ${!isOwn ? `<div class="message-sender">${escapeHtml(msg.sender_name || 'User')}</div>` : ''}
+            <div class="message-bubble">
+                ${replyHtml}
+                ${attachmentHtml}
+                ${msg.content ? `<div class="message-text">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>` : ''}
+                <div class="message-meta">
+                    <span class="message-time">${msg.timestamp_formatted || ''}</span>
+                    ${isOwn ? `<span class="message-status">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
+                </div>
+            </div>
+            <div class="message-actions">
+                <span class="action-icon" onclick="setReply(${msg.id})">↩️</span>
+                ${isOwn ? `<span class="action-icon" onclick="deleteMessage(${msg.id})">🗑️</span>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function formatDateDivider(date) {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    if (container) container.scrollTop = container.scrollHeight;
+}
+
+// ============ SEND MESSAGE ============
+
+function handleMessageInput() {
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    if (input && sendBtn) {
+        sendBtn.disabled = !input.value.trim();
+    }
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+}
+
+function handleMessageKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+
+    if (!content || !activeChat) return;
+
+    let url = '';
+    const payload = { content };
+
+    if (activeChat.type === 'personal') {
+        url = '/api/send_message';
+        payload.receiver_id = activeChat.id;
+    } else if (activeChat.type === 'group') {
+        url = '/api/send_group_message';
+        payload.group_id = activeChat.id;
+    } else if (activeChat.type === 'channel') {
+        url = '/api/send_channel_message';
+        payload.channel_id = activeChat.id;
+    }
+
+    if (replyToMessage) {
+        payload.reply_to_id = replyToMessage;
+        cancelReply();
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            input.value = '';
+            handleMessageInput();
+            addMessageToView(data.message);
+            loadChatList();
+        } else {
+            showToast(data.error || 'Failed to send message', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showToast('Error sending message', 'error');
+    }
+}
+
+function addMessageToView(message) {
+    const container = document.getElementById('messagesContainer');
+    const existingEmpty = container.querySelector('.empty-state');
+    if (existingEmpty) container.innerHTML = '';
+
+    container.insertAdjacentHTML('beforeend', renderMessage(message));
+    scrollToBottom();
+}
+
+function setReply(messageId) {
+    const msgElement = document.getElementById(`msg-${messageId}`);
+    if (!msgElement) return;
+
+    replyToMessage = messageId;
+
+    const text = msgElement.querySelector('.message-text')?.textContent || 'Message';
+    const preview = document.getElementById('replyPreview');
+    if (preview) {
+        preview.querySelector('.reply-preview-name').textContent = 'Replying to message';
+        preview.querySelector('.reply-preview-text').textContent = text.substring(0, 50) + (text.length > 50 ? '...' : '');
+        preview.style.display = 'flex';
+    }
+
+    document.getElementById('messageInput')?.focus();
+}
+
+function cancelReply() {
+    replyToMessage = null;
+    const preview = document.getElementById('replyPreview');
+    if (preview) preview.style.display = 'none';
+}
+
+async function deleteMessage(messageId) {
+    if (!confirm('Delete this message?')) return;
+
+    try {
+        const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById(`msg-${messageId}`)?.remove();
+            showToast('Message deleted', 'success');
+        }
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        showToast('Error deleting message', 'error');
+    }
+}
+
+function openImageViewer(url) {
+    window.open(url, '_blank');
 }
 
 // ============ STORIES ============
+
 async function loadStories() {
+    if (!currentUserId) return;
+
     try {
         const response = await fetch('/api/stories');
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            return;
-        }
-
         const data = await response.json();
+
         if (data.success) {
-            storiesList = data.stories || [];
-            renderStoriesRow(storiesList);
+            currentStories = data.stories;
+            renderStoriesRow();
         }
     } catch (error) {
         console.error('Error loading stories:', error);
     }
 }
 
-function renderStoriesRow(stories) {
-    const container = document.getElementById('storiesRow');
-    if (!container) return;
+function renderStoriesRow() {
+    const storiesRow = document.getElementById('storiesRow');
+    if (!storiesRow) return;
 
-    let html = `
-        <div class="story-item" onclick="triggerStoryUpload()">
-            <div class="add-story-btn">+</div>
-            <span class="story-username">Add Story</span>
+    let html = '';
+    const currentUserHasStory = currentStories.some(s => s.user_id === currentUserId);
+
+    html += `
+        <div class="story-item" onclick="showCreateStoryModal()">
+            <div class="story-avatar ${currentUserHasStory ? '' : 'add-story'}">
+                ${currentUserHasStory ?
+                    `<div class="story-avatar-placeholder">${currentUserAvatar}</div>` :
+                    `<div class="add-story-btn">+</div>`
+                }
+            </div>
+            <span class="story-username">Your story</span>
         </div>
     `;
 
-    stories.forEach(storyGroup => {
-        const hasUnviewed = storyGroup.stories.some(s => !s.viewed);
+    for (const userStory of currentStories) {
+        if (userStory.user_id === currentUserId) continue;
+
+        const firstStory = userStory.stories[0];
+        const hasUnviewed = userStory.has_unviewed;
+
         html += `
-            <div class="story-item" onclick="viewStories(${storyGroup.user_id})">
-                <div class="story-avatar ${!hasUnviewed ? 'viewed' : ''}">
-                    ${storyGroup.avatar_url ?
-                        `<img src="${storyGroup.avatar_url}" alt="${escapeHtml(storyGroup.display_name)}">` :
-                        `<div class="story-avatar-placeholder">${(storyGroup.display_name || '?').charAt(0).toUpperCase()}</div>`
+            <div class="story-item" onclick="openStoryViewer(${userStory.user_id})">
+                <div class="story-avatar ${hasUnviewed ? 'unviewed' : 'viewed'}">
+                    ${firstStory.media_url && firstStory.media_type === 'image' ?
+                        `<img src="${firstStory.media_url}" alt="${escapeHtml(userStory.display_name)}">` :
+                        `<div class="story-avatar-placeholder">${userStory.avatar_letter}</div>`
                     }
                 </div>
-                <span class="story-username">${escapeHtml(storyGroup.display_name)}</span>
+                <span class="story-username">${escapeHtml(userStory.display_name)}</span>
             </div>
         `;
+    }
+
+    storiesRow.innerHTML = html;
+}
+
+function showCreateStoryModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container story-create-modal">
+            <div class="modal-header">
+                <h3>Create Story</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="story-media-upload" onclick="document.getElementById('storyMediaInput').click()">
+                    <div class="upload-placeholder" id="storyMediaPreview">
+                        <span>📷</span>
+                        <p>Click to upload photo or video</p>
+                    </div>
+                    <input type="file" id="storyMediaInput" accept="image/*,video/*" style="display: none;" onchange="previewStoryMedia(this)">
+                </div>
+                <textarea id="storyCaption" class="modal-input" placeholder="Add a caption..." rows="2" maxlength="200"></textarea>
+                <small style="color: var(--text-muted);">
+                    <span id="storyCaptionCount">0</span>/200 characters
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="uploadStory()">Post Story</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+
+    const captionInput = document.getElementById('storyCaption');
+    const captionCount = document.getElementById('storyCaptionCount');
+    captionInput.addEventListener('input', () => {
+        captionCount.textContent = captionInput.value.length;
     });
-
-    container.innerHTML = html;
 }
 
-function triggerStoryUpload() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*';
-    input.onchange = (e) => uploadStory(e.target.files[0]);
-    input.click();
-}
-
-async function uploadStory(file) {
+function previewStoryMedia(input) {
+    const file = input.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('media', file);
+    const preview = document.getElementById('storyMediaPreview');
+    const isVideo = file.type.startsWith('video/');
 
-    try {
-        const response = await fetch('/files/upload_story', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        if (data.success) {
-            showToast('Story uploaded!', 'success');
-            loadStories();
-        } else {
-            showToast(data.error || 'Upload failed', 'error');
-        }
-    } catch (error) {
-        showToast('Error uploading story', 'error');
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.controls = false;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        preview.innerHTML = '';
+        preview.appendChild(video);
+    } else {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        preview.innerHTML = '';
+        preview.appendChild(img);
     }
 }
 
-function viewStories(userId) {
-    const userStories = storiesList.find(s => s.user_id === userId);
-    if (!userStories) return;
-    showStoryViewer(userStories);
+async function uploadStory() {
+    const fileInput = document.getElementById('storyMediaInput');
+    const caption = document.getElementById('storyCaption').value;
+
+    if (!fileInput.files[0]) {
+        showToast('Please select a photo or video', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('media', fileInput.files[0]);
+    formData.append('caption', caption);
+
+    try {
+        const response = await fetch('/api/stories/create', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+            showToast('Story posted!', 'success');
+            loadStories();
+        } else {
+            showToast(data.error || 'Failed to post story', 'error');
+        }
+    } catch (error) {
+        console.error('Error uploading story:', error);
+        showToast('Error posting story', 'error');
+    }
 }
 
-function showStoryViewer(storyGroup) {
-    let currentIndex = 0;
-    const stories = storyGroup.stories;
+function openStoryViewer(userId) {
+    const userStory = currentStories.find(s => s.user_id === userId);
+    if (!userStory) return;
+
+    currentStoryUser = userStory;
+    currentStoryIndex = 0;
+
+    renderStoryViewer();
+    markStoryViewed(userStory.stories[0].id);
+}
+
+function renderStoryViewer() {
+    storyViewerActive = true;
 
     const viewer = document.createElement('div');
-    viewer.className = 'stories-viewer';
+    viewer.className = 'story-viewer';
+    viewer.id = 'storyViewer';
+
+    const story = currentStoryUser.stories[currentStoryIndex];
+
     viewer.innerHTML = `
-        <div class="stories-header">
-            <div class="story-avatar" style="width: 40px; height: 40px;">
-                ${storyGroup.avatar_url ?
-                    `<img src="${storyGroup.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%;">` :
-                    `<div class="story-avatar-placeholder">${(storyGroup.display_name || '?').charAt(0)}</div>`
-                }
+        <div class="story-viewer-header">
+            <div class="story-progress-container">
+                ${currentStoryUser.stories.map((_, i) => `
+                    <div class="story-progress-bar-container">
+                        <div class="story-progress-bar ${i < currentStoryIndex ? 'completed' : ''}"
+                             id="storyProgress${i}"></div>
+                    </div>
+                `).join('')}
             </div>
-            <span style="color: white; font-weight: 600;">${escapeHtml(storyGroup.display_name)}</span>
-            <button onclick="this.closest('.stories-viewer').remove()" style="margin-left: auto; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">✕</button>
-        </div>
-        <div class="stories-progress">
-            ${stories.map((_, i) => `
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-${i}" style="width: 0%"></div>
+            <div class="story-viewer-user">
+                <div class="story-viewer-avatar">${currentStoryUser.avatar_letter}</div>
+                <div class="story-viewer-info">
+                    <span class="story-viewer-name">${escapeHtml(currentStoryUser.display_name)}</span>
+                    <span class="story-viewer-time">${formatStoryTime(story.created_at)}</span>
                 </div>
-            `).join('')}
+            </div>
+            <button class="story-viewer-close" onclick="closeStoryViewer()">✕</button>
         </div>
-        <div class="stories-content" id="storyContent"></div>
-        <div class="stories-actions">
-            <button class="story-action-btn" onclick="likeStory(${stories[currentIndex]?.id})">❤️</button>
+
+        <div class="story-viewer-content" id="storyViewerContent">
+            ${story.media_type === 'video' ?
+                `<video src="${story.media_url}" autoplay loop muted playsinline></video>` :
+                `<img src="${story.media_url}" alt="Story">`
+            }
+            ${story.caption ? `<div class="story-caption">${escapeHtml(story.caption)}</div>` : ''}
+        </div>
+
+        <div class="story-viewer-footer">
+            <div class="story-reply-input">
+                <input type="text" placeholder="Send message..." id="storyReplyInput">
+                <button onclick="sendStoryReply()">➤</button>
+            </div>
+            <div class="story-actions">
+                <button onclick="likeCurrentStory()" id="storyLikeBtn">
+                    ${story.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${story.like_count}</span>
+                </button>
+                <button onclick="deleteCurrentStory()" ${currentStoryUser.user_id !== currentUserId ? 'style="display:none"' : ''}>
+                    🗑️
+                </button>
+            </div>
+        </div>
+
+        <div class="story-nav">
+            <div class="story-nav-left" onclick="previousStory()"></div>
+            <div class="story-nav-right" onclick="nextStory()"></div>
         </div>
     `;
 
     document.body.appendChild(viewer);
+    document.body.style.overflow = 'hidden';
 
-    let progressInterval;
-
-    function showStory(index) {
-        if (progressInterval) clearInterval(progressInterval);
-
-        const story = stories[index];
-        const content = document.getElementById('storyContent');
-
-        if (story.media_type === 'image') {
-            content.innerHTML = `<img src="${story.media_url}" class="stories-media">`;
-        } else {
-            content.innerHTML = `<video src="${story.media_url}" class="stories-media" autoplay loop></video>`;
-        }
-
-        fetch(`/api/stories/${story.id}/view`, { method: 'POST' });
-
-        const progressFill = document.getElementById(`progress-${index}`);
-        let width = 0;
-        progressInterval = setInterval(() => {
-            width += 1.67;
-            if (progressFill) progressFill.style.width = width + '%';
-            if (width >= 100) {
-                clearInterval(progressInterval);
-                if (index < stories.length - 1) {
-                    currentIndex++;
-                    showStory(currentIndex);
-                } else {
-                    viewer.remove();
-                }
-            }
-        }, 50);
-
-        viewer.onclick = (e) => {
-            if (e.target.classList.contains('stories-viewer')) {
-                if (index < stories.length - 1) {
-                    currentIndex++;
-                    showStory(currentIndex);
-                } else {
-                    viewer.remove();
-                }
-            }
-        };
-    }
-
-    showStory(0);
+    startStoryProgress();
 }
 
-async function likeStory(storyId) {
+function formatStoryTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+}
+
+function startStoryProgress() {
+    if (storyProgressInterval) clearInterval(storyProgressInterval);
+
+    const progressBar = document.getElementById(`storyProgress${currentStoryIndex}`);
+    if (!progressBar) return;
+
+    let width = 0;
+    const duration = 5000;
+    const interval = 50;
+    const increment = (interval / duration) * 100;
+
+    storyProgressInterval = setInterval(() => {
+        width += increment;
+        progressBar.style.width = `${width}%`;
+
+        if (width >= 100) {
+            clearInterval(storyProgressInterval);
+            nextStory();
+        }
+    }, interval);
+}
+
+function nextStory() {
+    if (currentStoryIndex < currentStoryUser.stories.length - 1) {
+        currentStoryIndex++;
+        markStoryViewed(currentStoryUser.stories[currentStoryIndex].id);
+        updateStoryViewerContent();
+    } else {
+        const currentUserIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
+        if (currentUserIndex < currentStories.length - 1) {
+            currentStoryUser = currentStories[currentUserIndex + 1];
+            currentStoryIndex = 0;
+            markStoryViewed(currentStoryUser.stories[0].id);
+            updateStoryViewerContent();
+        } else {
+            closeStoryViewer();
+        }
+    }
+}
+
+function previousStory() {
+    if (currentStoryIndex > 0) {
+        currentStoryIndex--;
+        updateStoryViewerContent();
+    } else {
+        const currentUserIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
+        if (currentUserIndex > 0) {
+            currentStoryUser = currentStories[currentUserIndex - 1];
+            currentStoryIndex = currentStoryUser.stories.length - 1;
+            updateStoryViewerContent();
+        }
+    }
+}
+
+function updateStoryViewerContent() {
+    const content = document.getElementById('storyViewerContent');
+    const story = currentStoryUser.stories[currentStoryIndex];
+
+    content.innerHTML = `
+        ${story.media_type === 'video' ?
+            `<video src="${story.media_url}" autoplay loop muted playsinline></video>` :
+            `<img src="${story.media_url}" alt="Story">`
+        }
+        ${story.caption ? `<div class="story-caption">${escapeHtml(story.caption)}</div>` : ''}
+    `;
+
+    document.querySelector('.story-viewer-name').textContent = currentStoryUser.display_name;
+    document.querySelector('.story-viewer-time').textContent = formatStoryTime(story.created_at);
+
+    const likeBtn = document.getElementById('storyLikeBtn');
+    likeBtn.innerHTML = `${story.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${story.like_count}</span>`;
+
+    const deleteBtn = likeBtn.parentElement.querySelector('button:last-child');
+    deleteBtn.style.display = currentStoryUser.user_id === currentUserId ? 'block' : 'none';
+
+    document.querySelectorAll('.story-progress-bar').forEach((bar, i) => {
+        bar.classList.toggle('completed', i < currentStoryIndex);
+        if (i === currentStoryIndex) bar.style.width = '0%';
+    });
+
+    startStoryProgress();
+}
+
+async function markStoryViewed(storyId) {
     try {
-        const response = await fetch(`/api/stories/${storyId}/like`, { method: 'POST' });
+        await fetch(`/api/stories/${storyId}/view`, { method: 'POST' });
+        const story = currentStoryUser.stories.find(s => s.id === storyId);
+        if (story) story.viewed = true;
+    } catch (error) {
+        console.error('Error marking story viewed:', error);
+    }
+}
+
+async function likeCurrentStory() {
+    const story = currentStoryUser.stories[currentStoryIndex];
+
+    try {
+        const response = await fetch(`/api/stories/${story.id}/like`, { method: 'POST' });
         const data = await response.json();
-        showToast(data.action === 'liked' ? 'Liked!' : 'Unliked', 'success');
+
+        if (data.success) {
+            story.liked = data.liked;
+            story.like_count = data.like_count;
+
+            const likeBtn = document.getElementById('storyLikeBtn');
+            likeBtn.innerHTML = `${data.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${data.like_count}</span>`;
+        }
     } catch (error) {
         console.error('Error liking story:', error);
     }
 }
 
-// ============ CONTACTS ============
-async function loadContacts() {
+async function deleteCurrentStory() {
+    if (!confirm('Delete this story?')) return;
+
+    const story = currentStoryUser.stories[currentStoryIndex];
+
     try {
-        const response = await fetch('/api/contacts');
+        const response = await fetch(`/api/stories/${story.id}`, { method: 'DELETE' });
         const data = await response.json();
+
         if (data.success) {
-            contactsList = data.contacts;
-            renderContactsList(contactsList);
+            currentStoryUser.stories.splice(currentStoryIndex, 1);
+
+            if (currentStoryUser.stories.length === 0) {
+                const userIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
+                if (userIndex > -1) currentStories.splice(userIndex, 1);
+                closeStoryViewer();
+                loadStories();
+            } else {
+                if (currentStoryIndex >= currentStoryUser.stories.length) {
+                    currentStoryIndex = currentStoryUser.stories.length - 1;
+                }
+                updateStoryViewerContent();
+            }
+
+            showToast('Story deleted', 'success');
         }
     } catch (error) {
-        console.error('Error loading contacts:', error);
+        console.error('Error deleting story:', error);
+        showToast('Error deleting story', 'error');
     }
 }
 
-function renderContactsList(contacts) {
+function sendStoryReply() {
+    const input = document.getElementById('storyReplyInput');
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    openChat('personal', currentStoryUser.user_id);
+
+    setTimeout(() => {
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.value = message;
+            document.getElementById('sendBtn').disabled = false;
+        }
+    }, 500);
+
+    closeStoryViewer();
+}
+
+function closeStoryViewer() {
+    storyViewerActive = false;
+    if (storyProgressInterval) {
+        clearInterval(storyProgressInterval);
+        storyProgressInterval = null;
+    }
+
+    const viewer = document.getElementById('storyViewer');
+    if (viewer) viewer.remove();
+
+    document.body.style.overflow = '';
+    loadStories();
+}
+
+// ============ CONTACTS ============
+
+function showContactsView() {
+    closePopout();
+    hideAllPanels();
+    document.getElementById('contactsView').style.display = 'flex';
+    loadContacts();
+}
+
+function hideContactsView() {
+    document.getElementById('contactsView').style.display = 'none';
+    if (activeChat) {
+        document.getElementById('chatView').style.display = 'flex';
+    } else {
+        document.getElementById('emptyChat').style.display = 'flex';
+    }
+}
+
+async function loadContacts() {
     const container = document.getElementById('contactsList');
-    if (!container) return;
+    container.innerHTML = '<div class="loading-spinner"></div>';
+
+    try {
+        const response = await fetch('/api/contacts');
+        const data = await response.json();
+
+        if (data.success) {
+            renderContacts(data.contacts);
+        }
+    } catch (error) {
+        console.error('Error loading contacts:', error);
+        container.innerHTML = '<div class="empty-state"><p>Error loading contacts</p></div>';
+    }
+}
+
+function renderContacts(contacts) {
+    const container = document.getElementById('contactsList');
 
     if (!contacts || contacts.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="padding: 40px; text-align: center;">
+            <div class="empty-state">
                 <div class="empty-icon">👥</div>
-                <h3>No contacts yet</h3>
-                <p>Start chatting with someone to add them</p>
+                <p>No contacts yet</p>
+                <p style="font-size: 13px;">Start a conversation to add contacts</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = contacts.map(contact => `
-        <div class="contact-item" onclick="startChatWithContact(${contact.id}, '${escapeHtml(contact.username)}')">
-            <div class="contact-avatar">
-                ${contact.avatar_url ? `<img src="${contact.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : contact.username.charAt(0).toUpperCase()}
+    let html = '';
+    for (const contact of contacts) {
+        html += `
+            <div class="contact-item" onclick="openChat('personal', ${contact.id})">
+                <div class="contact-avatar">
+                    ${contact.avatar_url ?
+                        `<img src="${contact.avatar_url}" alt="${contact.display_name}">` :
+                        contact.username[0].toUpperCase()
+                    }
+                </div>
+                <div class="contact-info">
+                    <div class="contact-name">${escapeHtml(contact.display_name)}</div>
+                    <div class="contact-username">@${escapeHtml(contact.username)}</div>
+                </div>
+                ${contact.is_online ? '<span class="online-badge">●</span>' : ''}
             </div>
-            <div class="contact-info">
-                <div class="contact-name">${escapeHtml(contact.display_name || contact.username)}</div>
-                <div class="contact-username">@${escapeHtml(contact.username)}</div>
-                ${contact.is_online ? '<span class="online-badge">● Online</span>' : ''}
-            </div>
-        </div>
-    `).join('');
+        `;
+    }
+
+    container.innerHTML = html;
 }
 
-function startChatWithContact(userId, username) {
-    selectChat('personal', userId, username);
-}
+function handleContactSearch() {
+    const query = document.getElementById('contactSearchInput').value.toLowerCase();
 
-function showAddContactModal() {
-    showPromptModal('Add Contact', 'Enter username:', async (username) => {
-        try {
-            const response = await fetch('/api/users');
-            const data = await response.json();
-            const user = data.users?.find(u => u.username === username);
-
-            if (user) {
-                startChatWithContact(user.id, user.username);
-                showToast(`Starting chat with ${username}`, 'success');
-            } else {
-                showToast('User not found', 'error');
-            }
-        } catch (error) {
-            showToast('Error finding user', 'error');
-        }
+    document.querySelectorAll('.contact-item').forEach(item => {
+        const name = item.querySelector('.contact-name')?.textContent.toLowerCase() || '';
+        const username = item.querySelector('.contact-username')?.textContent.toLowerCase() || '';
+        item.style.display = (name.includes(query) || username.includes(query)) ? 'flex' : 'none';
     });
 }
 
-// ============ CREATE GROUP ============
-async function loadUsersForGroup() {
-    try {
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        if (data.success) {
-            usersList = data.users.filter(u => u.id !== currentUser?.id);
-            renderUserListForGroup(usersList);
-        }
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
-}
+// ============ GLOBAL SEARCH ============
 
-function renderUserListForGroup(users) {
-    const container = document.getElementById('userListForGroup');
-    if (!container) return;
+async function handleGlobalSearch() {
+    const query = document.getElementById('globalSearchInput').value.trim();
+    const resultsContainer = document.getElementById('searchResults');
 
-    if (!users || users.length === 0) {
-        container.innerHTML = '<p style="padding: 16px; color: var(--text-muted);">No users found</p>';
+    if (query.length < 2) {
+        resultsContainer.innerHTML = '';
+        resultsContainer.classList.remove('active');
         return;
     }
 
-    container.innerHTML = users.map(user => `
-        <div class="user-select-item ${selectedMembers.has(user.id) ? 'selected' : ''}"
-             onclick="toggleMemberSelection(${user.id})">
-            <div class="user-select-avatar">
-                ${user.avatar_url ? `<img src="${user.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : user.username.charAt(0).toUpperCase()}
+    try {
+        const response = await fetch(`/api/search/global?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderSearchResults(data.results);
+            resultsContainer.classList.add('active');
+        }
+    } catch (error) {
+        console.error('Error searching:', error);
+    }
+}
+
+function renderSearchResults(results) {
+    const container = document.getElementById('searchResults');
+    const { users, groups, channels } = results;
+
+    if (!users?.length && !groups?.length && !channels?.length) {
+        container.innerHTML = '<div class="search-result-item" style="cursor: default;">No results found</div>';
+        return;
+    }
+
+    let html = '';
+
+    if (users?.length) {
+        html += '<div class="search-result-section">Users</div>';
+        for (const user of users) {
+            html += `
+                <div class="search-result-item" onclick="openChat('personal', ${user.id}); closeSearchResults()">
+                    <div class="search-result-avatar">${user.username[0].toUpperCase()}</div>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${escapeHtml(user.display_name)}</div>
+                        <div class="search-result-type">@${escapeHtml(user.username)}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    if (groups?.length) {
+        html += '<div class="search-result-section">Groups</div>';
+        for (const group of groups) {
+            html += `
+                <div class="search-result-item" onclick="openChat('group', ${group.id}); closeSearchResults()">
+                    <div class="search-result-avatar">👥</div>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${escapeHtml(group.name)}</div>
+                        <div class="search-result-type">Group</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    if (channels?.length) {
+        html += '<div class="search-result-section">Channels</div>';
+        for (const channel of channels) {
+            html += `
+                <div class="search-result-item" onclick="openChat('channel', ${channel.id}); closeSearchResults()">
+                    <div class="search-result-avatar">📢</div>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${escapeHtml(channel.name)}</div>
+                        <div class="search-result-type">Channel</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    container.innerHTML = html;
+}
+
+function closeSearchResults() {
+    document.getElementById('searchResults')?.classList.remove('active');
+    document.getElementById('globalSearchInput').value = '';
+}
+
+// ============ CREATE GROUP ============
+
+function showCreateGroupView() {
+    closePopout();
+    hideAllPanels();
+    document.getElementById('createGroupView').style.display = 'flex';
+    selectedMembers = [];
+    updateSelectedMembersDisplay();
+}
+
+function hideCreateGroupView() {
+    document.getElementById('createGroupView').style.display = 'none';
+}
+
+async function handleMemberSearch() {
+    const query = document.getElementById('memberSearchInput').value.trim();
+    const container = document.getElementById('userListForGroup');
+
+    if (query.length < 2) {
+        container.innerHTML = '';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/users?search=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderUserSelectList(data.users, container);
+        }
+    } catch (error) {
+        console.error('Error searching users:', error);
+    }
+}
+
+function renderUserSelectList(users, container) {
+    let html = '';
+
+    for (const user of users) {
+        if (user.id === currentUserId) continue;
+
+        const isSelected = selectedMembers.includes(user.id);
+
+        html += `
+            <div class="user-select-item ${isSelected ? 'selected' : ''}" onclick="toggleMemberSelection(${user.id})">
+                <div class="user-select-avatar">${user.username[0].toUpperCase()}</div>
+                <div class="user-select-info">
+                    <div class="user-select-name">${escapeHtml(user.display_name)}</div>
+                    <div class="user-select-username">@${escapeHtml(user.username)}</div>
+                </div>
+                ${isSelected ? '<div class="selection-indicator">✓</div>' : ''}
             </div>
-            <div class="user-select-info">
-                <div class="user-select-name">${escapeHtml(user.display_name || user.username)}</div>
-                <div class="user-select-username">@${escapeHtml(user.username)}</div>
-            </div>
-            <div class="selection-indicator">${selectedMembers.has(user.id) ? '✓' : ''}</div>
-        </div>
-    `).join('');
+        `;
+    }
+
+    container.innerHTML = html;
 }
 
 function toggleMemberSelection(userId) {
-    if (selectedMembers.has(userId)) {
-        selectedMembers.delete(userId);
+    const index = selectedMembers.indexOf(userId);
+
+    if (index > -1) {
+        selectedMembers.splice(index, 1);
     } else {
-        selectedMembers.add(userId);
+        selectedMembers.push(userId);
     }
-    renderUserListForGroup(usersList);
+
     updateSelectedMembersDisplay();
+    handleMemberSearch();
 }
 
 function updateSelectedMembersDisplay() {
     const container = document.getElementById('selectedMembers');
-    if (!container) return;
 
-    if (selectedMembers.size === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No members selected</p>';
+    if (selectedMembers.length === 0) {
+        container.innerHTML = '';
         return;
     }
 
-    container.innerHTML = Array.from(selectedMembers).map(id => {
-        const user = usersList.find(u => u.id === id);
-        return `
-            <span class="selected-member-tag">
-                ${escapeHtml(user?.username || 'User')}
-                <button onclick="toggleMemberSelection(${id})">✕</button>
-            </span>
+    let html = '';
+    for (const userId of selectedMembers) {
+        html += `
+            <div class="selected-member-tag">
+                User #${userId}
+                <button onclick="toggleMemberSelection(${userId})">✕</button>
+            </div>
         `;
-    }).join('');
-}
-
-function triggerGroupAvatarUpload() {
-    document.getElementById('groupAvatarInput').click();
-}
-
-function previewGroupAvatar(input) {
-    if (input.files && input.files[0]) {
-        groupAvatarFile = input.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('groupAvatarPreview').innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
-        };
-        reader.readAsDataURL(groupAvatarFile);
     }
+
+    container.innerHTML = html;
 }
 
 async function createGroup() {
-    const name = document.getElementById('groupName')?.value.trim();
-    const description = document.getElementById('groupDescription')?.value.trim();
-    const isPublic = document.getElementById('groupIsPublic')?.checked ?? true;
+    const name = document.getElementById('groupName').value.trim();
+    const description = document.getElementById('groupDescription').value.trim();
+    const isPublic = document.getElementById('groupIsPublic').checked;
 
     if (!name) {
         showToast('Please enter a group name', 'error');
@@ -753,10 +1378,11 @@ async function createGroup() {
     formData.append('name', name);
     formData.append('description', description);
     formData.append('is_public', isPublic);
-    formData.append('member_ids', JSON.stringify(Array.from(selectedMembers)));
+    formData.append('member_ids', JSON.stringify(selectedMembers));
 
-    if (groupAvatarFile) {
-        formData.append('avatar', groupAvatarFile);
+    const avatarInput = document.getElementById('groupAvatarInput');
+    if (avatarInput.files[0]) {
+        formData.append('avatar', avatarInput.files[0]);
     }
 
     try {
@@ -766,39 +1392,53 @@ async function createGroup() {
         });
 
         const data = await response.json();
+
         if (data.success) {
-            showToast('Group created!', 'success');
+            showToast('Group created successfully!', 'success');
             hideCreateGroupView();
-            loadChats();
-            selectChat('group', data.group.id, data.group.name);
+            loadChatList();
+            openChat('group', data.group.id);
         } else {
             showToast(data.error || 'Failed to create group', 'error');
         }
     } catch (error) {
+        console.error('Error creating group:', error);
         showToast('Error creating group', 'error');
     }
 }
 
-// ============ CREATE CHANNEL ============
-function triggerChannelAvatarUpload() {
-    document.getElementById('channelAvatarInput').click();
+function triggerGroupAvatarUpload() {
+    document.getElementById('groupAvatarInput').click();
 }
 
-function previewChannelAvatar(input) {
-    if (input.files && input.files[0]) {
-        channelAvatarFile = input.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('channelAvatarPreview').innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
-        };
-        reader.readAsDataURL(channelAvatarFile);
-    }
+function previewGroupAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const preview = document.getElementById('groupAvatarPreview');
+        preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+// ============ CREATE CHANNEL ============
+
+function showCreateChannelView() {
+    closePopout();
+    hideAllPanels();
+    document.getElementById('createChannelView').style.display = 'flex';
+}
+
+function hideCreateChannelView() {
+    document.getElementById('createChannelView').style.display = 'none';
 }
 
 async function createChannel() {
-    const name = document.getElementById('channelName')?.value.trim();
-    const description = document.getElementById('channelDescription')?.value.trim();
-    const isPublic = document.getElementById('channelIsPublic')?.checked ?? true;
+    const name = document.getElementById('channelName').value.trim();
+    const description = document.getElementById('channelDescription').value.trim();
+    const isPublic = document.getElementById('channelIsPublic').checked;
 
     if (!name) {
         showToast('Please enter a channel name', 'error');
@@ -810,8 +1450,9 @@ async function createChannel() {
     formData.append('description', description);
     formData.append('is_public', isPublic);
 
-    if (channelAvatarFile) {
-        formData.append('avatar', channelAvatarFile);
+    const avatarInput = document.getElementById('channelAvatarInput');
+    if (avatarInput.files[0]) {
+        formData.append('avatar', avatarInput.files[0]);
     }
 
     try {
@@ -821,936 +1462,236 @@ async function createChannel() {
         });
 
         const data = await response.json();
+
         if (data.success) {
-            showToast('Channel created!', 'success');
+            showToast('Channel created successfully!', 'success');
             hideCreateChannelView();
-            loadChats();
-            selectChat('channel', data.channel.id, data.channel.name);
+            loadChatList();
+            openChat('channel', data.channel.id);
         } else {
             showToast(data.error || 'Failed to create channel', 'error');
         }
     } catch (error) {
+        console.error('Error creating channel:', error);
         showToast('Error creating channel', 'error');
     }
 }
 
-// ============ MESSAGES ============
-async function loadMessages() {
-    if (!currentChat || isLoadingMessages) return;
-
-    isLoadingMessages = true;
-
-    let url;
-    if (currentChatType === 'personal') {
-        url = `/api/messages/${currentChat.id}`;
-    } else if (currentChatType === 'group') {
-        url = `/api/group_messages/${currentChat.id}`;
-    } else {
-        url = `/api/channel_messages/${currentChat.id}`;
-    }
-
-    try {
-        const response = await fetch(`${url}?after=${lastMessageId}&limit=50`);
-        const data = await response.json();
-        const container = document.getElementById('messagesContainer');
-
-        if (currentChatId !== currentChat.id) {
-            isLoadingMessages = false;
-            return;
-        }
-
-        if (data.messages && data.messages.length > 0) {
-            const loadingEl = container.querySelector('.loading-messages');
-            if (loadingEl) loadingEl.remove();
-
-            data.messages.forEach(msg => {
-                if (!document.getElementById(`message-${msg.id}`)) {
-                    addMessageToUI(msg, msg.is_own);
-                }
-                if (msg.id > lastMessageId) lastMessageId = msg.id;
-            });
-
-            scrollToBottom();
-        } else if (lastMessageId === 0) {
-            container.innerHTML = `
-                <div class="empty-chat" style="padding: 40px; text-align: center;">
-                    <div class="empty-chat-icon">💬</div>
-                    <h3>No messages yet</h3>
-                    <p>Send a message to start the conversation!</p>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error loading messages:', error);
-    } finally {
-        isLoadingMessages = false;
-    }
+function triggerChannelAvatarUpload() {
+    document.getElementById('channelAvatarInput').click();
 }
 
-async function loadNewMessages() {
-    if (!currentChat || isLoadingMessages) return;
-
-    let url;
-    if (currentChatType === 'personal') {
-        url = `/api/messages/${currentChat.id}`;
-    } else if (currentChatType === 'group') {
-        url = `/api/group_messages/${currentChat.id}`;
-    } else {
-        url = `/api/channel_messages/${currentChat.id}`;
-    }
-
-    try {
-        const response = await fetch(`${url}?after=${lastMessageId}&limit=20`);
-        const data = await response.json();
-        const container = document.getElementById('messagesContainer');
-
-        if (currentChatId !== currentChat.id) return;
-
-        if (data.messages && data.messages.length > 0) {
-            const emptyEl = container.querySelector('.empty-chat');
-            if (emptyEl) emptyEl.remove();
-
-            let newMessages = false;
-            data.messages.forEach(msg => {
-                if (!document.getElementById(`message-${msg.id}`)) {
-                    addMessageToUI(msg, msg.is_own);
-                    newMessages = true;
-                }
-                if (msg.id > lastMessageId) lastMessageId = msg.id;
-            });
-
-            if (newMessages) {
-                scrollToBottom();
-            }
-        }
-    } catch (error) {
-        console.error('Error loading new messages:', error);
-    }
-}
-
-function addMessageToUI(message, isOwn) {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    if (document.getElementById(`message-${message.id}`)) {
-        return;
-    }
-
-    const emptyEl = container.querySelector('.empty-chat');
-    if (emptyEl) emptyEl.remove();
-
-    const wrapper = document.createElement('div');
-    wrapper.className = `message-wrapper ${isOwn ? 'outgoing' : 'incoming'}`;
-    wrapper.id = `message-${message.id}`;
-
-    let html = '<div class="message-bubble">';
-
-    if (message.forwarded_from) {
-        html += `<div class="forward-indicator">📨 Forwarded from ${escapeHtml(message.forwarded_from)}</div>`;
-    }
-
-    if (message.reply_to_id) {
-        html += `<div class="reply-indicator">
-            <span class="reply-to-name">↩️ ${escapeHtml(message.reply_to_sender || 'User')}</span>
-            <div class="reply-to-content">${escapeHtml(message.reply_to_content || '')}</div>
-        </div>`;
-    }
-
-    if (message.file_url) {
-        if (message.file_type === 'image') {
-            html += `<img src="${message.file_url}" class="message-image" onclick="window.open('${message.file_url}', '_blank')">`;
-        } else {
-            html += `<div class="file-attachment">
-                <span>📎</span>
-                <a href="${message.file_url}" target="_blank" class="file-link">${escapeHtml(message.file_name || 'File')}</a>
-                <small>${message.formatted_size || ''}</small>
-            </div>`;
-        }
-    }
-
-    if (message.content) {
-        html += `<div class="message-text">${formatMessageContent(message.content)}</div>`;
-    }
-
-    html += `<div class="message-time">${message.timestamp_formatted || ''}</div>`;
-    html += `<div class="message-reactions" id="reactions-${message.id}"></div>`;
-    html += '</div>';
-
-    html += `<div class="message-actions">
-        <span class="action-icon" onclick="showReactionPickerModal(${message.id})">😊</span>
-        <span class="action-icon" onclick="setReplyTo(${message.id}, '${escapeHtml(message.sender_name || 'User')}', '${escapeHtml((message.content || '[Media]').substring(0, 100))}')">↩️</span>
-        <span class="action-icon" onclick="showForwardModal(${message.id})">📤</span>
-        ${isOwn ? '<span class="action-icon" onclick="deleteMessage(' + message.id + ')">🗑️</span>' : ''}
-    </div>`;
-
-    wrapper.innerHTML = html;
-    container.appendChild(wrapper);
-
-    if (message.reactions) {
-        updateMessageReactions(message.id, message.reactions);
-    }
-}
-
-function formatMessageContent(content) {
-    if (!content) return '';
-
-    let formatted = escapeHtml(content);
-    formatted = formatted.replace(/\n/g, '<br>');
-    formatted = formatted.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: inherit; text-decoration: underline;">$1</a>');
-
-    return formatted;
-}
-
-async function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const content = input.value.trim();
-    if (!content || !currentChat) return;
-
-    const sendBtn = document.getElementById('sendBtn');
-    sendBtn.disabled = true;
-
-    let url, body;
-    if (currentChatType === 'personal') {
-        url = '/api/send_message';
-        body = { receiver_id: currentChat.id, content };
-    } else if (currentChatType === 'group') {
-        url = '/api/send_group_message';
-        body = { group_id: currentChat.id, content };
-    } else {
-        url = '/api/send_channel_message';
-        body = { channel_id: currentChat.id, content };
-    }
-
-    if (replyToMsg) {
-        body.reply_to_id = replyToMsg.id;
-    }
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            input.value = '';
-
-            if (currentChatId === currentChat.id) {
-                if (!document.getElementById(`message-${data.message.id}`)) {
-                    addMessageToUI(data.message, true);
-                    scrollToBottom();
-                }
-            }
-
-            cancelReply();
-            updateSendButton();
-
-            if (data.message.id > lastMessageId) {
-                lastMessageId = data.message.id;
-            }
-
-            loadChats();
-        } else {
-            showToast(data.error || 'Failed to send message', 'error');
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
-        showToast('Error sending message', 'error');
-    } finally {
-        sendBtn.disabled = false;
-        input.focus();
-    }
-}
-
-function setReplyTo(messageId, senderName, content) {
-    replyToMsg = { id: messageId, sender: senderName, content };
-    const preview = document.getElementById('replyPreview');
-    preview.querySelector('.reply-preview-name').textContent = `Replying to ${senderName}`;
-    preview.querySelector('.reply-preview-text').textContent = content.substring(0, 50);
-    preview.style.display = 'flex';
-    document.getElementById('messageInput').focus();
-}
-
-function cancelReply() {
-    replyToMsg = null;
-    document.getElementById('replyPreview').style.display = 'none';
-}
-
-function scrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    setTimeout(() => container.scrollTop = container.scrollHeight, 100);
-}
-
-function updateSendButton() {
-    const input = document.getElementById('messageInput');
-    const btn = document.getElementById('sendBtn');
-    if (btn) btn.disabled = !input.value.trim();
-}
-
-async function deleteMessage(messageId) {
-    showConfirmModal('Delete Message', 'Are you sure you want to delete this message?', async () => {
-        try {
-            const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
-            const data = await response.json();
-            if (data.success) {
-                document.getElementById(`message-${messageId}`)?.remove();
-                showToast('Message deleted', 'success');
-            }
-        } catch (error) {
-            showToast('Error deleting message', 'error');
-        }
-    });
-}
-
-// ============ REACTIONS ============
-async function addReaction(messageId, reactionType) {
-    try {
-        const response = await fetch('/api/reactions/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message_id: messageId, reaction_type: reactionType })
-        });
-        const data = await response.json();
-        if (data.success) {
-            updateMessageReactions(messageId, data.reactions);
-        }
-    } catch (error) {
-        console.error('Error adding reaction:', error);
-    }
-}
-
-function updateMessageReactions(messageId, reactions) {
-    const container = document.getElementById(`reactions-${messageId}`);
-    if (!container) return;
-
-    if (!reactions || reactions.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    container.innerHTML = reactions.map(r => `
-        <div class="reaction-badge" onclick="addReaction(${messageId}, '${r.type}')">
-            <span>${r.type}</span>
-            <span>${r.count}</span>
-        </div>
-    `).join('');
-}
-
-async function loadMessageReactions(messageId) {
-    try {
-        const response = await fetch(`/api/reactions/${messageId}`);
-        const data = await response.json();
-        if (data.success) {
-            updateMessageReactions(messageId, data.reactions);
-        }
-    } catch (error) {
-        console.error('Error loading reactions:', error);
-    }
-}
-
-// ============ CHAT ACTIONS ============
-function showChatInfo() {
-    if (!currentChat) return;
-
-    let infoHtml = `
-        <p><strong>Name:</strong> ${escapeHtml(currentChat.name)}</p>
-        <p><strong>Type:</strong> ${currentChatType}</p>
-        <p><strong>ID:</strong> ${currentChat.id}</p>
-    `;
-
-    showModal('Chat Info', infoHtml, null, null, 'Close');
-}
-
-function showChatMenu() {
-    if (!currentChat) return;
-
-    const actions = [];
-
-    if (currentChatType === 'personal') {
-        actions.push({ label: 'View Profile', action: () => viewUserProfile(currentChat.id) });
-        actions.push({ label: 'Block User', action: blockUser, danger: true });
-        actions.push({ label: 'Clear Chat', action: clearCurrentChat, danger: true });
-    } else if (currentChatType === 'group') {
-        actions.push({ label: 'Group Info', action: showChatInfo });
-        actions.push({ label: 'Leave Group', action: leaveCurrentGroup, danger: true });
-    } else if (currentChatType === 'channel') {
-        actions.push({ label: 'Channel Info', action: showChatInfo });
-        actions.push({ label: 'Leave Channel', action: leaveCurrentChannel, danger: true });
-    }
-
-    const buttonsHtml = actions.map(a => `
-        <button class="modal-btn ${a.danger ? 'modal-btn-danger' : 'modal-btn-primary'}"
-                style="width: 100%; margin-bottom: 8px;"
-                onclick="(${a.action.toString()})(); document.querySelector('.modal-overlay')?.remove();">
-            ${a.label}
-        </button>
-    `).join('');
-
-    showModal('Chat Actions', buttonsHtml, null, null, 'Close');
-}
-
-function viewUserProfile(userId) {
-    window.location.href = `/profile/${userId}`;
-}
-
-function blockUser() {
-    showConfirmModal('Block User', 'Are you sure you want to block this user?', async () => {
-        try {
-            await fetch(`/api/block_user/${currentChat.id}`, { method: 'POST' });
-            showToast('User blocked', 'success');
-            showView('empty');
-            loadChats();
-        } catch (error) {
-            showToast('Error blocking user', 'error');
-        }
-    });
-}
-
-function clearCurrentChat() {
-    showConfirmModal('Clear Chat', 'Delete all messages? This cannot be undone.', async () => {
-        try {
-            await fetch(`/api/clear_chat/${currentChat.id}`, { method: 'POST' });
-            document.getElementById('messagesContainer').innerHTML = `
-                <div class="empty-chat" style="padding: 40px;">
-                    <div class="empty-chat-icon">💬</div>
-                    <h3>No messages yet</h3>
-                    <p>Send a message to start the conversation!</p>
-                </div>
-            `;
-            lastMessageId = 0;
-            showToast('Chat cleared', 'success');
-            loadChats();
-        } catch (error) {
-            showToast('Error clearing chat', 'error');
-        }
-    });
-}
-
-async function leaveCurrentGroup() {
-    showConfirmModal('Leave Group', 'Are you sure you want to leave this group?', async () => {
-        try {
-            await fetch(`/api/leave_group/${currentChat.id}`, { method: 'POST' });
-            showToast('Left group', 'success');
-            showView('empty');
-            loadChats();
-        } catch (error) {
-            showToast('Error leaving group', 'error');
-        }
-    });
-}
-
-async function leaveCurrentChannel() {
-    showConfirmModal('Leave Channel', 'Are you sure you want to leave this channel?', async () => {
-        try {
-            await fetch(`/api/leave_channel/${currentChat.id}`, { method: 'POST' });
-            showToast('Left channel', 'success');
-            showView('empty');
-            loadChats();
-        } catch (error) {
-            showToast('Error leaving channel', 'error');
-        }
-    });
-}
-
-// ============ FILE UPLOAD ============
-function triggerFileUpload() {
-    document.getElementById('fileInput')?.click();
-}
-
-function handleFileSelect(input) {
-    if (input.files && input.files.length > 0) {
-        selectedFile = input.files[0];
-        const uploadArea = document.getElementById('uploadArea');
-        const fileNameEl = document.getElementById('uploadFileName');
-
-        if (fileNameEl) fileNameEl.textContent = selectedFile.name;
-        if (uploadArea) uploadArea.classList.add('active');
-
-        if (selectedFile.size > 16 * 1024 * 1024) {
-            showToast('File must be less than 16MB', 'error');
-            cancelUpload();
-        }
-    }
-}
-
-async function uploadFile() {
-    if (!selectedFile || !currentChat) {
-        showToast('Please select a file', 'error');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    if (currentChatType === 'personal') {
-        formData.append('receiver_id', currentChat.id);
-    } else if (currentChatType === 'group') {
-        formData.append('group_id', currentChat.id);
-    } else {
-        formData.append('channel_id', currentChat.id);
-    }
-
-    const uploadBtn = event.target;
-    if (uploadBtn) {
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = 'Uploading...';
-    }
-
-    try {
-        const response = await fetch('/files/upload_file', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            if (currentChatId === currentChat.id) {
-                addMessageToUI(data.message, true);
-                scrollToBottom();
-            }
-            cancelUpload();
-            showToast('File uploaded', 'success');
-            loadChats();
-        } else {
-            showToast(data.error || 'Upload failed', 'error');
-        }
-    } catch (error) {
-        showToast('Upload failed', 'error');
-    } finally {
-        if (uploadBtn) {
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload';
-        }
-    }
-}
-
-function cancelUpload() {
-    document.getElementById('uploadArea')?.classList.remove('active');
-    selectedFile = null;
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) fileInput.value = '';
-    const fileNameEl = document.getElementById('uploadFileName');
-    if (fileNameEl) fileNameEl.textContent = 'No file selected';
+function previewChannelAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const preview = document.getElementById('channelAvatarPreview');
+        preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    };
+    reader.readAsDataURL(file);
 }
 
 // ============ PROFILE MODAL ============
+
 function openProfileModal() {
-    loadUserProfileData();
     document.getElementById('profileModal').style.display = 'flex';
-    closePopout();
+    loadProfileData();
 }
 
 function closeProfileModal() {
     document.getElementById('profileModal').style.display = 'none';
 }
 
-function loadUserProfileData() {
-    fetch('/api/profile')
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                const user = data.user;
-                currentUser = user;
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
 
-                const avatarContainer = document.getElementById('profileAvatar');
-                if (user.avatar_url) {
-                    avatarContainer.innerHTML = `<img src="${user.avatar_url}" class="profile-avatar" alt="${escapeHtml(user.display_name || user.username)}">`;
-                } else {
-                    avatarContainer.innerHTML = `<div class="profile-avatar-placeholder">${(user.display_name || user.username || '?').charAt(0).toUpperCase()}</div>`;
-                }
+        if (data.success && data.user) {
+            const user = data.user;
 
-                document.getElementById('profileDisplayName').textContent = user.display_name || user.username;
-                document.getElementById('profileUsername').textContent = '@' + (user.username || '');
-                document.getElementById('profileBio').textContent = user.bio || 'No bio yet';
-                document.getElementById('profileDisplayNameValue').textContent = user.display_name || user.username;
-                document.getElementById('profileUsernameValue').textContent = user.username || '';
-                document.getElementById('profileBioValue').textContent = user.bio || 'Not set';
+            document.getElementById('profileDisplayName').textContent = user.display_name;
+            document.getElementById('profileUsername').textContent = '@' + user.username;
+            document.getElementById('profileBio').textContent = user.bio || 'No bio yet';
+            document.getElementById('profileDisplayNameValue').textContent = user.display_name;
+            document.getElementById('profileUsernameValue').textContent = '@' + user.username;
+            document.getElementById('profileBioValue').textContent = user.bio || 'No bio yet';
 
-                document.getElementById('followersCount').textContent = user.followers_count || 0;
-                document.getElementById('followingCount').textContent = user.following_count || 0;
-                document.getElementById('groupsCount').textContent = user.groups_count || 0;
-
-                updateMenuUserInfo(user);
+            const avatar = document.getElementById('profileAvatar');
+            if (user.avatar_url) {
+                avatar.innerHTML = `<img src="${user.avatar_url}" alt="${user.display_name}" class="profile-avatar">`;
+            } else {
+                avatar.innerHTML = `<div class="profile-avatar-placeholder">${user.username[0].toUpperCase()}</div>`;
             }
-        });
-}
 
-function updateMenuUserInfo(user) {
-    const avatar = document.getElementById('menuUserAvatar');
-    const name = document.getElementById('menuUserName');
-    const username = document.getElementById('menuUserUsername');
-
-    if (avatar) avatar.textContent = (user.display_name || user.username || '?').charAt(0).toUpperCase();
-    if (name) name.textContent = user.display_name || user.username;
-    if (username) username.textContent = '@' + (user.username || '');
+            document.getElementById('followersCount').textContent = user.followers_count || 0;
+            document.getElementById('followingCount').textContent = user.following_count || 0;
+            document.getElementById('groupsCount').textContent = user.groups_count || 0;
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+    }
 }
 
 function openEditProfileModal() {
     closeProfileModal();
 
-    fetch('/api/profile')
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                const user = data.user;
-                document.getElementById('editDisplayName').value = user.display_name || '';
-                document.getElementById('editUsername').value = user.username || '';
-                document.getElementById('editBio').value = user.bio || '';
-                document.getElementById('bioCharCount').textContent = (user.bio || '').length;
-            }
-        });
+    const displayName = document.getElementById('profileDisplayNameValue').textContent;
+    const username = document.getElementById('profileUsernameValue').textContent.replace('@', '');
+    const bio = document.getElementById('profileBioValue').textContent;
+
+    document.getElementById('editDisplayName').value = displayName;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editBio').value = bio === 'No bio yet' ? '' : bio;
+    document.getElementById('bioCharCount').textContent = bio === 'No bio yet' ? 0 : bio.length;
 
     document.getElementById('editProfileModal').style.display = 'flex';
 
-    const bioField = document.getElementById('editBio');
-    if (bioField) {
-        bioField.addEventListener('input', function() {
-            document.getElementById('bioCharCount').textContent = this.value.length;
-        });
-    }
+    document.getElementById('editBio').addEventListener('input', function() {
+        document.getElementById('bioCharCount').textContent = this.value.length;
+    });
 }
 
 function closeEditProfileModal() {
     document.getElementById('editProfileModal').style.display = 'none';
 }
 
-function saveProfile() {
-    const data = {
-        display_name: document.getElementById('editDisplayName').value.trim(),
-        username: document.getElementById('editUsername').value.trim(),
-        bio: document.getElementById('editBio').value.trim()
-    };
+async function saveProfile() {
+    const displayName = document.getElementById('editDisplayName').value.trim();
+    const username = document.getElementById('editUsername').value.trim();
+    const bio = document.getElementById('editBio').value.trim();
 
-    fetch('/api/profile/update', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(r => r.json())
-    .then(data => {
+    try {
+        const response = await fetch('/api/profile/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ display_name: displayName, username, bio })
+        });
+
+        const data = await response.json();
+
         if (data.success) {
             showToast('Profile updated!', 'success');
             closeEditProfileModal();
-            loadUserProfileData();
+            currentUserDisplayName = displayName;
+            currentUserUsername = username;
+            updateUserUI();
         } else {
-            showToast(data.error || 'Update failed', 'error');
+            showToast(data.error || 'Failed to update profile', 'error');
         }
-    });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        showToast('Error updating profile', 'error');
+    }
 }
 
 function triggerAvatarUpload() {
     document.getElementById('avatarInput').click();
 }
 
-function uploadAvatar(input) {
-    if (input.files && input.files[0]) {
-        const file = input.files[0];
+async function uploadAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) {
-            showToast('File too large. Max 5MB', 'error');
-            return;
-        }
+    const formData = new FormData();
+    formData.append('avatar', file);
 
-        const formData = new FormData();
-        formData.append('avatar', file);
-
-        fetch('/files/upload_avatar', {
+    try {
+        const response = await fetch('/files/upload_avatar', {
             method: 'POST',
             body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Avatar updated!', 'success');
-                loadUserProfileData();
-            } else {
-                showToast(data.error || 'Upload failed', 'error');
-            }
         });
-    }
-}
 
-function loadUserProfile() {
-    loadUserProfileData();
-}
+        const data = await response.json();
 
-// ============ CHAT CUSTOMIZATION ============
-function openChatCustomization() {
-    const bodyHtml = `
-        <div class="settings-section">
-            <h3>Wallpaper</h3>
-            <div class="wallpaper-options">
-                <div class="wallpaper-option gradient1 ${!chatSettings.wallpaper ? 'active' : ''}" onclick="selectWallpaper('gradient1')"></div>
-                <div class="wallpaper-option gradient2" onclick="selectWallpaper('gradient2')"></div>
-                <div class="wallpaper-option gradient3" onclick="selectWallpaper('gradient3')"></div>
-                <div class="wallpaper-option gradient4" onclick="selectWallpaper('gradient4')"></div>
-                <div class="wallpaper-option gradient5" onclick="selectWallpaper('gradient5')"></div>
-                <div class="wallpaper-option gradient6" onclick="selectWallpaper('gradient6')"></div>
-            </div>
-            <button class="modal-btn modal-btn-secondary" style="width: 100%; margin-top: 12px;" onclick="uploadCustomWallpaper()">📁 Upload Custom</button>
-        </div>
-        <div class="settings-section">
-            <h3>Message Style</h3>
-            <label>Your Message Color</label>
-            <input type="color" id="ownColorInput" class="modal-input" value="${chatSettings.ownMessageColor}">
-            <label>Other Message Color</label>
-            <input type="color" id="otherColorInput" class="modal-input" value="${chatSettings.otherMessageColor}">
-        </div>
-    `;
-
-    showModal('Chat Customization', bodyHtml, () => {
-        chatSettings.ownMessageColor = document.getElementById('ownColorInput').value;
-        chatSettings.otherMessageColor = document.getElementById('otherColorInput').value;
-        localStorage.setItem('chatSettings', JSON.stringify(chatSettings));
-        applyChatSettings();
-        showToast('Settings saved', 'success');
-    }, null, 'Save', 'Cancel');
-}
-
-function selectWallpaper(type) {
-    document.querySelectorAll('.wallpaper-option').forEach(opt => opt.classList.remove('active'));
-    event.target.classList.add('active');
-
-    const gradients = {
-        gradient1: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        gradient2: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        gradient3: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        gradient4: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        gradient5: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-        gradient6: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)'
-    };
-
-    chatSettings.wallpaper = gradients[type];
-}
-
-function uploadCustomWallpaper() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-        if (e.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                chatSettings.wallpaper = `url(${event.target.result})`;
-                applyChatSettings();
-                showToast('Wallpaper applied', 'success');
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        }
-    };
-    input.click();
-}
-
-function applyChatSettings() {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    if (chatSettings.wallpaper) {
-        container.style.backgroundImage = chatSettings.wallpaper;
-        container.style.backgroundSize = 'cover';
-        container.style.backgroundPosition = 'center';
-    }
-}
-
-// ============ SETTINGS ============
-function openSettingsPanel() {
-    document.getElementById('settingsPanel').classList.add('open');
-    document.getElementById('panelOverlay').classList.add('visible');
-    closePopout();
-}
-
-function closeSettingsPanel() {
-    document.getElementById('settingsPanel').classList.remove('open');
-    document.getElementById('panelOverlay').classList.remove('visible');
-}
-
-function openPrivacyPanel() {
-    document.getElementById('privacyPanel').classList.add('open');
-    document.getElementById('panelOverlay').classList.add('visible');
-}
-
-function closePrivacyPanel() {
-    document.getElementById('privacyPanel').classList.remove('open');
-    document.getElementById('panelOverlay').classList.remove('visible');
-}
-
-function closeAllPanels() {
-    closeSettingsPanel();
-    closePrivacyPanel();
-    closeProfileModal();
-    closeEditProfileModal();
-}
-
-function toggleSetting(element, setting) {
-    element.classList.toggle('active');
-    const isEnabled = element.classList.contains('active');
-    localStorage.setItem(setting, isEnabled);
-    showToast(`${setting} ${isEnabled ? 'enabled' : 'disabled'}`, 'info');
-}
-
-function setTheme(theme) {
-    document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-    event.target.closest('.theme-option').classList.add('active');
-    localStorage.setItem('theme', theme);
-
-    if (theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (theme === 'light') {
-        document.documentElement.removeAttribute('data-theme');
-    } else if (theme === 'auto') {
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+        if (data.success) {
+            showToast('Avatar updated!', 'success');
+            currentUserAvatar = currentUserUsername[0].toUpperCase();
+            updateUserUI();
+            loadProfileData();
         } else {
-            document.documentElement.removeAttribute('data-theme');
+            showToast(data.error || 'Failed to upload avatar', 'error');
+        }
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        showToast('Error uploading avatar', 'error');
+    }
+}
+
+// ============ FILE UPLOAD ============
+
+function triggerFileUpload() {
+    document.getElementById('fileInput').click();
+}
+
+function handleFileSelect(input) {
+    const files = input.files;
+    if (files.length === 0) return;
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileName = document.getElementById('uploadFileName');
+
+    if (files.length === 1) {
+        fileName.textContent = files[0].name;
+    } else {
+        fileName.textContent = `${files.length} files selected`;
+    }
+
+    uploadArea.classList.add('active');
+}
+
+async function uploadFile() {
+    const input = document.getElementById('fileInput');
+    const files = input.files;
+
+    if (files.length === 0 || !activeChat) {
+        cancelUpload();
+        return;
+    }
+
+    for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        if (activeChat.type === 'personal') {
+            formData.append('receiver_id', activeChat.id);
+        } else if (activeChat.type === 'group') {
+            formData.append('group_id', activeChat.id);
+        } else if (activeChat.type === 'channel') {
+            formData.append('channel_id', activeChat.id);
+        }
+
+        try {
+            const response = await fetch('/files/upload_file', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                addMessageToView(data.message);
+                loadChatList();
+            } else {
+                showToast(data.error || 'Failed to upload file', 'error');
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showToast('Error uploading file', 'error');
         }
     }
 
-    showToast(`Theme set to ${theme}`, 'success');
+    cancelUpload();
 }
 
-function setFont(element) {
-    document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('active'));
-    element.classList.add('active');
-
-    const font = element.dataset.font;
-    document.documentElement.style.setProperty('--font-family', font);
-    chatSettings.fontFamily = font;
-    localStorage.setItem('fontFamily', font);
-    localStorage.setItem('chatSettings', JSON.stringify(chatSettings));
-
-    showToast('Font updated', 'success');
+function cancelUpload() {
+    document.getElementById('uploadArea').classList.remove('active');
+    document.getElementById('fileInput').value = '';
 }
 
-function savePrivacySettings() {
-    const visibility = document.getElementById('profileVisibility')?.value || 'everyone';
-    localStorage.setItem('profileVisibility', visibility);
-    showToast('Privacy settings saved', 'success');
-    closePrivacyPanel();
-}
-
-// ============ STAT ACTIONS ============
-function showFollowers() {
-    showToast('Followers list coming soon', 'info');
-}
-
-function showFollowing() {
-    showToast('Following list coming soon', 'info');
-}
-
-function showGroups() {
-    showToast('Groups list coming soon', 'info');
-}
-
-// ============ MODAL FUNCTIONS ============
-function showModal(title, bodyHtml, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', isDanger = false) {
-    const modalRoot = document.getElementById('modalRoot');
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>${escapeHtml(title)}</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body">${bodyHtml}</div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-secondary" id="modalCancelBtn">${escapeHtml(cancelText)}</button>
-                <button class="modal-btn ${isDanger ? 'modal-btn-danger' : 'modal-btn-primary'}" id="modalConfirmBtn">${escapeHtml(confirmText)}</button>
-            </div>
-        </div>
-    `;
-
-    modalRoot.appendChild(modal);
-
-    const confirmBtn = modal.querySelector('#modalConfirmBtn');
-    const cancelBtn = modal.querySelector('#modalCancelBtn');
-    const closeBtn = modal.querySelector('.modal-close');
-
-    const closeModal = () => modal.remove();
-
-    confirmBtn.onclick = () => { if (onConfirm) onConfirm(modal); closeModal(); };
-    cancelBtn.onclick = () => { if (onCancel) onCancel(); closeModal(); };
-    closeBtn.onclick = closeModal;
-    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-}
-
-function showConfirmModal(title, message, onConfirm) {
-    showModal(title, `<p>${escapeHtml(message)}</p>`, onConfirm, null, 'Yes', 'No', true);
-}
-
-function showPromptModal(title, placeholder, onConfirm, defaultValue = '') {
-    const bodyHtml = `
-        <input type="text" id="modalInput" class="modal-input" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(defaultValue)}" autofocus>
-    `;
-    showModal(title, bodyHtml, (modal) => {
-        const input = modal.querySelector('#modalInput');
-        if (input && input.value.trim()) {
-            onConfirm(input.value.trim());
-        }
-    }, null, 'Submit', 'Cancel');
-}
-
-function showReactionPickerModal(messageId) {
-    const reactions = ['👍', '❤️', '😂', '😮', '😢', '👏', '🔥', '🎉', '💯'];
-    const bodyHtml = `
-        <div class="reaction-picker-modal">
-            ${reactions.map(r => `<button class="reaction-option" onclick="addReaction(${messageId}, '${r}'); this.closest('.modal-overlay').remove()">${r}</button>`).join('')}
-        </div>
-    `;
-    showModal('Add Reaction', bodyHtml, null, null, 'Close', 'Cancel');
-}
-
-function showForwardModal(messageId) {
-    const bodyHtml = `
-        <div class="radio-group">
-            <div class="radio-option">
-                <input type="radio" name="forwardType" value="user" checked> User
-            </div>
-            <div class="radio-option">
-                <input type="radio" name="forwardType" value="group"> Group
-            </div>
-            <div class="radio-option">
-                <input type="radio" name="forwardType" value="channel"> Channel
-            </div>
-        </div>
-        <input type="text" id="targetIdInput" class="modal-input" placeholder="Enter ID">
-    `;
-
-    showModal('Forward Message', bodyHtml, (modal) => {
-        const type = modal.querySelector('input[name="forwardType"]:checked').value;
-        const targetId = modal.querySelector('#targetIdInput').value.trim();
-
-        if (!targetId) {
-            showToast('Please enter a target ID', 'error');
-            return;
-        }
-
-        fetch('/api/forward_message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message_id: messageId, target_type: type, target_id: targetId })
-        }).then(r => r.json()).then(data => {
-            if (data.success) showToast('Forwarded!', 'success');
-            else showToast(data.error || 'Forward failed', 'error');
-        });
-    }, null, 'Forward', 'Cancel');
-}
-
-// ============ UTILITIES ============
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-        background: ${type === 'error' ? '#f5365c' : type === 'success' ? '#2dce89' : '#5e72e4'};
-        color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px;
-        z-index: 3000; animation: fadeIn 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        white-space: nowrap;
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
+// ============ UTILITY FUNCTIONS ============
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -1759,80 +1700,665 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function toggleMobileSidebar() {
-    document.getElementById('chatSidebar').classList.toggle('mobile-open');
-}
-
 function logout() {
-    showConfirmModal('Sign Out', 'Are you sure you want to sign out?', () => {
-        fetch('/api/auth/logout', { method: 'POST' })
-            .then(() => window.location.href = '/login')
-            .catch(() => window.location.href = '/logout');
-    });
+    fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => window.location.href = '/login')
+        .catch(() => window.location.href = '/login');
 }
 
-// ============ CLEANUP ============
-window.addEventListener('beforeunload', () => {
-    if (pollingInterval) clearInterval(pollingInterval);
-    if (messagePollingInterval) clearInterval(messagePollingInterval);
+// ============ CHAT INFO ============
+
+async function showChatInfo() {
+    if (!activeChat) {
+        showToast('No chat selected', 'info');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Chat Info</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body" id="chatInfoBody">
+                <div class="loading-spinner"></div>
+            </div>
+            <div class="modal-footer">
+                ${activeChat.type === 'personal' ? `
+                    <button class="modal-btn modal-btn-danger" onclick="blockUser(${activeChat.id})">Block User</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="clearChat(${activeChat.id})">Clear Chat</button>
+                ` : ''}
+                ${activeChat.type === 'group' ? `
+                    <button class="modal-btn modal-btn-danger" onclick="leaveGroup(${activeChat.id})">Leave Group</button>
+                ` : ''}
+                ${activeChat.type === 'channel' ? `
+                    <button class="modal-btn modal-btn-secondary" onclick="leaveChannel(${activeChat.id})">Unsubscribe</button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+    await loadChatInfoDetails(activeChat.type, activeChat.id);
+}
+
+async function loadChatInfoDetails(type, id) {
+    const body = document.getElementById('chatInfoBody');
+
+    try {
+        if (type === 'personal') {
+            const response = await fetch('/api/users');
+            const data = await response.json();
+            const user = data.users?.find(u => u.id === id);
+
+            if (user) {
+                body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-green)); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
+                            ${user.username[0].toUpperCase()}
+                        </div>
+                        <h3 style="margin-bottom: 4px;">${escapeHtml(user.display_name)}</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px;">@${escapeHtml(user.username)}</p>
+                        ${user.bio ? `<p style="text-align: center; margin-bottom: 16px;">${escapeHtml(user.bio)}</p>` : ''}
+                        <div style="display: flex; gap: 20px; margin-bottom: 16px;">
+                            <div style="text-align: center;">
+                                <div style="font-weight: 700;">${user.followers_count || 0}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Followers</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-weight: 700;">${user.following_count || 0}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Following</div>
+                            </div>
+                        </div>
+                        <div style="width: 100%; padding: 12px; background: var(--bg-surface); border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>${user.is_online ? '🟢' : '⚪'}</span>
+                                <span>${user.is_online ? 'Online' : 'Offline'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (type === 'group') {
+            const response = await fetch('/api/chat_list');
+            const data = await response.json();
+            const group = data.chats?.find(c => c.type === 'group' && c.id === id);
+
+            if (group) {
+                body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-green), #2dce89); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
+                            👥
+                        </div>
+                        <h3 style="margin-bottom: 4px;">${escapeHtml(group.name)}</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px;">${group.member_count || 0} members</p>
+                        <div style="width: 100%; padding: 12px; background: var(--bg-surface); border-radius: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>🔗</span>
+                                <span>Invite link available</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (type === 'channel') {
+            const response = await fetch('/api/chat_list');
+            const data = await response.json();
+            const channel = data.chats?.find(c => c.type === 'channel' && c.id === id);
+
+            if (channel) {
+                body.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-orange), #fb6340); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
+                            📢
+                        </div>
+                        <h3 style="margin-bottom: 4px;">${escapeHtml(channel.name)}</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px;">${channel.subscriber_count || 0} subscribers</p>
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading chat info:', error);
+        body.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading info</p>';
+    }
+}
+
+async function blockUser(userId) {
+    if (!confirm('Block this user? You will no longer receive messages from them.')) return;
+
+    try {
+        const response = await fetch(`/api/block_user/${userId}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('User blocked', 'success');
+            closeAllModals();
+            activeChat = null;
+            document.getElementById('emptyChat').style.display = 'flex';
+            document.getElementById('chatView').style.display = 'none';
+            loadChatList();
+        } else {
+            showToast(data.error || 'Failed to block user', 'error');
+        }
+    } catch (error) {
+        console.error('Error blocking user:', error);
+        showToast('Error blocking user', 'error');
+    }
+}
+
+async function clearChat(userId) {
+    if (!confirm('Clear chat history? This cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/clear_chat/${userId}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Chat cleared', 'success');
+            closeAllModals();
+            if (activeChat?.type === 'personal' && activeChat.id === userId) {
+                document.getElementById('messagesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <p>No messages yet</p>
+                    </div>
+                `;
+            }
+            loadChatList();
+        }
+    } catch (error) {
+        console.error('Error clearing chat:', error);
+        showToast('Error clearing chat', 'error');
+    }
+}
+
+async function leaveGroup(groupId) {
+    if (!confirm('Leave this group?')) return;
+
+    try {
+        const response = await fetch(`/api/leave_group/${groupId}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Left group', 'success');
+            closeAllModals();
+            activeChat = null;
+            document.getElementById('emptyChat').style.display = 'flex';
+            document.getElementById('chatView').style.display = 'none';
+            loadChatList();
+        }
+    } catch (error) {
+        console.error('Error leaving group:', error);
+        showToast('Error leaving group', 'error');
+    }
+}
+
+async function leaveChannel(channelId) {
+    if (!confirm('Unsubscribe from this channel?')) return;
+
+    try {
+        const response = await fetch(`/api/leave_channel/${channelId}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Unsubscribed from channel', 'success');
+            closeAllModals();
+            activeChat = null;
+            document.getElementById('emptyChat').style.display = 'flex';
+            document.getElementById('chatView').style.display = 'none';
+            loadChatList();
+        }
+    } catch (error) {
+        console.error('Error leaving channel:', error);
+        showToast('Error leaving channel', 'error');
+    }
+}
+
+// ============ CHAT MENU ============
+
+function showChatMenu() {
+    if (!activeChat) {
+        showToast('No chat selected', 'info');
+        return;
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'modal-overlay';
+    menu.onclick = (e) => { if (e.target === menu) menu.remove(); };
+
+    menu.innerHTML = `
+        <div class="chat-menu-dropdown" style="position: fixed; top: 60px; right: 20px; background: var(--bg-secondary); border-radius: 12px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); padding: 8px 0; min-width: 200px; z-index: 2000;">
+            <div class="chat-menu-item" onclick="showChatInfo(); this.closest('.modal-overlay').remove()">
+                <span>ℹ️</span> View Info
+            </div>
+            <div class="chat-menu-item" onclick="openChatCustomization(); this.closest('.modal-overlay').remove()">
+                <span>🎨</span> Customize Chat
+            </div>
+            <div class="chat-menu-item" onclick="exportChat(); this.closest('.modal-overlay').remove()">
+                <span>📤</span> Export Chat
+            </div>
+            ${activeChat.type === 'personal' ? `
+                <div class="chat-menu-divider"></div>
+                <div class="chat-menu-item danger" onclick="blockUser(${activeChat.id}); this.closest('.modal-overlay').remove()">
+                    <span>🚫</span> Block User
+                </div>
+                <div class="chat-menu-item danger" onclick="clearChat(${activeChat.id}); this.closest('.modal-overlay').remove()">
+                    <span>🗑️</span> Clear Chat
+                </div>
+            ` : ''}
+            ${activeChat.type === 'group' ? `
+                <div class="chat-menu-divider"></div>
+                <div class="chat-menu-item danger" onclick="leaveGroup(${activeChat.id}); this.closest('.modal-overlay').remove()">
+                    <span>🚪</span> Leave Group
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    document.body.appendChild(menu);
+}
+
+function exportChat() {
+    const messages = document.querySelectorAll('.message-wrapper');
+    let exportText = `Kiselgram Chat Export\n`;
+    exportText += `Exported: ${new Date().toLocaleString()}\n`;
+    exportText += `================================\n\n`;
+
+    messages.forEach(msg => {
+        const sender = msg.querySelector('.message-sender')?.textContent || 'You';
+        const text = msg.querySelector('.message-text')?.textContent || '[Attachment]';
+        const time = msg.querySelector('.message-time')?.textContent || '';
+        const isOwn = msg.classList.contains('outgoing');
+
+        exportText += `[${time}] ${isOwn ? 'You' : sender}: ${text}\n`;
+    });
+
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat_export_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Chat exported', 'success');
+}
+
+// ============ CHAT CUSTOMIZATION ============
+
+function openChatCustomization() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Chat Customization</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Chat Bubble Color</h3>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${['#5e72e4', '#2dce89', '#fb6340', '#f5365c', '#8965e0', '#11cdef'].map(color => `
+                            <div class="color-option" style="width: 40px; height: 40px; border-radius: 50%; background: ${color}; cursor: pointer; border: 2px solid var(--border-color);"
+                                 onclick="setChatBubbleColor('${color}')"></div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Wallpaper</h3>
+                    <div class="wallpaper-options">
+                        <div class="wallpaper-option" style="background: var(--bg-surface);" onclick="setWallpaper('default')">
+                            <span>Default</span>
+                        </div>
+                        <div class="wallpaper-option gradient1" onclick="setWallpaper('gradient1')"></div>
+                        <div class="wallpaper-option gradient2" onclick="setWallpaper('gradient2')"></div>
+                        <div class="wallpaper-option gradient3" onclick="setWallpaper('gradient3')"></div>
+                        <div class="wallpaper-option gradient4" onclick="setWallpaper('gradient4')"></div>
+                        <div class="wallpaper-option gradient5" onclick="setWallpaper('gradient5')"></div>
+                        <div class="wallpaper-option gradient6" onclick="setWallpaper('gradient6')"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Text Size</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('small')">Small</button>
+                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('medium')">Medium</button>
+                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('large')">Large</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="resetChatCustomization()">Reset</button>
+                <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()">Done</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+}
+
+function setChatBubbleColor(color) {
+    if (activeChat) {
+        const key = `chat_color_${activeChat.type}_${activeChat.id}`;
+        localStorage.setItem(key, color);
+        applyChatCustomization();
+    }
+    showToast('Bubble color updated', 'success');
+}
+
+function setWallpaper(wallpaper) {
+    if (activeChat) {
+        const key = `wallpaper_${activeChat.type}_${activeChat.id}`;
+        localStorage.setItem(key, wallpaper);
+        applyChatCustomization();
+    }
+    showToast('Wallpaper updated', 'success');
+}
+
+function setTextSize(size) {
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        container.classList.remove('text-small', 'text-medium', 'text-large');
+        container.classList.add(`text-${size}`);
+        localStorage.setItem('chat_text_size', size);
+    }
+    showToast('Text size updated', 'success');
+}
+
+function applyChatCustomization() {
+    if (!activeChat) return;
+
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+
+    // Apply wallpaper
+    const wallpaperKey = `wallpaper_${activeChat.type}_${activeChat.id}`;
+    const wallpaper = localStorage.getItem(wallpaperKey) || 'default';
+
+    container.classList.remove('wallpaper-gradient1', 'wallpaper-gradient2', 'wallpaper-gradient3',
+                           'wallpaper-gradient4', 'wallpaper-gradient5', 'wallpaper-gradient6');
+    if (wallpaper !== 'default') {
+        container.classList.add(`wallpaper-${wallpaper}`);
+    }
+
+    // Apply text size
+    const textSize = localStorage.getItem('chat_text_size') || 'medium';
+    container.classList.remove('text-small', 'text-medium', 'text-large');
+    container.classList.add(`text-${textSize}`);
+}
+
+function resetChatCustomization() {
+    if (!activeChat) return;
+
+    localStorage.removeItem(`chat_color_${activeChat.type}_${activeChat.id}`);
+    localStorage.removeItem(`wallpaper_${activeChat.type}_${activeChat.id}`);
+    localStorage.removeItem('chat_text_size');
+
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        container.classList.remove('wallpaper-gradient1', 'wallpaper-gradient2', 'wallpaper-gradient3',
+                                   'wallpaper-gradient4', 'wallpaper-gradient5', 'wallpaper-gradient6',
+                                   'text-small', 'text-medium', 'text-large');
+        container.classList.add('text-medium');
+    }
+
+    showToast('Customization reset', 'success');
+}
+
+// ============ ADD CONTACT ============
+
+function showAddContactModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Add Contact</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">Search by username</label>
+                <input type="text" id="addContactSearch" class="modal-input" placeholder="Enter username...">
+                <div id="addContactResults" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+
+    const searchInput = document.getElementById('addContactSearch');
+    searchInput.addEventListener('input', debounce(async () => {
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+            document.getElementById('addContactResults').innerHTML = '';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/users?search=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const results = document.getElementById('addContactResults');
+                results.innerHTML = data.users.map(user => `
+                    <div class="contact-item" style="cursor: pointer;" onclick="startChatWithUser(${user.id})">
+                        <div class="contact-avatar">${user.username[0].toUpperCase()}</div>
+                        <div class="contact-info">
+                            <div class="contact-name">${escapeHtml(user.display_name)}</div>
+                            <div class="contact-username">@${escapeHtml(user.username)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Error searching users:', error);
+        }
+    }, 300));
+
+    searchInput.focus();
+}
+
+function startChatWithUser(userId) {
+    closeAllModals();
+    openChat('personal', userId);
+}
+
+// ============ FOLLOWERS / FOLLOWING / GROUPS ============
+
+async function showFollowers() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Followers</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body" id="followersList" style="max-height: 400px; overflow-y: auto;">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+
+    // For now, show a placeholder since we don't have followers API yet
+    setTimeout(() => {
+        document.getElementById('followersList').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">👥</div>
+                <p>Followers feature coming soon</p>
+            </div>
+        `;
+    }, 500);
+}
+
+async function showFollowing() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Following</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body" id="followingList" style="max-height: 400px; overflow-y: auto;">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+
+    setTimeout(() => {
+        document.getElementById('followingList').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">👤</div>
+                <p>Following feature coming soon</p>
+            </div>
+        `;
+    }, 500);
+}
+
+async function showGroups() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Your Groups</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body" id="groupsList" style="max-height: 400px; overflow-y: auto;">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+
+    try {
+        const response = await fetch('/api/chat_list');
+        const data = await response.json();
+
+        if (data.success) {
+            const groups = data.chats.filter(c => c.type === 'group');
+            const container = document.getElementById('groupsList');
+
+            if (groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <p>No groups yet</p>
+                        <button class="modal-btn modal-btn-primary" onclick="closeAllModals(); showCreateGroupView()">Create Group</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = groups.map(group => `
+                    <div class="contact-item" onclick="closeAllModals(); openChat('group', ${group.id})">
+                        <div class="contact-avatar">👥</div>
+                        <div class="contact-info">
+                            <div class="contact-name">${escapeHtml(group.name)}</div>
+                            <div class="contact-username">${group.member_count || 0} members</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading groups:', error);
+        document.getElementById('groupsList').innerHTML = '<p>Error loading groups</p>';
+    }
+}
+
+// ============ PRIVACY SETTINGS ============
+
+async function savePrivacySettings() {
+    const visibility = document.getElementById('profileVisibility')?.value;
+    const onlineStatus = document.querySelector('[data-setting="onlineStatus"]')?.classList.contains('active');
+    const readReceipts = document.querySelector('[data-setting="readReceipts"]')?.classList.contains('active');
+
+    const settings = {
+        profile_visibility: visibility,
+        show_online_status: onlineStatus,
+        show_read_receipts: readReceipts
+    };
+
+    localStorage.setItem('kiselgram_privacy', JSON.stringify(settings));
+
+    showToast('Privacy settings saved', 'success');
+    closePrivacyPanel();
+}
+
+// Load privacy settings on init
+function loadPrivacySettings() {
+    const saved = localStorage.getItem('kiselgram_privacy');
+    if (saved) {
+        try {
+            const settings = JSON.parse(saved);
+
+            if (settings.profile_visibility) {
+                const select = document.getElementById('profileVisibility');
+                if (select) select.value = settings.profile_visibility;
+            }
+
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                const setting = toggle.dataset.setting;
+                if (setting === 'onlineStatus' && !settings.show_online_status) {
+                    toggle.classList.remove('active');
+                }
+                if (setting === 'readReceipts' && !settings.show_read_receipts) {
+                    toggle.classList.remove('active');
+                }
+            });
+        } catch (e) {}
+    }
+}
+
+// Add to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    loadPrivacySettings();
 });
 
-// ============ GLOBAL EXPORTS ============
-window.showContactsView = showContactsView;
-window.showCreateGroupView = showCreateGroupView;
-window.showCreateChannelView = showCreateChannelView;
-window.hideContactsView = hideContactsView;
-window.hideCreateGroupView = hideCreateGroupView;
-window.hideCreateChannelView = hideCreateChannelView;
-window.selectChat = selectChat;
-window.toggleMemberSelection = toggleMemberSelection;
-window.createGroup = createGroup;
-window.createChannel = createChannel;
-window.startChatWithContact = startChatWithContact;
-window.setReplyTo = setReplyTo;
-window.cancelReply = cancelReply;
-window.addReaction = addReaction;
-window.deleteMessage = deleteMessage;
-window.likeStory = likeStory;
-window.viewStories = viewStories;
-window.triggerStoryUpload = triggerStoryUpload;
-window.triggerGroupAvatarUpload = triggerGroupAvatarUpload;
-window.previewGroupAvatar = previewGroupAvatar;
-window.triggerChannelAvatarUpload = triggerChannelAvatarUpload;
-window.previewChannelAvatar = previewChannelAvatar;
-window.openSettingsPanel = openSettingsPanel;
-window.closeSettingsPanel = closeSettingsPanel;
-window.openPrivacyPanel = openPrivacyPanel;
-window.closePrivacyPanel = closePrivacyPanel;
-window.closeAllPanels = closeAllPanels;
-window.toggleSetting = toggleSetting;
-window.setTheme = setTheme;
-window.setFont = setFont;
-window.savePrivacySettings = savePrivacySettings;
-window.openProfileModal = openProfileModal;
-window.closeProfileModal = closeProfileModal;
-window.openEditProfileModal = openEditProfileModal;
-window.closeEditProfileModal = closeEditProfileModal;
-window.saveProfile = saveProfile;
-window.triggerAvatarUpload = triggerAvatarUpload;
-window.uploadAvatar = uploadAvatar;
-window.loadUserProfile = loadUserProfile;
-window.openChatCustomization = openChatCustomization;
-window.selectWallpaper = selectWallpaper;
-window.uploadCustomWallpaper = uploadCustomWallpaper;
-window.showChatInfo = showChatInfo;
-window.showChatMenu = showChatMenu;
-window.showAddContactModal = showAddContactModal;
-window.triggerFileUpload = triggerFileUpload;
-window.handleFileSelect = handleFileSelect;
-window.uploadFile = uploadFile;
-window.cancelUpload = cancelUpload;
-window.showFollowers = showFollowers;
-window.showFollowing = showFollowing;
-window.showGroups = showGroups;
-window.logout = logout;
-window.toggleMobileSidebar = toggleMobileSidebar;
-window.showReactionPickerModal = showReactionPickerModal;
-window.showForwardModal = showForwardModal;
-window.navigateToSearchResult = navigateToSearchResult;
-window.closePopout = closePopout;
+// ============ UTILITY ============
+
+function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    document.getElementById('profileModal').style.display = 'none';
+    document.getElementById('editProfileModal').style.display = 'none';
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeAllModals();
+        closeStoryViewer();
+    }
+});
+
+function savePrivacySettings() {
+    showToast('Privacy settings saved', 'success');
+    closePrivacyPanel();
+}
+
+function toggleMobileSidebar() {
+    document.getElementById('chatSidebar')?.classList.toggle('mobile-visible');
+}
+
+// Close modal when clicking overlay
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+// Close all modals function
+function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+}
