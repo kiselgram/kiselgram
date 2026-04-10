@@ -1,13 +1,30 @@
-from flask import Blueprint, request, jsonify, send_file, current_app, url_for, session
+from flask import Blueprint, request, jsonify, send_file, url_for, session
 import os
 import uuid
 import mimetypes
+from datetime import datetime
+
 from app import db
 from app.models import User, Message, Group, Channel, GroupMember, ChannelSubscriber
-from datetime import datetime
+from manage import log_main
 
 files_bp = Blueprint('files', __name__)
 
+class Logger:
+    @staticmethod
+    def info(*message):
+        return log_main('info', str(format(message)), 'files')
+
+    @staticmethod
+    def warning(*message):
+        return log_main('warning', str(format(message)), 'files')
+
+    @staticmethod
+    def exception(*message):
+        return log_main('exception', str(format(message)), 'files')
+
+
+main_logger = Logger()
 
 
 def allowed_file(filename):
@@ -18,10 +35,10 @@ def allowed_file(filename):
     ext = filename.rsplit('.', 1)[1].lower()
 
     allowed_extensions = {
-        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',  # images
-        'pdf', 'doc', 'docx', 'txt', 'rtf',  # documents
-        'zip', 'rar', '7z',  # archives
-        'mp3', 'mp4', 'm4a', 'wav', 'ogg', 'avi', 'mov', 'mkv'  # media
+        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
+        'pdf', 'doc', 'docx', 'txt', 'rtf',
+        'zip', 'rar', '7z',
+        'mp3', 'mp4', 'm4a', 'wav', 'ogg', 'avi', 'mov', 'mkv'
     }
 
     return ext in allowed_extensions
@@ -39,74 +56,125 @@ def get_file_type(filename):
 
     if ext in image_extensions:
         return 'image'
-    elif ext in audio_extensions:
+    if ext in audio_extensions:
         return 'audio'
-    elif ext in video_extensions:
+    if ext in video_extensions:
         return 'video'
-    elif ext in document_extensions:
+    if ext in document_extensions:
         return 'document'
-    elif ext in archive_extensions:
+    if ext in archive_extensions:
         return 'archive'
-    else:
-        return 'other'
+    return 'other'
 
 
-def format_file_size(bytes):
+def format_file_size(bytes_count):
     """Format file size in human readable format"""
-    if bytes == 0:
+    if bytes_count == 0:
         return '0 B'
 
     size_names = ['B', 'KB', 'MB', 'GB']
     i = 0
-    while bytes >= 1024 and i < len(size_names) - 1:
-        bytes /= 1024
+    while bytes_count >= 1024 and i < len(size_names) - 1:
+        bytes_count /= 1024
         i += 1
 
-    return f"{bytes:.1f} {size_names[i]}"
+    return f"{bytes_count:.1f} {size_names[i]}"
+
+
+def get_uploads_dir():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    return os.path.join(project_root, 'uploads')
+
+
+def safe_path_in_uploads(*parts):
+    uploads_dir = get_uploads_dir()
+    path = os.path.normpath(os.path.join(uploads_dir, *parts))
+    if not path.startswith(uploads_dir):
+        return None
+    return path
 
 
 @files_bp.route('/uploads/<path:filename>')
 def serve_file(filename):
     """Serve uploaded files"""
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
-        file_path = os.path.join(base_upload_dir, filename)
-        file_path = os.path.normpath(file_path)
-
-        if not file_path.startswith(base_upload_dir):
+        base_upload_dir = get_uploads_dir()
+        file_path = safe_path_in_uploads(filename)
+        if not file_path:
+            main_logger.warning("Blocked invalid file path: %s", filename)
             return "Invalid file path", 403
 
         if os.path.exists(file_path) and os.path.isfile(file_path):
             mimetype, _ = mimetypes.guess_type(filename)
+            main_logger.info("Serving file: %s", file_path)
             return send_file(file_path, mimetype=mimetype)
 
-        # Try alternative paths
         base_filename = os.path.basename(filename)
         alternative_paths = [
-            os.path.join(base_upload_dir, 'images', base_filename),
-            os.path.join(base_upload_dir, 'documents', base_filename),
-            os.path.join(base_upload_dir, 'media', base_filename),
-            os.path.join(base_upload_dir, 'stories', base_filename),
-            os.path.join(base_upload_dir, base_filename)
+            safe_path_in_uploads('images', base_filename),
+            safe_path_in_uploads('documents', base_filename),
+            safe_path_in_uploads('media', base_filename),
+            safe_path_in_uploads('stories', base_filename),
+            safe_path_in_uploads(base_filename),
         ]
 
         for alt_path in alternative_paths:
-            alt_path = os.path.normpath(alt_path)
-            if os.path.exists(alt_path) and os.path.isfile(alt_path):
+            if alt_path and os.path.exists(alt_path) and os.path.isfile(alt_path):
                 mimetype, _ = mimetypes.guess_type(base_filename)
+                main_logger.info("Serving fallback file: %s", alt_path)
                 return send_file(alt_path, mimetype=mimetype)
 
+        main_logger.warning("File not found: %s", filename)
         return "File not found", 404
+
     except Exception as e:
-        print(f"Error serving file: {str(e)}")
+        main_logger.exception("Error serving file %s: %s", filename, e)
+        return str(e), 500
+
+
+@files_bp.route('/uploads/avatars/<path:filename>')
+def serve_avatar(filename):
+    """Serve uploaded avatar files"""
+    try:
+        base_upload_dir = get_uploads_dir()
+        file_path = safe_path_in_uploads(filename)
+        if not file_path:
+            main_logger.warning("Blocked invalid avatar path: %s", filename)
+            return "Invalid file path", 403
+
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            mimetype, _ = mimetypes.guess_type(filename)
+            main_logger.info("Serving avatar: %s", file_path)
+            return send_file(file_path, mimetype=mimetype)
+
+        base_filename = os.path.basename(filename)
+        alternative_paths = [
+            safe_path_in_uploads('images', base_filename),
+            safe_path_in_uploads('documents', base_filename),
+            safe_path_in_uploads('media', base_filename),
+            safe_path_in_uploads('stories', base_filename),
+            safe_path_in_uploads('avatars', base_filename),
+            safe_path_in_uploads(base_filename),
+        ]
+
+        for alt_path in alternative_paths:
+            if alt_path and os.path.exists(alt_path) and os.path.isfile(alt_path):
+                mimetype, _ = mimetypes.guess_type(base_filename)
+                main_logger.info("Serving avatar fallback: %s", alt_path)
+                return send_file(alt_path, mimetype=mimetype)
+
+        main_logger.warning("Avatar not found: %s", filename)
+        return "File not found", 404
+
+    except Exception as e:
+        main_logger.exception("Error serving avatar %s: %s", filename, e)
         return str(e), 500
 
 
 @files_bp.route('/files/upload_file', methods=['POST'])
 def upload_file():
     """Handle file uploads for personal chats, groups, and channels"""
-    # Get current user from session
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'success': False, 'error': 'Not authenticated'}), 401
@@ -125,23 +193,19 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'error': 'File type not allowed'}), 400
 
-    # Get target IDs from form data
     receiver_id = request.form.get('receiver_id')
     group_id = request.form.get('group_id')
     channel_id = request.form.get('channel_id')
     message_text = request.form.get('message', '')
 
-    # Validate that at least one target is specified
     if not receiver_id and not group_id and not channel_id:
         return jsonify({'success': False, 'error': 'No receiver, group, or channel specified'}), 400
 
     try:
-        # Verify permissions
         if receiver_id:
             receiver = User.query.get(receiver_id)
             if not receiver:
                 return jsonify({'success': False, 'error': 'Receiver not found'}), 404
-            # Check if blocked
             from app.models import BlockedUser
             if BlockedUser.query.filter_by(user_id=receiver_id, blocked_user_id=user_id).first():
                 return jsonify({'success': False, 'error': 'You are blocked by this user'}), 403
@@ -150,7 +214,6 @@ def upload_file():
             group = Group.query.get(group_id)
             if not group:
                 return jsonify({'success': False, 'error': 'Group not found'}), 404
-            # Check if member
             membership = GroupMember.query.filter_by(user_id=user_id, group_id=group_id).first()
             if not membership:
                 return jsonify({'success': False, 'error': 'You are not a member of this group'}), 403
@@ -159,16 +222,13 @@ def upload_file():
             channel = Channel.query.get(channel_id)
             if not channel:
                 return jsonify({'success': False, 'error': 'Channel not found'}), 404
-            # Check if owner (only owner can post to channel)
             if channel.owner_id != user_id:
                 return jsonify({'success': False, 'error': 'Only channel owner can post'}), 403
 
-        # Generate unique filename
         file_ext = file.filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
         file_type = get_file_type(file.filename)
 
-        # Determine upload directory
         if file_type == 'image':
             upload_dir = 'images'
         elif file_type in ['audio', 'video']:
@@ -176,12 +236,11 @@ def upload_file():
         else:
             upload_dir = 'documents'
 
-        # Save file
         file_path_with_dir = os.path.join(upload_dir, unique_filename)
+        full_save_path = safe_path_in_uploads(file_path_with_dir)
 
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
-        full_save_path = os.path.join(base_upload_dir, file_path_with_dir)
+        if not full_save_path:
+            return jsonify({'success': False, 'error': 'Invalid save path'}), 400
 
         os.makedirs(os.path.dirname(full_save_path), exist_ok=True)
         file.save(full_save_path)
@@ -189,7 +248,6 @@ def upload_file():
         file_size = os.path.getsize(full_save_path)
         file_url = url_for('files.serve_file', filename=file_path_with_dir, _external=False)
 
-        # Create message in database
         new_message = Message(
             sender_id=current_user.id,
             content=message_text,
@@ -202,48 +260,42 @@ def upload_file():
             is_read=False
         )
 
-        # Set the appropriate target
         if receiver_id:
             new_message.receiver_id = int(receiver_id)
         elif group_id:
             new_message.group_id = int(group_id)
-            new_message.receiver_id = current_user.id  # Placeholder
+            new_message.receiver_id = current_user.id
         elif channel_id:
             new_message.channel_id = int(channel_id)
-            new_message.receiver_id = current_user.id  # Placeholder
+            new_message.receiver_id = current_user.id
 
         db.session.add(new_message)
         db.session.commit()
-
-        # Prepare response
-        message_data = {
-            'id': new_message.id,
-            'content': message_text,
-            'sender_id': current_user.id,
-            'sender_name': current_user.username,
-            'timestamp': new_message.timestamp.isoformat(),
-            'timestamp_formatted': new_message.timestamp.strftime('%H:%M'),
-            'is_own': True,
-            'is_read': False,
-            'has_attachment': True,
-            'file_name': file.filename,
-            'file_url': file_url,
-            'file_type': file_type,
-            'file_size': file_size,
-            'formatted_size': format_file_size(file_size)
-        }
 
         return jsonify({
             'success': True,
             'filename': unique_filename,
             'url': file_url,
-            'message': message_data
+            'message': {
+                'id': new_message.id,
+                'content': message_text,
+                'sender_id': current_user.id,
+                'sender_name': current_user.username,
+                'timestamp': new_message.timestamp.isoformat(),
+                'timestamp_formatted': new_message.timestamp.strftime('%H:%M'),
+                'is_own': True,
+                'is_read': False,
+                'has_attachment': True,
+                'file_name': file.filename,
+                'file_url': file_url,
+                'file_type': file_type,
+                'file_size': file_size,
+                'formatted_size': format_file_size(file_size),
+            }
         })
 
     except Exception as e:
-        print(f"Upload error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        main_logger.exception("Upload error: %s", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -277,20 +329,15 @@ def upload_avatar():
 
         image = Image.open(file)
 
-        # Convert RGBA to RGB
         if image.mode in ('RGBA', 'P'):
             rgb_image = Image.new('RGB', image.size, (255, 255, 255))
             rgb_image.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
             image = rgb_image
 
-        # Resize
-        max_size = (400, 400)
-        image.thumbnail(max_size, Image.Resampling.LANCZOS)
+        image.thumbnail((400, 400), Image.Resampling.LANCZOS)
 
         unique_filename = f"avatar_{uuid.uuid4().hex}.jpg"
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
+        base_upload_dir = get_uploads_dir()
         avatars_dir = os.path.join(base_upload_dir, 'avatars')
         os.makedirs(avatars_dir, exist_ok=True)
 
@@ -299,10 +346,9 @@ def upload_avatar():
 
         image.save(file_path, 'JPEG', quality=85)
 
-        # Delete old avatar
         if current_user.avatar_url:
-            old_avatar_path = os.path.join(base_upload_dir, current_user.avatar_url.replace('/uploads/', ''))
-            if os.path.exists(old_avatar_path):
+            old_avatar_path = safe_path_in_uploads(current_user.avatar_url.replace('/uploads/', ''))
+            if old_avatar_path and os.path.exists(old_avatar_path):
                 os.remove(old_avatar_path)
 
         current_user.avatar_url = f"/uploads/{relative_path}"
@@ -315,9 +361,7 @@ def upload_avatar():
         })
 
     except Exception as e:
-        print(f"Avatar upload error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        main_logger.exception("Avatar upload error: %s", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -346,9 +390,7 @@ def upload_story():
 
     try:
         unique_filename = f"story_{uuid.uuid4().hex}.{file_ext}"
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
+        base_upload_dir = get_uploads_dir()
         stories_dir = os.path.join(base_upload_dir, 'stories')
         os.makedirs(stories_dir, exist_ok=True)
 
@@ -358,7 +400,6 @@ def upload_story():
         file.save(file_path)
 
         from app.models import Story
-
         new_story = Story(
             user_id=user_id,
             media_path=relative_path,
@@ -378,7 +419,7 @@ def upload_story():
         })
 
     except Exception as e:
-        print(f"Story upload error: {str(e)}")
+        main_logger.exception("Story upload error: %s", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -396,10 +437,8 @@ def delete_file(message_id):
 
     try:
         if message.file_path:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            base_upload_dir = os.path.join(os.path.dirname(current_dir), 'uploads')
-            file_path = os.path.join(base_upload_dir, message.file_path)
-            if os.path.exists(file_path):
+            file_path = safe_path_in_uploads(message.file_path)
+            if file_path and os.path.exists(file_path):
                 os.remove(file_path)
 
         db.session.delete(message)
@@ -408,6 +447,6 @@ def delete_file(message_id):
         return jsonify({'success': True, 'message': 'File deleted'})
 
     except Exception as e:
-        print(f"Delete error: {str(e)}")
+        main_logger.exception("Delete error: %s", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
