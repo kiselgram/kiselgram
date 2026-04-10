@@ -57,19 +57,21 @@ def create_app():
         from app.routes.video_integration import video_int_bp
         from app.routes.utils_api import utils_api_bp  # New utility API
         from app.routes.spa_app import register_spa_bp
+        from app.routes.premium import register_premium_bp
         app.register_blueprint(auth_bp)
         app.register_blueprint(chats_bp)
         app.register_blueprint(files_bp)
         app.register_blueprint(video_int_bp)
         app.register_blueprint(utils_api_bp)  # Register utility API
         register_spa_bp(app)
+        register_premium_bp(app)
 
 
         print("✅ All blueprints registered successfully")
         print("✅ Utility API available at /api/utils")
         # CHANGE VERSION HERE
         # TODO: change version here before commit
-        app.config['VERSION'] = '3.6.0'
+        app.config['VERSION'] = '3.8.0'
 
     except ImportError as e:
         print(f"❌ Error importing blueprints: {e}")

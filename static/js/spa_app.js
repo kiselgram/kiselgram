@@ -1,53 +1,37 @@
 // static/js/spa_app.js
+// Kiselgram Free Version - Orange & Lime Theme
 
 // ============ GLOBAL STATE ============
 
-// Current user info
 let currentUserId = null;
 let currentUserUsername = '';
 let currentUserDisplayName = '';
 let currentUserAvatar = '?';
+let isPremium = false;
+
+// Only basic fonts available
+const AVAILABLE_FONTS = ['Inter', 'Courier New'];
 
 // App state
-let activeChat = null; // { type: 'personal'|'group'|'channel', id: number }
-let currentStories = [];
-let currentStoryIndex = 0;
-let currentStoryUser = null;
-let storyViewerActive = false;
-let storyProgressInterval = null;
+let activeChat = null;
 let selectedMembers = [];
 let replyToMessage = null;
 
 // ============ INITIALIZATION ============
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load current user info
     await loadCurrentUser();
-
-    // Load initial data
     await loadChatList();
-    await loadStories();
-
-    // Set up event listeners
     setupEventListeners();
-
-    // Load saved preferences
     loadThemePreference();
     loadFontPreference();
 
-    // Refresh data periodically
-    setInterval(loadStories, 120000);
     setInterval(loadChatList, 30000);
-
-    // If a chat is open, refresh messages
     setInterval(() => {
-        if (activeChat) {
-            loadMessages(activeChat.type, activeChat.id);
-        }
+        if (activeChat) loadMessages(activeChat.type, activeChat.id);
     }, 5000);
 });
 
-// Load current user info
 async function loadCurrentUser() {
     try {
         const response = await fetch('/api/profile');
@@ -60,16 +44,11 @@ async function loadCurrentUser() {
             currentUserAvatar = data.user.username[0].toUpperCase();
             updateUserUI();
         } else {
-            // Fallback to server-rendered values
             const menuUsername = document.getElementById('menuUserUsername');
             if (menuUsername) {
                 const username = menuUsername.textContent.replace('@', '');
                 currentUserUsername = username;
                 currentUserAvatar = username[0]?.toUpperCase() || '?';
-            }
-            const menuAvatar = document.getElementById('menuUserAvatar');
-            if (menuAvatar) {
-                currentUserAvatar = menuAvatar.textContent || '?';
             }
         }
     } catch (error) {
@@ -77,7 +56,6 @@ async function loadCurrentUser() {
     }
 }
 
-// Update UI with current user info
 function updateUserUI() {
     const menuAvatar = document.getElementById('menuUserAvatar');
     const menuName = document.getElementById('menuUserName');
@@ -88,15 +66,10 @@ function updateUserUI() {
     if (menuUsername) menuUsername.textContent = '@' + currentUserUsername;
 }
 
-// Setup event listeners
 function setupEventListeners() {
-    // Menu button
     const menuBtn = document.getElementById('menuBtn');
-    if (menuBtn) {
-        menuBtn.addEventListener('click', togglePopoutMenu);
-    }
+    if (menuBtn) menuBtn.addEventListener('click', togglePopoutMenu);
 
-    // Global search
     const searchInput = document.getElementById('globalSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', debounce(handleGlobalSearch, 300));
@@ -105,35 +78,36 @@ function setupEventListeners() {
         });
     }
 
-    // Click outside search results
     document.addEventListener('click', (e) => {
         const searchContainer = document.querySelector('.global-search');
         if (searchContainer && !searchContainer.contains(e.target)) {
             document.getElementById('searchResults')?.classList.remove('active');
         }
+
+        // Don't close edit profile modal when clicking outside
+        const editModal = document.getElementById('editProfileModal');
+        if (editModal && editModal.style.display === 'flex') {
+            if (!editModal.querySelector('.modal-container').contains(e.target) &&
+                !e.target.closest('.profile-info-item')) {
+                // Do nothing - keep modal open
+                return;
+            }
+        }
     });
 
-    // Message input
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
         messageInput.addEventListener('input', handleMessageInput);
         messageInput.addEventListener('keydown', handleMessageKeydown);
     }
 
-    // Contact search
     const contactSearch = document.getElementById('contactSearchInput');
-    if (contactSearch) {
-        contactSearch.addEventListener('input', debounce(handleContactSearch, 300));
-    }
+    if (contactSearch) contactSearch.addEventListener('input', debounce(handleContactSearch, 300));
 
-    // Member search for group creation
     const memberSearch = document.getElementById('memberSearchInput');
-    if (memberSearch) {
-        memberSearch.addEventListener('input', debounce(handleMemberSearch, 300));
-    }
+    if (memberSearch) memberSearch.addEventListener('input', debounce(handleMemberSearch, 300));
 }
 
-// Debounce utility
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -228,13 +202,21 @@ function loadThemePreference() {
 }
 
 function setFont(element) {
+    const fontName = element.querySelector('.font-name')?.textContent.split(' ')[0];
+
+    // Check if font is locked
+    if (element.classList.contains('locked')) {
+        showToast('🔒 This font requires Kiselgram Premium', 'error');
+        showPremiumModal('fonts');
+        return;
+    }
+
     document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('active'));
     element.classList.add('active');
 
     const fontFamily = element.dataset.font;
     document.body.style.setProperty('--font-family', fontFamily);
     localStorage.setItem('kiselgram_font', fontFamily);
-
     showToast('Font updated', 'success');
 }
 
@@ -242,7 +224,6 @@ function loadFontPreference() {
     const savedFont = localStorage.getItem('kiselgram_font');
     if (savedFont) {
         document.body.style.setProperty('--font-family', savedFont);
-
         document.querySelectorAll('.font-option').forEach(opt => {
             if (opt.dataset.font === savedFont) {
                 opt.classList.add('active');
@@ -257,6 +238,62 @@ function toggleSetting(element, setting) {
     localStorage.setItem(`kiselgram_${setting}`, isEnabled);
 }
 
+// ============ PREMIUM MODAL ============
+
+function showPremiumModal(feature = 'feature') {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const messages = {
+        'fonts': 'Unlock 9+ premium fonts including Satoshi, DM Sans, Poppins, and more!',
+        'stories': 'Stories are a premium feature. Share moments that disappear after 24 hours!',
+        'wallpapers': 'Custom chat wallpapers are available with Kiselgram Premium!',
+        'feature': 'This feature is available with Kiselgram Premium!'
+    };
+
+    modal.innerHTML = `
+        <div class="modal-container premium-modal" style="max-width: 400px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #fb6340, #2dce89); color: white;">
+                <h3>🍊 Kiselgram Premium 🍋</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="color: white;">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 24px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">👑</div>
+                <p style="font-size: 16px; margin-bottom: 20px;">${messages[feature] || messages.feature}</p>
+
+                <div style="background: linear-gradient(135deg, rgba(251, 99, 64, 0.1), rgba(45, 206, 137, 0.1)); border-radius: 16px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 12px;">Premium Benefits:</h4>
+                    <ul style="text-align: left; color: var(--text-secondary);">
+                        <li>✨ 11 Premium Fonts</li>
+                        <li>📸 Stories Feature</li>
+                        <li>🎨 Custom Chat Wallpapers</li>
+                        <li>💬 Priority Support</li>
+                        <li>🔮 Early Access to New Features</li>
+                    </ul>
+                </div>
+
+                <p style="font-size: 24px; font-weight: 700; margin-bottom: 20px; background: linear-gradient(135deg, #fb6340, #2dce89); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    $4.99/month
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Maybe Later</button>
+                <button class="modal-btn modal-btn-primary" onclick="goToPremium()" style="background: linear-gradient(135deg, #fb6340, #2dce89);">
+                    Upgrade Now 🍊
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalRoot').appendChild(modal);
+}
+
+function goToPremium() {
+    window.location.href = '/premium';
+}
+
 // ============ TOAST NOTIFICATIONS ============
 
 function showToast(message, type = 'info') {
@@ -268,7 +305,7 @@ function showToast(message, type = 'info') {
         bottom: 80px;
         left: 50%;
         transform: translateX(-50%);
-        background: ${type === 'success' ? 'var(--accent-green)' : type === 'error' ? 'var(--accent-red)' : 'var(--accent-blue)'};
+        background: ${type === 'success' ? '#2dce89' : type === 'error' ? '#fb6340' : '#fb6340'};
         color: white;
         padding: 12px 24px;
         border-radius: 30px;
@@ -338,18 +375,13 @@ function renderChatList(chats) {
             unreadHtml = `<span class="unread-badge">${chat.unread_count}</span>`;
         }
 
-        let pinHtml = '';
-        if (chat.is_pinned) {
-            pinHtml = '<span class="pin-indicator">📌</span>';
-        }
-
         html += `
-            <div class="chat-item ${isActive ? 'active' : ''} ${chat.is_pinned ? 'pinned' : ''}"
+            <div class="chat-item ${isActive ? 'active' : ''}"
                  data-chat-type="${chat.type}"
                  data-chat-id="${chat.id}"
                  data-user-id="${chat.type === 'personal' ? chat.id : ''}"
                  onclick="openChat('${chat.type}', ${chat.id})">
-                <div class="chat-avatar ${chat.type} ${chat.has_story ? 'has-story' : ''}">
+                <div class="chat-avatar ${chat.type}">
                     ${avatarHtml}
                     ${statusHtml}
                 </div>
@@ -359,7 +391,7 @@ function renderChatList(chats) {
                         <span class="chat-time">${chat.timestamp || ''}</span>
                     </div>
                     <div class="chat-preview">
-                        <span>${pinHtml}${escapeHtml(chat.last_message || '')}</span>
+                        <span>${escapeHtml(chat.last_message || '')}</span>
                         ${unreadHtml}
                     </div>
                 </div>
@@ -383,7 +415,6 @@ function hideAllPanels() {
 async function openChat(type, id) {
     activeChat = { type, id };
 
-    // Update UI
     document.querySelectorAll('.chat-item').forEach(item => {
         item.classList.remove('active');
     });
@@ -507,27 +538,15 @@ function renderMessage(msg) {
                 <div class="file-attachment">
                     <span>📎</span>
                     <a href="${msg.file_url}" target="_blank" class="file-link">${msg.file_name || 'File'}</a>
-                    <span style="margin-left: auto; font-size: 11px;">${msg.formatted_size || ''}</span>
                 </div>
             `;
         }
-    }
-
-    let replyHtml = '';
-    if (msg.reply_to_id) {
-        replyHtml = `
-            <div class="reply-indicator">
-                <span>↩️ Reply</span>
-                <div style="font-size: 11px; opacity: 0.8;">${escapeHtml(msg.reply_to_content || '')}</div>
-            </div>
-        `;
     }
 
     return `
         <div class="message-wrapper ${wrapperClass}" data-message-id="${msg.id}" id="msg-${msg.id}">
             ${!isOwn ? `<div class="message-sender">${escapeHtml(msg.sender_name || 'User')}</div>` : ''}
             <div class="message-bubble">
-                ${replyHtml}
                 ${attachmentHtml}
                 ${msg.content ? `<div class="message-text">${escapeHtml(msg.content).replace(/\n/g, '<br>')}</div>` : ''}
                 <div class="message-meta">
@@ -550,7 +569,7 @@ function formatDateDivider(date) {
 
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
 }
 
 function scrollToBottom() {
@@ -678,428 +697,32 @@ function openImageViewer(url) {
     window.open(url, '_blank');
 }
 
-// ============ STORIES ============
+// ============ STORIES (Premium Only) ============
 
-async function loadStories() {
-    if (!currentUserId) return;
-
-    try {
-        const response = await fetch('/api/stories');
-        const data = await response.json();
-
-        if (data.success) {
-            currentStories = data.stories;
-            renderStoriesRow();
-        }
-    } catch (error) {
-        console.error('Error loading stories:', error);
+function loadStories() {
+    // Stories are premium only
+    const storiesRow = document.getElementById('storiesRow');
+    if (storiesRow) {
+        storiesRow.innerHTML = `
+            <div class="story-item locked-story" onclick="showPremiumModal('stories')">
+                <div class="story-avatar add-story locked">
+                    <div class="add-story-btn">🔒</div>
+                </div>
+                <span class="story-username">Premium</span>
+            </div>
+            <div style="display: flex; align-items: center; padding: 8px 16px; color: var(--text-muted); font-size: 13px;">
+                <span>🔒 Stories require Premium</span>
+            </div>
+        `;
     }
 }
 
 function renderStoriesRow() {
-    const storiesRow = document.getElementById('storiesRow');
-    if (!storiesRow) return;
-
-    let html = '';
-    const currentUserHasStory = currentStories.some(s => s.user_id === currentUserId);
-
-    html += `
-        <div class="story-item" onclick="showCreateStoryModal()">
-            <div class="story-avatar ${currentUserHasStory ? '' : 'add-story'}">
-                ${currentUserHasStory ?
-                    `<div class="story-avatar-placeholder">${currentUserAvatar}</div>` :
-                    `<div class="add-story-btn">+</div>`
-                }
-            </div>
-            <span class="story-username">Your story</span>
-        </div>
-    `;
-
-    for (const userStory of currentStories) {
-        if (userStory.user_id === currentUserId) continue;
-
-        const firstStory = userStory.stories[0];
-        const hasUnviewed = userStory.has_unviewed;
-
-        html += `
-            <div class="story-item" onclick="openStoryViewer(${userStory.user_id})">
-                <div class="story-avatar ${hasUnviewed ? 'unviewed' : 'viewed'}">
-                    ${firstStory.media_url && firstStory.media_type === 'image' ?
-                        `<img src="${firstStory.media_url}" alt="${escapeHtml(userStory.display_name)}">` :
-                        `<div class="story-avatar-placeholder">${userStory.avatar_letter}</div>`
-                    }
-                </div>
-                <span class="story-username">${escapeHtml(userStory.display_name)}</span>
-            </div>
-        `;
-    }
-
-    storiesRow.innerHTML = html;
+    loadStories();
 }
 
 function showCreateStoryModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container story-create-modal">
-            <div class="modal-header">
-                <h3>Create Story</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="story-media-upload" onclick="document.getElementById('storyMediaInput').click()">
-                    <div class="upload-placeholder" id="storyMediaPreview">
-                        <span>📷</span>
-                        <p>Click to upload photo or video</p>
-                    </div>
-                    <input type="file" id="storyMediaInput" accept="image/*,video/*" style="display: none;" onchange="previewStoryMedia(this)">
-                </div>
-                <textarea id="storyCaption" class="modal-input" placeholder="Add a caption..." rows="2" maxlength="200"></textarea>
-                <small style="color: var(--text-muted);">
-                    <span id="storyCaptionCount">0</span>/200 characters
-                </small>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-                <button class="modal-btn modal-btn-primary" onclick="uploadStory()">Post Story</button>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalRoot').appendChild(modal);
-
-    const captionInput = document.getElementById('storyCaption');
-    const captionCount = document.getElementById('storyCaptionCount');
-    captionInput.addEventListener('input', () => {
-        captionCount.textContent = captionInput.value.length;
-    });
-}
-
-function previewStoryMedia(input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const preview = document.getElementById('storyMediaPreview');
-    const isVideo = file.type.startsWith('video/');
-
-    if (isVideo) {
-        const video = document.createElement('video');
-        video.src = URL.createObjectURL(file);
-        video.controls = false;
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = true;
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        preview.innerHTML = '';
-        preview.appendChild(video);
-    } else {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        preview.innerHTML = '';
-        preview.appendChild(img);
-    }
-}
-
-async function uploadStory() {
-    const fileInput = document.getElementById('storyMediaInput');
-    const caption = document.getElementById('storyCaption').value;
-
-    if (!fileInput.files[0]) {
-        showToast('Please select a photo or video', 'error');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('media', fileInput.files[0]);
-    formData.append('caption', caption);
-
-    try {
-        const response = await fetch('/api/stories/create', {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-            showToast('Story posted!', 'success');
-            loadStories();
-        } else {
-            showToast(data.error || 'Failed to post story', 'error');
-        }
-    } catch (error) {
-        console.error('Error uploading story:', error);
-        showToast('Error posting story', 'error');
-    }
-}
-
-function openStoryViewer(userId) {
-    const userStory = currentStories.find(s => s.user_id === userId);
-    if (!userStory) return;
-
-    currentStoryUser = userStory;
-    currentStoryIndex = 0;
-
-    renderStoryViewer();
-    markStoryViewed(userStory.stories[0].id);
-}
-
-function renderStoryViewer() {
-    storyViewerActive = true;
-
-    const viewer = document.createElement('div');
-    viewer.className = 'story-viewer';
-    viewer.id = 'storyViewer';
-
-    const story = currentStoryUser.stories[currentStoryIndex];
-
-    viewer.innerHTML = `
-        <div class="story-viewer-header">
-            <div class="story-progress-container">
-                ${currentStoryUser.stories.map((_, i) => `
-                    <div class="story-progress-bar-container">
-                        <div class="story-progress-bar ${i < currentStoryIndex ? 'completed' : ''}"
-                             id="storyProgress${i}"></div>
-                    </div>
-                `).join('')}
-            </div>
-            <div class="story-viewer-user">
-                <div class="story-viewer-avatar">${currentStoryUser.avatar_letter}</div>
-                <div class="story-viewer-info">
-                    <span class="story-viewer-name">${escapeHtml(currentStoryUser.display_name)}</span>
-                    <span class="story-viewer-time">${formatStoryTime(story.created_at)}</span>
-                </div>
-            </div>
-            <button class="story-viewer-close" onclick="closeStoryViewer()">✕</button>
-        </div>
-
-        <div class="story-viewer-content" id="storyViewerContent">
-            ${story.media_type === 'video' ?
-                `<video src="${story.media_url}" autoplay loop muted playsinline></video>` :
-                `<img src="${story.media_url}" alt="Story">`
-            }
-            ${story.caption ? `<div class="story-caption">${escapeHtml(story.caption)}</div>` : ''}
-        </div>
-
-        <div class="story-viewer-footer">
-            <div class="story-reply-input">
-                <input type="text" placeholder="Send message..." id="storyReplyInput">
-                <button onclick="sendStoryReply()">➤</button>
-            </div>
-            <div class="story-actions">
-                <button onclick="likeCurrentStory()" id="storyLikeBtn">
-                    ${story.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${story.like_count}</span>
-                </button>
-                <button onclick="deleteCurrentStory()" ${currentStoryUser.user_id !== currentUserId ? 'style="display:none"' : ''}>
-                    🗑️
-                </button>
-            </div>
-        </div>
-
-        <div class="story-nav">
-            <div class="story-nav-left" onclick="previousStory()"></div>
-            <div class="story-nav-right" onclick="nextStory()"></div>
-        </div>
-    `;
-
-    document.body.appendChild(viewer);
-    document.body.style.overflow = 'hidden';
-
-    startStoryProgress();
-}
-
-function formatStoryTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString();
-}
-
-function startStoryProgress() {
-    if (storyProgressInterval) clearInterval(storyProgressInterval);
-
-    const progressBar = document.getElementById(`storyProgress${currentStoryIndex}`);
-    if (!progressBar) return;
-
-    let width = 0;
-    const duration = 5000;
-    const interval = 50;
-    const increment = (interval / duration) * 100;
-
-    storyProgressInterval = setInterval(() => {
-        width += increment;
-        progressBar.style.width = `${width}%`;
-
-        if (width >= 100) {
-            clearInterval(storyProgressInterval);
-            nextStory();
-        }
-    }, interval);
-}
-
-function nextStory() {
-    if (currentStoryIndex < currentStoryUser.stories.length - 1) {
-        currentStoryIndex++;
-        markStoryViewed(currentStoryUser.stories[currentStoryIndex].id);
-        updateStoryViewerContent();
-    } else {
-        const currentUserIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
-        if (currentUserIndex < currentStories.length - 1) {
-            currentStoryUser = currentStories[currentUserIndex + 1];
-            currentStoryIndex = 0;
-            markStoryViewed(currentStoryUser.stories[0].id);
-            updateStoryViewerContent();
-        } else {
-            closeStoryViewer();
-        }
-    }
-}
-
-function previousStory() {
-    if (currentStoryIndex > 0) {
-        currentStoryIndex--;
-        updateStoryViewerContent();
-    } else {
-        const currentUserIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
-        if (currentUserIndex > 0) {
-            currentStoryUser = currentStories[currentUserIndex - 1];
-            currentStoryIndex = currentStoryUser.stories.length - 1;
-            updateStoryViewerContent();
-        }
-    }
-}
-
-function updateStoryViewerContent() {
-    const content = document.getElementById('storyViewerContent');
-    const story = currentStoryUser.stories[currentStoryIndex];
-
-    content.innerHTML = `
-        ${story.media_type === 'video' ?
-            `<video src="${story.media_url}" autoplay loop muted playsinline></video>` :
-            `<img src="${story.media_url}" alt="Story">`
-        }
-        ${story.caption ? `<div class="story-caption">${escapeHtml(story.caption)}</div>` : ''}
-    `;
-
-    document.querySelector('.story-viewer-name').textContent = currentStoryUser.display_name;
-    document.querySelector('.story-viewer-time').textContent = formatStoryTime(story.created_at);
-
-    const likeBtn = document.getElementById('storyLikeBtn');
-    likeBtn.innerHTML = `${story.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${story.like_count}</span>`;
-
-    const deleteBtn = likeBtn.parentElement.querySelector('button:last-child');
-    deleteBtn.style.display = currentStoryUser.user_id === currentUserId ? 'block' : 'none';
-
-    document.querySelectorAll('.story-progress-bar').forEach((bar, i) => {
-        bar.classList.toggle('completed', i < currentStoryIndex);
-        if (i === currentStoryIndex) bar.style.width = '0%';
-    });
-
-    startStoryProgress();
-}
-
-async function markStoryViewed(storyId) {
-    try {
-        await fetch(`/api/stories/${storyId}/view`, { method: 'POST' });
-        const story = currentStoryUser.stories.find(s => s.id === storyId);
-        if (story) story.viewed = true;
-    } catch (error) {
-        console.error('Error marking story viewed:', error);
-    }
-}
-
-async function likeCurrentStory() {
-    const story = currentStoryUser.stories[currentStoryIndex];
-
-    try {
-        const response = await fetch(`/api/stories/${story.id}/like`, { method: 'POST' });
-        const data = await response.json();
-
-        if (data.success) {
-            story.liked = data.liked;
-            story.like_count = data.like_count;
-
-            const likeBtn = document.getElementById('storyLikeBtn');
-            likeBtn.innerHTML = `${data.liked ? '❤️' : '🤍'} <span id="storyLikeCount">${data.like_count}</span>`;
-        }
-    } catch (error) {
-        console.error('Error liking story:', error);
-    }
-}
-
-async function deleteCurrentStory() {
-    if (!confirm('Delete this story?')) return;
-
-    const story = currentStoryUser.stories[currentStoryIndex];
-
-    try {
-        const response = await fetch(`/api/stories/${story.id}`, { method: 'DELETE' });
-        const data = await response.json();
-
-        if (data.success) {
-            currentStoryUser.stories.splice(currentStoryIndex, 1);
-
-            if (currentStoryUser.stories.length === 0) {
-                const userIndex = currentStories.findIndex(s => s.user_id === currentStoryUser.user_id);
-                if (userIndex > -1) currentStories.splice(userIndex, 1);
-                closeStoryViewer();
-                loadStories();
-            } else {
-                if (currentStoryIndex >= currentStoryUser.stories.length) {
-                    currentStoryIndex = currentStoryUser.stories.length - 1;
-                }
-                updateStoryViewerContent();
-            }
-
-            showToast('Story deleted', 'success');
-        }
-    } catch (error) {
-        console.error('Error deleting story:', error);
-        showToast('Error deleting story', 'error');
-    }
-}
-
-function sendStoryReply() {
-    const input = document.getElementById('storyReplyInput');
-    const message = input.value.trim();
-
-    if (!message) return;
-
-    openChat('personal', currentStoryUser.user_id);
-
-    setTimeout(() => {
-        const messageInput = document.getElementById('messageInput');
-        if (messageInput) {
-            messageInput.value = message;
-            document.getElementById('sendBtn').disabled = false;
-        }
-    }, 500);
-
-    closeStoryViewer();
-}
-
-function closeStoryViewer() {
-    storyViewerActive = false;
-    if (storyProgressInterval) {
-        clearInterval(storyProgressInterval);
-        storyProgressInterval = null;
-    }
-
-    const viewer = document.getElementById('storyViewer');
-    if (viewer) viewer.remove();
-
-    document.body.style.overflow = '';
-    loadStories();
+    showPremiumModal('stories');
 }
 
 // ============ CONTACTS ============
@@ -1536,8 +1159,6 @@ async function loadProfileData() {
 }
 
 function openEditProfileModal() {
-    closeProfileModal();
-
     const displayName = document.getElementById('profileDisplayNameValue').textContent;
     const username = document.getElementById('profileUsernameValue').textContent.replace('@', '');
     const bio = document.getElementById('profileBioValue').textContent;
@@ -1555,6 +1176,7 @@ function openEditProfileModal() {
 }
 
 function closeEditProfileModal() {
+    // Only close if clicking the close button or cancel
     document.getElementById('editProfileModal').style.display = 'none';
 }
 
@@ -1578,6 +1200,7 @@ async function saveProfile() {
             currentUserDisplayName = displayName;
             currentUserUsername = username;
             updateUserUI();
+            openProfileModal();
         } else {
             showToast(data.error || 'Failed to update profile', 'error');
         }
@@ -1691,24 +1314,19 @@ function cancelUpload() {
     document.getElementById('fileInput').value = '';
 }
 
-// ============ UTILITY FUNCTIONS ============
+// ============ CHAT CUSTOMIZATION (Premium Only) ============
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function openChatCustomization() {
+    showPremiumModal('wallpapers');
 }
 
-function logout() {
-    fetch('/api/auth/logout', { method: 'POST' })
-        .then(() => window.location.href = '/login')
-        .catch(() => window.location.href = '/login');
+function setWallpaper(wallpaper) {
+    showPremiumModal('wallpapers');
 }
 
-// ============ CHAT INFO ============
+// ============ CHAT INFO & MENU ============
 
-async function showChatInfo() {
+function showChatInfo() {
     if (!activeChat) {
         showToast('No chat selected', 'info');
         return;
@@ -1716,6 +1334,9 @@ async function showChatInfo() {
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
     modal.innerHTML = `
         <div class="modal-container" style="max-width: 400px;">
             <div class="modal-header">
@@ -1727,21 +1348,21 @@ async function showChatInfo() {
             </div>
             <div class="modal-footer">
                 ${activeChat.type === 'personal' ? `
-                    <button class="modal-btn modal-btn-danger" onclick="blockUser(${activeChat.id})">Block User</button>
-                    <button class="modal-btn modal-btn-secondary" onclick="clearChat(${activeChat.id})">Clear Chat</button>
+                    <button class="modal-btn modal-btn-danger" onclick="blockUser(${activeChat.id}); this.closest('.modal-overlay').remove()">Block User</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="clearChat(${activeChat.id}); this.closest('.modal-overlay').remove()">Clear Chat</button>
                 ` : ''}
                 ${activeChat.type === 'group' ? `
-                    <button class="modal-btn modal-btn-danger" onclick="leaveGroup(${activeChat.id})">Leave Group</button>
+                    <button class="modal-btn modal-btn-danger" onclick="leaveGroup(${activeChat.id}); this.closest('.modal-overlay').remove()">Leave Group</button>
                 ` : ''}
                 ${activeChat.type === 'channel' ? `
-                    <button class="modal-btn modal-btn-secondary" onclick="leaveChannel(${activeChat.id})">Unsubscribe</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="leaveChannel(${activeChat.id}); this.closest('.modal-overlay').remove()">Unsubscribe</button>
                 ` : ''}
             </div>
         </div>
     `;
 
     document.getElementById('modalRoot').appendChild(modal);
-    await loadChatInfoDetails(activeChat.type, activeChat.id);
+    loadChatInfoDetails(activeChat.type, activeChat.id);
 }
 
 async function loadChatInfoDetails(type, id) {
@@ -1756,78 +1377,23 @@ async function loadChatInfoDetails(type, id) {
             if (user) {
                 body.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
-                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-green)); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #fb6340, #2dce89); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
                             ${user.username[0].toUpperCase()}
                         </div>
-                        <h3 style="margin-bottom: 4px;">${escapeHtml(user.display_name)}</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px;">@${escapeHtml(user.username)}</p>
-                        ${user.bio ? `<p style="text-align: center; margin-bottom: 16px;">${escapeHtml(user.bio)}</p>` : ''}
-                        <div style="display: flex; gap: 20px; margin-bottom: 16px;">
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700;">${user.followers_count || 0}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Followers</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700;">${user.following_count || 0}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">Following</div>
-                            </div>
-                        </div>
-                        <div style="width: 100%; padding: 12px; background: var(--bg-surface); border-radius: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span>${user.is_online ? '🟢' : '⚪'}</span>
-                                <span>${user.is_online ? 'Online' : 'Offline'}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        } else if (type === 'group') {
-            const response = await fetch('/api/chat_list');
-            const data = await response.json();
-            const group = data.chats?.find(c => c.type === 'group' && c.id === id);
-
-            if (group) {
-                body.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
-                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-green), #2dce89); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
-                            👥
-                        </div>
-                        <h3 style="margin-bottom: 4px;">${escapeHtml(group.name)}</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px;">${group.member_count || 0} members</p>
-                        <div style="width: 100%; padding: 12px; background: var(--bg-surface); border-radius: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span>🔗</span>
-                                <span>Invite link available</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        } else if (type === 'channel') {
-            const response = await fetch('/api/chat_list');
-            const data = await response.json();
-            const channel = data.chats?.find(c => c.type === 'channel' && c.id === id);
-
-            if (channel) {
-                body.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
-                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-orange), #fb6340); display: flex; align-items: center; justify-content: center; font-size: 40px; color: white; margin-bottom: 16px;">
-                            📢
-                        </div>
-                        <h3 style="margin-bottom: 4px;">${escapeHtml(channel.name)}</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px;">${channel.subscriber_count || 0} subscribers</p>
+                        <h3>${escapeHtml(user.display_name)}</h3>
+                        <p style="color: var(--text-muted);">@${escapeHtml(user.username)}</p>
                     </div>
                 `;
             }
         }
     } catch (error) {
         console.error('Error loading chat info:', error);
-        body.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading info</p>';
+        body.innerHTML = '<p>Error loading info</p>';
     }
 }
 
 async function blockUser(userId) {
-    if (!confirm('Block this user? You will no longer receive messages from them.')) return;
+    if (!confirm('Block this user?')) return;
 
     try {
         const response = await fetch(`/api/block_user/${userId}`, { method: 'POST' });
@@ -1835,22 +1401,18 @@ async function blockUser(userId) {
 
         if (data.success) {
             showToast('User blocked', 'success');
-            closeAllModals();
             activeChat = null;
             document.getElementById('emptyChat').style.display = 'flex';
             document.getElementById('chatView').style.display = 'none';
             loadChatList();
-        } else {
-            showToast(data.error || 'Failed to block user', 'error');
         }
     } catch (error) {
         console.error('Error blocking user:', error);
-        showToast('Error blocking user', 'error');
     }
 }
 
 async function clearChat(userId) {
-    if (!confirm('Clear chat history? This cannot be undone.')) return;
+    if (!confirm('Clear chat history?')) return;
 
     try {
         const response = await fetch(`/api/clear_chat/${userId}`, { method: 'POST' });
@@ -1858,20 +1420,13 @@ async function clearChat(userId) {
 
         if (data.success) {
             showToast('Chat cleared', 'success');
-            closeAllModals();
             if (activeChat?.type === 'personal' && activeChat.id === userId) {
-                document.getElementById('messagesContainer').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">💬</div>
-                        <p>No messages yet</p>
-                    </div>
-                `;
+                document.getElementById('messagesContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><p>No messages yet</p></div>';
             }
             loadChatList();
         }
     } catch (error) {
         console.error('Error clearing chat:', error);
-        showToast('Error clearing chat', 'error');
     }
 }
 
@@ -1884,7 +1439,6 @@ async function leaveGroup(groupId) {
 
         if (data.success) {
             showToast('Left group', 'success');
-            closeAllModals();
             activeChat = null;
             document.getElementById('emptyChat').style.display = 'flex';
             document.getElementById('chatView').style.display = 'none';
@@ -1892,7 +1446,6 @@ async function leaveGroup(groupId) {
         }
     } catch (error) {
         console.error('Error leaving group:', error);
-        showToast('Error leaving group', 'error');
     }
 }
 
@@ -1904,8 +1457,7 @@ async function leaveChannel(channelId) {
         const data = await response.json();
 
         if (data.success) {
-            showToast('Unsubscribed from channel', 'success');
-            closeAllModals();
+            showToast('Unsubscribed', 'success');
             activeChat = null;
             document.getElementById('emptyChat').style.display = 'flex';
             document.getElementById('chatView').style.display = 'none';
@@ -1913,17 +1465,11 @@ async function leaveChannel(channelId) {
         }
     } catch (error) {
         console.error('Error leaving channel:', error);
-        showToast('Error leaving channel', 'error');
     }
 }
 
-// ============ CHAT MENU ============
-
 function showChatMenu() {
-    if (!activeChat) {
-        showToast('No chat selected', 'info');
-        return;
-    }
+    if (!activeChat) return;
 
     const menu = document.createElement('div');
     menu.className = 'modal-overlay';
@@ -1934,11 +1480,8 @@ function showChatMenu() {
             <div class="chat-menu-item" onclick="showChatInfo(); this.closest('.modal-overlay').remove()">
                 <span>ℹ️</span> View Info
             </div>
-            <div class="chat-menu-item" onclick="openChatCustomization(); this.closest('.modal-overlay').remove()">
-                <span>🎨</span> Customize Chat
-            </div>
-            <div class="chat-menu-item" onclick="exportChat(); this.closest('.modal-overlay').remove()">
-                <span>📤</span> Export Chat
+            <div class="chat-menu-item locked" onclick="showPremiumModal('wallpapers'); this.closest('.modal-overlay').remove()">
+                <span>🎨</span> Customize Chat <span style="margin-left: auto; font-size: 12px; opacity: 0.7;">🔒</span>
             </div>
             ${activeChat.type === 'personal' ? `
                 <div class="chat-menu-divider"></div>
@@ -1949,173 +1492,18 @@ function showChatMenu() {
                     <span>🗑️</span> Clear Chat
                 </div>
             ` : ''}
-            ${activeChat.type === 'group' ? `
-                <div class="chat-menu-divider"></div>
-                <div class="chat-menu-item danger" onclick="leaveGroup(${activeChat.id}); this.closest('.modal-overlay').remove()">
-                    <span>🚪</span> Leave Group
-                </div>
-            ` : ''}
         </div>
     `;
 
     document.body.appendChild(menu);
 }
 
-function exportChat() {
-    const messages = document.querySelectorAll('.message-wrapper');
-    let exportText = `Kiselgram Chat Export\n`;
-    exportText += `Exported: ${new Date().toLocaleString()}\n`;
-    exportText += `================================\n\n`;
-
-    messages.forEach(msg => {
-        const sender = msg.querySelector('.message-sender')?.textContent || 'You';
-        const text = msg.querySelector('.message-text')?.textContent || '[Attachment]';
-        const time = msg.querySelector('.message-time')?.textContent || '';
-        const isOwn = msg.classList.contains('outgoing');
-
-        exportText += `[${time}] ${isOwn ? 'You' : sender}: ${text}\n`;
-    });
-
-    const blob = new Blob([exportText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chat_export_${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    showToast('Chat exported', 'success');
-}
-
-// ============ CHAT CUSTOMIZATION ============
-
-function openChatCustomization() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3>Chat Customization</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-section">
-                    <h3>Chat Bubble Color</h3>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        ${['#5e72e4', '#2dce89', '#fb6340', '#f5365c', '#8965e0', '#11cdef'].map(color => `
-                            <div class="color-option" style="width: 40px; height: 40px; border-radius: 50%; background: ${color}; cursor: pointer; border: 2px solid var(--border-color);"
-                                 onclick="setChatBubbleColor('${color}')"></div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Wallpaper</h3>
-                    <div class="wallpaper-options">
-                        <div class="wallpaper-option" style="background: var(--bg-surface);" onclick="setWallpaper('default')">
-                            <span>Default</span>
-                        </div>
-                        <div class="wallpaper-option gradient1" onclick="setWallpaper('gradient1')"></div>
-                        <div class="wallpaper-option gradient2" onclick="setWallpaper('gradient2')"></div>
-                        <div class="wallpaper-option gradient3" onclick="setWallpaper('gradient3')"></div>
-                        <div class="wallpaper-option gradient4" onclick="setWallpaper('gradient4')"></div>
-                        <div class="wallpaper-option gradient5" onclick="setWallpaper('gradient5')"></div>
-                        <div class="wallpaper-option gradient6" onclick="setWallpaper('gradient6')"></div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Text Size</h3>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('small')">Small</button>
-                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('medium')">Medium</button>
-                        <button class="modal-btn modal-btn-secondary" onclick="setTextSize('large')">Large</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-secondary" onclick="resetChatCustomization()">Reset</button>
-                <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()">Done</button>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalRoot').appendChild(modal);
-}
-
-function setChatBubbleColor(color) {
-    if (activeChat) {
-        const key = `chat_color_${activeChat.type}_${activeChat.id}`;
-        localStorage.setItem(key, color);
-        applyChatCustomization();
-    }
-    showToast('Bubble color updated', 'success');
-}
-
-function setWallpaper(wallpaper) {
-    if (activeChat) {
-        const key = `wallpaper_${activeChat.type}_${activeChat.id}`;
-        localStorage.setItem(key, wallpaper);
-        applyChatCustomization();
-    }
-    showToast('Wallpaper updated', 'success');
-}
-
-function setTextSize(size) {
-    const container = document.getElementById('messagesContainer');
-    if (container) {
-        container.classList.remove('text-small', 'text-medium', 'text-large');
-        container.classList.add(`text-${size}`);
-        localStorage.setItem('chat_text_size', size);
-    }
-    showToast('Text size updated', 'success');
-}
-
-function applyChatCustomization() {
-    if (!activeChat) return;
-
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-
-    // Apply wallpaper
-    const wallpaperKey = `wallpaper_${activeChat.type}_${activeChat.id}`;
-    const wallpaper = localStorage.getItem(wallpaperKey) || 'default';
-
-    container.classList.remove('wallpaper-gradient1', 'wallpaper-gradient2', 'wallpaper-gradient3',
-                           'wallpaper-gradient4', 'wallpaper-gradient5', 'wallpaper-gradient6');
-    if (wallpaper !== 'default') {
-        container.classList.add(`wallpaper-${wallpaper}`);
-    }
-
-    // Apply text size
-    const textSize = localStorage.getItem('chat_text_size') || 'medium';
-    container.classList.remove('text-small', 'text-medium', 'text-large');
-    container.classList.add(`text-${textSize}`);
-}
-
-function resetChatCustomization() {
-    if (!activeChat) return;
-
-    localStorage.removeItem(`chat_color_${activeChat.type}_${activeChat.id}`);
-    localStorage.removeItem(`wallpaper_${activeChat.type}_${activeChat.id}`);
-    localStorage.removeItem('chat_text_size');
-
-    const container = document.getElementById('messagesContainer');
-    if (container) {
-        container.classList.remove('wallpaper-gradient1', 'wallpaper-gradient2', 'wallpaper-gradient3',
-                                   'wallpaper-gradient4', 'wallpaper-gradient5', 'wallpaper-gradient6',
-                                   'text-small', 'text-medium', 'text-large');
-        container.classList.add('text-medium');
-    }
-
-    showToast('Customization reset', 'success');
-}
-
-// ============ ADD CONTACT ============
-
 function showAddContactModal() {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
     modal.innerHTML = `
         <div class="modal-container" style="max-width: 400px;">
             <div class="modal-header">
@@ -2147,7 +1535,7 @@ function showAddContactModal() {
             if (data.success) {
                 const results = document.getElementById('addContactResults');
                 results.innerHTML = data.users.map(user => `
-                    <div class="contact-item" style="cursor: pointer;" onclick="startChatWithUser(${user.id})">
+                    <div class="contact-item" style="cursor: pointer;" onclick="startChatWithUser(${user.id}); this.closest('.modal-overlay').remove()">
                         <div class="contact-avatar">${user.username[0].toUpperCase()}</div>
                         <div class="contact-info">
                             <div class="contact-name">${escapeHtml(user.display_name)}</div>
@@ -2165,168 +1553,44 @@ function showAddContactModal() {
 }
 
 function startChatWithUser(userId) {
-    closeAllModals();
     openChat('personal', userId);
 }
 
-// ============ FOLLOWERS / FOLLOWING / GROUPS ============
-
-async function showFollowers() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Followers</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body" id="followersList" style="max-height: 400px; overflow-y: auto;">
-                <div class="loading-spinner"></div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalRoot').appendChild(modal);
-
-    // For now, show a placeholder since we don't have followers API yet
-    setTimeout(() => {
-        document.getElementById('followersList').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">👥</div>
-                <p>Followers feature coming soon</p>
-            </div>
-        `;
-    }, 500);
+function showFollowers() {
+    showToast('Followers feature coming soon', 'info');
 }
 
-async function showFollowing() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Following</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body" id="followingList" style="max-height: 400px; overflow-y: auto;">
-                <div class="loading-spinner"></div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalRoot').appendChild(modal);
-
-    setTimeout(() => {
-        document.getElementById('followingList').innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">👤</div>
-                <p>Following feature coming soon</p>
-            </div>
-        `;
-    }, 500);
+function showFollowing() {
+    showToast('Following feature coming soon', 'info');
 }
 
-async function showGroups() {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-container" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>Your Groups</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-            </div>
-            <div class="modal-body" id="groupsList" style="max-height: 400px; overflow-y: auto;">
-                <div class="loading-spinner"></div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modalRoot').appendChild(modal);
-
-    try {
-        const response = await fetch('/api/chat_list');
-        const data = await response.json();
-
-        if (data.success) {
-            const groups = data.chats.filter(c => c.type === 'group');
-            const container = document.getElementById('groupsList');
-
-            if (groups.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">👥</div>
-                        <p>No groups yet</p>
-                        <button class="modal-btn modal-btn-primary" onclick="closeAllModals(); showCreateGroupView()">Create Group</button>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = groups.map(group => `
-                    <div class="contact-item" onclick="closeAllModals(); openChat('group', ${group.id})">
-                        <div class="contact-avatar">👥</div>
-                        <div class="contact-info">
-                            <div class="contact-name">${escapeHtml(group.name)}</div>
-                            <div class="contact-username">${group.member_count || 0} members</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading groups:', error);
-        document.getElementById('groupsList').innerHTML = '<p>Error loading groups</p>';
-    }
+function showGroups() {
+    showToast('Groups feature coming soon', 'info');
 }
 
-// ============ PRIVACY SETTINGS ============
-
-async function savePrivacySettings() {
-    const visibility = document.getElementById('profileVisibility')?.value;
-    const onlineStatus = document.querySelector('[data-setting="onlineStatus"]')?.classList.contains('active');
-    const readReceipts = document.querySelector('[data-setting="readReceipts"]')?.classList.contains('active');
-
-    const settings = {
-        profile_visibility: visibility,
-        show_online_status: onlineStatus,
-        show_read_receipts: readReceipts
-    };
-
-    localStorage.setItem('kiselgram_privacy', JSON.stringify(settings));
-
+function savePrivacySettings() {
     showToast('Privacy settings saved', 'success');
     closePrivacyPanel();
 }
 
-// Load privacy settings on init
-function loadPrivacySettings() {
-    const saved = localStorage.getItem('kiselgram_privacy');
-    if (saved) {
-        try {
-            const settings = JSON.parse(saved);
-
-            if (settings.profile_visibility) {
-                const select = document.getElementById('profileVisibility');
-                if (select) select.value = settings.profile_visibility;
-            }
-
-            document.querySelectorAll('.toggle-switch').forEach(toggle => {
-                const setting = toggle.dataset.setting;
-                if (setting === 'onlineStatus' && !settings.show_online_status) {
-                    toggle.classList.remove('active');
-                }
-                if (setting === 'readReceipts' && !settings.show_read_receipts) {
-                    toggle.classList.remove('active');
-                }
-            });
-        } catch (e) {}
-    }
+function toggleMobileSidebar() {
+    document.getElementById('chatSidebar')?.classList.toggle('mobile-visible');
 }
 
-// Add to DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-    loadPrivacySettings();
-});
-
 // ============ UTILITY ============
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function logout() {
+    fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => window.location.href = '/login')
+        .catch(() => window.location.href = '/login');
+}
 
 function closeAllModals() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
@@ -2338,27 +1602,17 @@ function closeAllModals() {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllModals();
-        closeStoryViewer();
     }
 });
 
-function savePrivacySettings() {
-    showToast('Privacy settings saved', 'success');
-    closePrivacyPanel();
-}
-
-function toggleMobileSidebar() {
-    document.getElementById('chatSidebar')?.classList.toggle('mobile-visible');
-}
-
-// Close modal when clicking overlay
+// Prevent closing edit profile modal when clicking outside
 document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
-        e.target.style.display = 'none';
+    const editModal = document.getElementById('editProfileModal');
+    if (editModal && editModal.style.display === 'flex') {
+        if (!editModal.querySelector('.modal-container').contains(e.target) &&
+            !e.target.closest('.profile-info-item') &&
+            !e.target.closest('.modal-btn')) {
+            e.stopPropagation();
+        }
     }
 });
-
-// Close all modals function
-function closeAllModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-}

@@ -520,5 +520,11 @@
     <input type="file" id="fileInput" style="display: none;" multiple onchange="handleFileSelect(this)">
 
     <script src="{{ url_for('static', filename='js/spa_app.js') }}"></script>
+        {% if current_user.is_premium %}
+    <script src="{{ url_for('static', filename='js/spa_app_prem.js') }}"></script>
+    <script>
+        loadStories();
+    </script>
+        {% endif %}
 </body>
 </html>

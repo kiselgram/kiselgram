@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Activated!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <style>
+        .success-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fb6340 0%, #2dce89 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .success-card {
+            max-width: 450px;
+            background: var(--bg-secondary);
+            border-radius: 32px;
+            padding: 48px 32px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            animation: scaleIn 0.5s ease;
+        }
+
+        .success-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .success-message {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(251, 99, 64, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-card">
+            <div class="success-icon">🍊👑🍋</div>
+            <h1 class="success-title">Welcome to Premium!</h1>
+            <p class="success-message">
+                Your Kiselgram Premium is now active.<br>
+                Enjoy exclusive fonts, stories, wallpapers, and more!
+            </p>
+            <a href="{{ url_for('chats.chat_list') }}" class="btn">
+                Start Exploring →
+            </a>
+        </div>
+    </div>
+</body>
+</html>

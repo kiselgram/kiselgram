@@ -21,6 +21,13 @@ class User(db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     is_online = db.Column(db.Boolean, default=False)
 
+    is_premium = db.Column(db.Boolean, default=False)
+    premium_since = db.Column(db.DateTime, nullable=True)
+    premium_expires_at = db.Column(db.DateTime, nullable=True)
+    premium_auto_renew = db.Column(db.Boolean, default=False)
+    premium_payment_method = db.Column(db.String(50), nullable=True)
+    is_admin = db.Column(db.Boolean, default=False)
+
     # Relationships
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', backref='receiver', lazy=True)

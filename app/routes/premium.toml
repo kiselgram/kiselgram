@@ -1,0 +1,8 @@
+[promo_codes]
+WELCOMETOKISELGRAM = { duration_days = 365, max_uses = 200, used_count = 200, created_at = "2026-04-10T00:00:00", created_by = "admin", expires_at = "2027-04-10T00:00:00", active = false }
+WELCOMETOKISELGRAM67 = { duration_days = 1, max_uses = 1, used_count = 0, created_at = "2026-04-10T00:00:00", created_by = "admin", expires_at = "2027-04-10T00:00:00", active = true }
+
+[settings]
+price_monthly = 4.99
+price_yearly = 49.99
+trial_days = 7

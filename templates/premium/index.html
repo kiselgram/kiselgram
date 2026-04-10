@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiselgram Premium</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <style>
+        .premium-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fb6340 0%, #2dce89 100%);
+            padding: 40px 20px;
+        }
+
+        .premium-card {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .premium-badge {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .premium-title {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+
+        .premium-status {
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .premium-status.active {
+            background: #2dce89;
+            color: white;
+        }
+
+        .premium-status.inactive {
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+        }
+
+        .feature-list {
+            text-align: left;
+            margin: 32px 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-surface);
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            border-radius: 14px;
+            color: white;
+        }
+
+        .feature-info h4 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .feature-info p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .price-tag {
+            font-size: 48px;
+            font-weight: 800;
+            margin: 24px 0;
+        }
+
+        .price-tag small {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .promo-section {
+            margin: 24px 0;
+        }
+
+        .promo-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        .promo-input input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(251, 99, 64, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .expires-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(45, 206, 137, 0.1);
+            border-radius: 12px;
+            color: #2dce89;
+        }
+    </style>
+</head>
+<body>
+    <div class="premium-container">
+        <div class="premium-card">
+            <div class="premium-badge">🍊👑🍋</div>
+            <h1 class="premium-title">Kiselgram Premium</h1>
+
+            {% if is_premium %}
+            <div class="premium-status active">
+                ✨ Premium Active ✨
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-info">
+                        <h4>11 Premium Fonts</h4>
+                        <p>Satoshi, DM Sans, Poppins, and more</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📸</div>
+                    <div class="feature-info">
+                        <h4>Stories Feature</h4>
+                        <p>Share moments that disappear after 24h</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🖼️</div>
+                    <div class="feature-info">
+                        <h4>Custom Wallpapers</h4>
+                        <p>Personalize your chat backgrounds</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if premium_expires %}
+            <div class="expires-info">
+                🍊 Premium expires: {{ premium_expires|format_date }}
+                <br>
+                <small>{{ premium_expires|time_until }} remaining</small>
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('chats.chat_list') }}" class="btn btn-primary btn-block" style="display: inline-block; text-decoration: none; margin-top: 16px;">
+                Back to Chats
+            </a>
+
+            {% else %}
+            <div class="premium-status inactive">
+                Upgrade to Premium
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-info">
+                        <h4>11 Premium Fonts</h4>
+                        <p>Satoshi, DM Sans, Poppins, and more</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📸</div>
+                    <div class="feature-info">
+                        <h4>Stories Feature</h4>
+                        <p>Share moments that disappear after 24h</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🖼️</div>
+                    <div class="feature-info">
+                        <h4>Custom Wallpapers</h4>
+                        <p>Personalize your chat backgrounds</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-info">
+                        <h4>Priority Support</h4>
+                        <p>Get help faster</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="price-tag">
+                ${{ price }} <small>/ month</small>
+            </div>
+
+            <div class="promo-section">
+                <div class="promo-input">
+                    <input type="text" id="promoCodeInput" placeholder="PROMO CODE" maxlength="20">
+                    <button class="btn btn-secondary" onclick="applyPromoCode()">Apply</button>
+                </div>
+                <p id="promoMessage" style="margin-top: 8px; font-size: 13px;"></p>
+            </div>
+
+            <button class="btn btn-primary btn-block" onclick="activatePremium()">
+                Upgrade Now 🍊
+            </button>
+
+            <a href="{{ url_for('chats.chat_list') }}" class="back-link">
+                ← Maybe later
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        let appliedPromoCode = null;
+        let promoDuration = 30;
+
+        async function applyPromoCode() {
+            const input = document.getElementById('promoCodeInput');
+            const code = input.value.trim().toUpperCase();
+            const messageEl = document.getElementById('promoMessage');
+
+            if (!code) {
+                messageEl.textContent = 'Please enter a promo code';
+                messageEl.style.color = '#fb6340';
+                return;
+            }
+
+            try {
+                const response = await fetch('/premium/api/validate-promo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    appliedPromoCode = code;
+                    promoDuration = data.duration_days;
+                    messageEl.textContent = `✅ ${data.message}`;
+                    messageEl.style.color = '#2dce89';
+                } else {
+                    messageEl.textContent = `❌ ${data.error}`;
+                    messageEl.style.color = '#fb6340';
+                }
+            } catch (error) {
+                messageEl.textContent = 'Error validating promo code';
+                messageEl.style.color = '#fb6340';
+            }
+        }
+
+        async function activatePremium() {
+            try {
+                const response = await fetch('/premium/api/activate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payment_method: 'card',
+                        promo_code: appliedPromoCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    window.location.href = '/premium/success';
+                } else {
+                    alert(data.error || 'Failed to activate premium');
+                }
+            } catch (error) {
+                alert('Error activating premium');
+            }
+        }
+    </script>
+</body>
+</html>
