@@ -1416,5 +1416,19 @@ def check_premium(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@spa_bp.route('/upload-limit', methods=['GET'])
+def get_upload_limit_api():
+        try:
+            from app.routes.premium import get_upload_limit
+            current_user_id = get_current_user_id()
+            if not current_user_id:
+                return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+            limit = get_upload_limit(current_user_id)
+            return jsonify({'success': True, 'limit': limit, 'limit_mb': limit / (1024 * 1024)})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+
 def register_spa_bp(app):
     app.register_blueprint(spa_bp)

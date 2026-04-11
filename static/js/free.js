@@ -96,7 +96,15 @@
     function renderStoriesRowLocked() {
         const row = getEl('storiesRow');
         if (!row) return;
-        row.innerHTML = `<div class="story-item locked" onclick="showPremiumModal('stories')"><div class="story-avatar add-story locked"><div class="add-story-btn">🔒</div></div><span class="story-username">Premium</span></div><div style="display:flex;align-items:center;padding:8px 16px;color:var(--text-muted);font-size:13px"><span>🔒 Stories require Premium</span></div>`;
+        row.innerHTML = `
+            <div class="story-item locked" onclick="showPremiumModal('stories')">
+                <div class="story-avatar add-story locked"><div class="add-story-btn">🔒</div></div>
+                <span class="story-username">Premium</span>
+            </div>
+            <div style="display:flex;align-items:center;padding:8px 16px;color:var(--text-muted);font-size:13px">
+                <span>🔒 Stories require Premium</span>
+            </div>
+        `;
     }
 
     function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
@@ -112,9 +120,58 @@
     window.showToast = showToast;
 
     window.showPremiumModal = (feature='feature') => {
-        const msgs = { fonts:'Unlock 9+ premium fonts!', stories:'Stories - Premium only!', wallpapers:'Custom wallpapers - Premium only!' };
-        const m = document.createElement('div'); m.className = 'modal-overlay'; m.style.display = 'flex'; m.onclick = e => { if (e.target===m) m.remove(); };
-        m.innerHTML = `<div class="modal-container" style="max-width:400px"><div class="modal-header" style="background:linear-gradient(135deg,#fb6340,#2dce89);color:white"><h3>Premium</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="color:white">✕</button></div><div class="modal-body" style="text-align:center;padding:24px"><div style="font-size:48px">👑</div><p>${msgs[feature]||'Premium feature'}</p><p style="font-size:24px;font-weight:700">$4.99/month</p></div><div class="modal-footer"><button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Later</button><button class="modal-btn modal-btn-primary" onclick="location.href='/premium'" style="background:linear-gradient(135deg,#fb6340,#2dce89)">Upgrade</button></div></div>`;
+        const msgs = {
+            fonts: 'Unlock 9+ premium fonts!',
+            stories: 'Stories disappear after 24h - Premium only!',
+            wallpapers: 'Custom wallpapers - Premium only!',
+            stickers: 'Animated stickers - Premium only!',
+            videoAvatar: 'Video avatars - Premium only!',
+            stats: 'Chat statistics - Premium only!',
+            notifications: 'Custom notification sounds - Premium only!',
+            uploads: 'Upload up to 500MB - Premium only!',
+            botApi: 'Bot API access - Premium only!'
+        };
+
+        const m = document.createElement('div');
+        m.className = 'modal-overlay';
+        m.style.display = 'flex';
+        m.onclick = e => { if (e.target===m) m.remove(); };
+        m.innerHTML = `
+            <div class="modal-container" style="max-width:450px;max-height:80vh;overflow-y:auto">
+                <div class="modal-header" style="background:linear-gradient(135deg,#fb6340,#2dce89);color:white">
+                    <h3>✨ Kiselgram Premium</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()" style="color:white">✕</button>
+                </div>
+                <div class="modal-body" style="text-align:center;padding:24px">
+                    <div style="font-size:48px;margin-bottom:16px">👑</div>
+                    <p style="font-size:16px;margin-bottom:20px">${msgs[feature]||'Unlock all premium features!'}</p>
+                    <div style="background:linear-gradient(135deg,rgba(251,99,64,0.1),rgba(45,206,137,0.1));border-radius:16px;padding:16px;margin-bottom:20px">
+                        <h4 style="margin-bottom:12px">All Premium Benefits:</h4>
+                        <ul style="text-align:left;color:var(--text-secondary);display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <li>✨ 11 Premium Fonts</li><li>📸 Stories Feature</li>
+                            <li>🎨 Custom Wallpapers</li><li>✨ Animated Stickers</li>
+                            <li>🎥 Video Avatars</li><li>📊 Chat Statistics</li>
+                            <li>🔔 Custom Notifications</li><li>🗂️ 500MB Uploads</li>
+                            <li>🤖 Bot API Access</li><li>💬 Priority Support</li>
+                        </ul>
+                    </div>
+                    <div style="display:flex;justify-content:center;gap:20px;margin-bottom:20px">
+                        <div style="text-align:center">
+                            <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#fb6340,#2dce89);-webkit-background-clip:text;-webkit-text-fill-color:transparent">$3.99</div>
+                            <div style="font-size:12px;color:var(--text-muted)">per month</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#fb6340,#2dce89);-webkit-background-clip:text;-webkit-text-fill-color:transparent">$39.99</div>
+                            <div style="font-size:12px;color:var(--text-muted)">per year <span style="background:#2dce89;color:white;padding:2px 6px;border-radius:10px;font-size:10px">SAVE 16%</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Maybe Later</button>
+                    <button class="modal-btn modal-btn-primary" onclick="location.href='/premium'" style="background:linear-gradient(135deg,#fb6340,#2dce89)">Upgrade Now</button>
+                </div>
+            </div>
+        `;
         document.body.appendChild(m);
     };
 
@@ -148,7 +205,6 @@
     function loadFontPreference() { const f = localStorage.getItem('kiselgram_font'); if (f) document.body.style.setProperty('--font-family', f); }
     window.toggleSetting = (el, setting) => { el.classList.toggle('active'); localStorage.setItem(`kiselgram_${setting}`, el.classList.contains('active')); };
 
-    // Chat
     async function loadChatList() { try { const r = await fetch('/api/chat_list'); const d = await r.json(); if (d.success) renderChatList(d.chats); } catch (e) {} }
     function renderChatList(chats) { const c = DOM.chatList; if (!c) return; if (!chats?.length) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><p>No chats</p></div>'; return; } c.innerHTML = chats.map(chat => { const active = window.activeChat?.type===chat.type && window.activeChat?.id===chat.id; return `<div class="chat-item ${active?'active':''}" data-chat-type="${chat.type}" data-chat-id="${chat.id}" onclick="openChat('${chat.type}',${chat.id})"><div class="chat-avatar ${chat.type}">${chat.avatar_url?`<img src="${chat.avatar_url}">`:(chat.avatar||'?')}</div><div class="chat-info"><div class="chat-name-row"><span class="chat-name">${escapeHtml(chat.name)}</span><span class="chat-time">${chat.timestamp||''}</span></div><div class="chat-preview"><span>${escapeHtml(chat.last_message||'')}</span>${chat.unread_count>0?`<span class="unread-badge">${chat.unread_count}</span>`:''}</div></div></div>`; }).join(''); }
 
@@ -169,16 +225,13 @@
     window.deleteMessage = async (id) => { if (!confirm('Delete?')) return; try { await fetch(`/api/messages/${id}`, { method:'DELETE' }); getEl(`msg-${id}`)?.remove(); } catch (e) {} };
     window.openImageViewer = (url) => window.open(url, '_blank');
 
-    // Contacts
     window.showContactsView = () => { window.closePopout(); hideAllPanels(); if (DOM.contactsView) DOM.contactsView.style.display = 'flex'; loadContacts(); };
     window.hideContactsView = () => { if (DOM.contactsView) DOM.contactsView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
     async function loadContacts() { const c = getEl('contactsList'); if (!c) return; try { const r = await fetch('/api/contacts'); const d = await r.json(); if (d.success) { c.innerHTML = d.contacts.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id})"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div></div>`).join('') || '<div class="empty-state"><p>No contacts</p></div>'; } } catch (e) {} }
 
-    // Search
     async function handleGlobalSearch() { const q = DOM.globalSearchInput?.value.trim(); const r = DOM.searchResults; if (!r) return; if (!q||q.length<2) { r.innerHTML = ''; r.classList.remove('active'); return; } try { const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`); const d = await res.json(); if (d.success) { let h = ''; if (d.results.users?.length) { h += '<div class="search-result-section">Users</div>'; d.results.users.forEach(u => { h += `<div class="search-result-item" onclick="openChat('personal',${u.id});closeSearchResults()"><div class="search-result-avatar">${u.username[0].toUpperCase()}</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(u.display_name)}</div><div class="search-result-type">@${escapeHtml(u.username)}</div></div></div>`; }); } if (d.results.groups?.length) { h += '<div class="search-result-section">Groups</div>'; d.results.groups.forEach(g => { h += `<div class="search-result-item" onclick="openChat('group',${g.id});closeSearchResults()"><div class="search-result-avatar">👥</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(g.name)}</div><div class="search-result-type">Group</div></div></div>`; }); } r.innerHTML = h || '<div class="search-result-item">No results</div>'; r.classList.add('active'); } } catch (e) {} }
     window.closeSearchResults = () => { DOM.searchResults?.classList.remove('active'); if (DOM.globalSearchInput) DOM.globalSearchInput.value = ''; };
 
-    // Groups & Channels
     window.showCreateGroupView = () => { window.closePopout(); hideAllPanels(); if (DOM.createGroupView) DOM.createGroupView.style.display = 'flex'; window.selectedMembers = []; const c = getEl('selectedMembers'); if (c) c.innerHTML = ''; };
     window.hideCreateGroupView = () => { if (DOM.createGroupView) DOM.createGroupView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
     window.createGroup = async () => { const n = getEl('groupName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); fd.append('member_ids', JSON.stringify(window.selectedMembers||[])); const a = getEl('groupAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/groups/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateGroupView(); loadChatList(); openChat('group', d.group.id); } } catch (e) {} };
@@ -186,7 +239,6 @@
     window.hideCreateChannelView = () => { if (DOM.createChannelView) DOM.createChannelView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
     window.createChannel = async () => { const n = getEl('channelName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); const a = getEl('channelAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/channels/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateChannelView(); loadChatList(); openChat('channel', d.channel.id); } } catch (e) {} };
 
-    // Profile
     window.openProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'flex'; loadProfileData(); };
     window.closeProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'none'; };
     async function loadProfileData() { try { const r = await fetch('/api/profile'); const d = await r.json(); if (d.success && d.user) { const u = d.user; const dn = getEl('profileDisplayName'), un = getEl('profileUsername'), av = getEl('profileAvatar'), dnv = getEl('profileDisplayNameValue'), unv = getEl('profileUsernameValue'), bv = getEl('profileBioValue'), bio = getEl('profileBio'); if (dn) dn.textContent = u.display_name; if (un) un.textContent = '@'+u.username; if (bio) bio.textContent = u.bio||'No bio yet'; if (dnv) dnv.textContent = u.display_name; if (unv) unv.textContent = '@'+u.username; if (bv) bv.textContent = u.bio||'No bio yet'; if (av) av.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${u.username[0].toUpperCase()}</div>`; } } catch (e) {} }
@@ -196,13 +248,11 @@
     window.triggerAvatarUpload = () => getEl('avatarInput')?.click();
     window.uploadAvatar = async (i) => { const f = i.files?.[0]; if (!f) return; const fd = new FormData(); fd.append('avatar', f); try { const r = await fetch('/files/upload_avatar', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Avatar updated!', 'success'); window.currentUserAvatar = window.currentUserUsername[0].toUpperCase(); updateUI(); loadProfileData(); } } catch (e) {} };
 
-    // File upload
     window.triggerFileUpload = () => getEl('fileInput')?.click();
     window.handleFileSelect = (i) => { const f = i.files; if (!f?.length) return; const fn = getEl('uploadFileName'); const ua = getEl('uploadArea'); if (fn) fn.textContent = f.length===1 ? f[0].name : `${f.length} files`; if (ua) ua.classList.add('active'); };
     window.uploadFile = async () => { const i = getEl('fileInput'); const f = i?.files; if (!f?.length || !window.activeChat) { window.cancelUpload(); return; } for (const file of f) { const fd = new FormData(); fd.append('file', file); if (window.activeChat.type==='personal') fd.append('receiver_id', window.activeChat.id); else fd.append('group_id', window.activeChat.id); try { const r = await fetch('/files/upload_file', { method:'POST', body:fd }); const d = await r.json(); if (d.success && DOM.messagesContainer) { if (DOM.messagesContainer.querySelector('.empty-state')) DOM.messagesContainer.innerHTML = ''; DOM.messagesContainer.insertAdjacentHTML('beforeend', renderMessage(d.message)); DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight; } } catch (e) {} } window.cancelUpload(); };
     window.cancelUpload = () => { const ua = getEl('uploadArea'); const fi = getEl('fileInput'); if (ua) ua.classList.remove('active'); if (fi) fi.value = ''; };
 
-    // Misc
     window.showChatInfo = () => showToast('Chat info', 'info');
     window.showChatMenu = () => { if (!window.activeChat) return; const m = document.createElement('div'); m.className = 'modal-overlay'; m.onclick = e => { if (e.target===m) m.remove(); }; m.innerHTML = `<div class="chat-menu-dropdown" style="position:fixed;top:60px;right:20px;background:var(--bg-secondary);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px 0;min-width:200px;z-index:2000"><div class="chat-menu-item" onclick="showChatInfo();this.closest('.modal-overlay').remove()"><span>ℹ️</span> View Info</div><div class="chat-menu-item locked" onclick="showPremiumModal('wallpapers');this.closest('.modal-overlay').remove()"><span>🎨</span> Customize 🔒</div>${window.activeChat.type==='personal'?`<div class="chat-menu-divider"></div><div class="chat-menu-item danger" onclick="blockUser(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🚫</span> Block</div><div class="chat-menu-item danger" onclick="clearChat(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🗑️</span> Clear</div>`:''}</div>`; document.body.appendChild(m); };
     window.blockUser = async (id) => { if (!confirm('Block?')) return; try { await fetch(`/api/block_user/${id}`, { method:'POST' }); showToast('Blocked', 'success'); window.activeChat = null; if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; if (DOM.chatView) DOM.chatView.style.display = 'none'; loadChatList(); } catch (e) {} };

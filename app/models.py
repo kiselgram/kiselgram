@@ -2,6 +2,7 @@
 
 from app import db
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # ============ BASIC MODELS (No foreign keys to Group/Channel) ============
@@ -27,6 +28,21 @@ class User(db.Model):
     premium_auto_renew = db.Column(db.Boolean, default=False)
     premium_payment_method = db.Column(db.String(50), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
+    premium_plan = db.Column(db.String(20), nullable=True)  # 'monthly' or 'yearly'
+
+        # Avatar type
+    avatar_type = db.Column(db.String(10), default='image')  # 'image' or 'video'
+
+        # Notification settings (premium)
+    notification_sound = db.Column(db.String(50), default='default')
+    per_chat_sounds = db.Column(db.JSON, default={})
+    mute_all = db.Column(db.Boolean, default=False)
+    do_not_disturb = db.Column(db.Boolean, default=False)
+
+        # Bot fields
+    is_bot = db.Column(db.Boolean, default=False)
+    bot_owner_id = db.Column(db.Integer, nullable=True)
+    bot_token = db.Column(db.String(64), nullable=True)
 
     # Relationships
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
@@ -53,6 +69,12 @@ class User(db.Model):
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
             'is_online': self.is_online
         }
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class TelegramBot(db.Model):
