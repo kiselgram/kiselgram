@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ profile_user.display_name or profile_user.username }} (@{{ profile_user.username }}) | Kiselgram</title>
+    <meta property="og:title" content="{{ profile_user.display_name or profile_user.username }} (@{{ profile_user.username }})">
+    <meta property="og:description" content="{{ profile_user.bio or 'On Kiselgram' }}">
+    <meta property="og:image" content="{{ profile_user.avatar_url or url_for('static', filename='default-avatar.png') }}">
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta name="twitter:card" content="summary">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+
+    <style>
+        .profile-public-container {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .profile-card {
+            max-width: 500px;
+            width: 100%;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+            animation: scaleIn 0.3s ease;
+        }
+
+        .profile-avatar-large {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--accent-blue);
+        }
+
+        .profile-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .profile-premium-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .profile-name-large {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .profile-username-large {
+            font-size: 18px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .profile-bio-large {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 24px;
+            padding: 0 20px;
+        }
+
+        .profile-stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 32px;
+            padding: 16px 0;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-block {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(251, 99, 64, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .profile-footer {
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .profile-footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .profile-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .online-indicator-large {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2dce89;
+            margin-right: 4px;
+        }
+
+        .last-seen {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @media (max-width: 500px) {
+            .profile-card {
+                padding: 30px 20px;
+            }
+
+            .profile-stats-row {
+                gap: 20px;
+            }
+
+            .profile-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-public-container">
+        <div class="profile-card">
+            <div class="profile-avatar-large">
+                {% if profile_user.avatar_url %}
+                    <img src="{{ profile_user.avatar_url }}" alt="{{ profile_user.display_name or profile_user.username }}">
+                {% else %}
+                    <div class="profile-avatar-placeholder">
+                        {{ profile_user.username[0].upper() }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-name-large">
+                {{ profile_user.display_name or profile_user.username }}
+                {% if profile_user.is_premium %}
+                    <span class="profile-premium-badge">PREMIUM</span>
+                {% endif %}
+            </div>
+
+            <div class="profile-username-large">@{{ profile_user.username }}</div>
+
+            {% if profile_user.bio %}
+                <div class="profile-bio-large">{{ profile_user.bio }}</div>
+            {% endif %}
+
+            {% if profile_user.is_online %}
+                <div style="color: #2dce89; font-size: 14px; margin-bottom: 16px;">
+                    <span class="online-indicator-large"></span> Online
+                </div>
+            {% elif profile_user.last_seen %}
+                <div class="last-seen">
+                    Last seen {{ profile_user.last_seen.strftime('%d.%m.%Y at %H:%M') }}
+                </div>
+            {% endif %}
+
+            <div class="profile-stats-row">
+                <div class="stat-block">
+                    <div class="stat-value">{{ profile_user.followers_count|default(0) }}</div>
+                    <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-value">{{ profile_user.following_count|default(0) }}</div>
+                    <div class="stat-label">Following</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-value">{{ profile_user.groups_count|default(0) }}</div>
+                    <div class="stat-label">Groups</div>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                {% if current_user and current_user.id == profile_user.id %}
+                    <a href="{{ url_for('chats.chat_list') }}" class="btn btn-primary">
+                        <span>💬</span> Open Kiselgram
+                    </a>
+                    <a href="{{ url_for('chats.chat_list') }}#profile" class="btn btn-secondary">
+                        <span>⚙️</span> Edit Profile
+                    </a>
+                {% elif current_user %}
+                    <a href="{{ url_for('chats.chat_list') }}?chat={{ profile_user.id }}" class="btn btn-primary btn-block">
+                        <span>💬</span> Send Message
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}?next=/@{{ profile_user.username }}" class="btn btn-primary btn-block">
+                        <span>🔐</span> Login to Message
+                    </a>
+                {% endif %}
+            </div>
+
+            <div class="profile-footer">
+                <a href="{{ url_for('chats.kis_info') }}">Kiselgram</a> ·
+                <span>Joined {{ profile_user.created_at.strftime('%B %Y') if profile_user.created_at else 'recently' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Apply saved theme
+        (function() {
+            const theme = localStorage.getItem('kiselgram_theme');
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+</body>
+</html>

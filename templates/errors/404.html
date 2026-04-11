@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Not Found | Kiselgram</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            padding: 20px;
+        }
+
+        .error-card {
+            max-width: 450px;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 48px 32px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .error-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .error-message {
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(251, 99, 64, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">🔍</div>
+            <h1 class="error-title">User Not Found</h1>
+            <p class="error-message">
+                The profile you're looking for doesn't exist.<br>
+                They might have changed their username or deleted their account.
+            </p>
+            <a href="{{ url_for('chats.chat_list') if current_user else url_for('auth.login') }}" class="btn">
+                {{ 'Go to Chats' if current_user else 'Login' }}
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,4 +1,5 @@
 # app/routes/spa_app.py
+# Kiselgram SPA API - Complete
 
 from flask import Blueprint, request, jsonify, session
 from datetime import datetime, timedelta
@@ -48,6 +49,7 @@ def user_to_dict(user):
         'last_seen': user.last_seen.isoformat() if user.last_seen else None,
         'created_at': user.created_at.isoformat() if user.created_at else None,
         'has_story': has_active_story(user.id),
+        'is_premium': getattr(user, 'is_premium', False),
         'followers_count': 0,
         'following_count': 0,
         'groups_count': GroupMember.query.filter_by(user_id=user.id).count()
@@ -78,6 +80,27 @@ def message_to_dict(message, current_user_id):
         msg_data['file_size'] = message.file_size
         msg_data['formatted_size'] = format_file_size(message.file_size) if message.file_size else '0 B'
         msg_data['file_url'] = f"/uploads/{message.file_path}" if message.file_path else None
+
+    # Get reply info
+    reply = Reply.query.filter_by(reply_message_id=message.id).first()
+    if reply:
+        original = Message.query.get(reply.original_message_id)
+        if original:
+            msg_data['reply_to_id'] = original.id
+            msg_data['reply_to_content'] = original.content[:50] if original.content else ''
+            msg_data['reply_to_sender'] = original.sender.username if original.sender else ''
+
+    # Get forward info
+    forward = Forward.query.filter_by(forwarded_message_id=message.id).first()
+    if forward:
+        msg_data['forwarded_from'] = forward.original_sender_name
+
+    # Get reactions
+    reactions = Reaction.query.filter_by(message_id=message.id).all()
+    for r in reactions:
+        if r.reaction_type not in msg_data['reactions']:
+            msg_data['reactions'][r.reaction_type] = 0
+        msg_data['reactions'][r.reaction_type] += 1
 
     return msg_data
 
@@ -132,7 +155,7 @@ def chat_list_api():
                         'name': user.display_name or user.username,
                         'avatar': user.username[0].upper() if user.username else '?',
                         'avatar_url': getattr(user, 'avatar_url', None),
-                        'last_message': last.content[:50] + '...' if last and last.content and len(
+                        'last_message': (last.content[:50] + '...') if last and last.content and len(
                             last.content) > 50 else (last.content if last else 'No messages yet'),
                         'timestamp': timestamp,
                         'unread_count': unread,
@@ -174,7 +197,7 @@ def chat_list_api():
                         'name': group.name,
                         'avatar': '👥',
                         'avatar_url': getattr(group, 'avatar_url', None),
-                        'last_message': last.content[:50] + '...' if last and last.content and len(
+                        'last_message': (last.content[:50] + '...') if last and last.content and len(
                             last.content) > 50 else (last.content if last else 'No messages yet'),
                         'timestamp': timestamp,
                         'unread_count': unread,
@@ -211,7 +234,7 @@ def chat_list_api():
                         'name': channel.name,
                         'avatar': '📢',
                         'avatar_url': getattr(channel, 'avatar_url', None),
-                        'last_message': last.content[:50] + '...' if last and last.content and len(
+                        'last_message': (last.content[:50] + '...') if last and last.content and len(
                             last.content) > 50 else (last.content if last else 'No posts yet'),
                         'timestamp': timestamp,
                         'unread_count': 0,
@@ -249,11 +272,13 @@ def global_search():
             return jsonify({'success': True, 'results': {'users': [], 'groups': [], 'channels': []}})
 
         results = {'users': [], 'groups': [], 'channels': []}
+        blocked_ids = get_blocked_user_ids(current_user_id)
 
         # Users
         users = User.query.filter(
             User.id != current_user_id,
-            User.username.ilike(f'%{query}%')
+            ~User.id.in_(blocked_ids),
+            (User.username.ilike(f'%{query}%')) | (User.display_name.ilike(f'%{query}%'))
         ).limit(10).all()
         results['users'] = [user_to_dict(u) for u in users]
 
@@ -262,14 +287,16 @@ def global_search():
             Group.is_public == True,
             Group.name.ilike(f'%{query}%')
         ).limit(10).all()
-        results['groups'] = [{'id': g.id, 'name': g.name, 'description': g.description} for g in groups]
+        results['groups'] = [{'id': g.id, 'name': g.name, 'description': g.description, 'avatar_url': g.avatar_url} for
+                             g in groups]
 
         # Channels
         channels = Channel.query.filter(
             Channel.is_public == True,
             Channel.name.ilike(f'%{query}%')
         ).limit(10).all()
-        results['channels'] = [{'id': c.id, 'name': c.name, 'description': c.description} for c in channels]
+        results['channels'] = [{'id': c.id, 'name': c.name, 'description': c.description, 'avatar_url': c.avatar_url}
+                               for c in channels]
 
         return jsonify({'success': True, 'results': results})
     except Exception as e:
@@ -317,15 +344,40 @@ def get_users():
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
 
         search = request.args.get('search', '')
-        query = User.query.filter(User.id != current_user_id)
+        blocked_ids = get_blocked_user_ids(current_user_id)
+
+        query = User.query.filter(
+            User.id != current_user_id,
+            ~User.id.in_(blocked_ids)
+        )
 
         if search:
-            query = query.filter(User.username.ilike(f'%{search}%'))
+            query = query.filter(
+                (User.username.ilike(f'%{search}%')) |
+                (User.display_name.ilike(f'%{search}%'))
+            )
 
         users = query.limit(50).all()
         return jsonify({'success': True, 'users': [user_to_dict(u) for u in users]})
     except Exception as e:
         print(f"Error in get_users: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@spa_bp.route('/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        return jsonify({'success': True, 'user': user_to_dict(user)})
+    except Exception as e:
+        print(f"Error in get_user: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -337,6 +389,10 @@ def get_personal_messages(user_id):
         current_user_id = get_current_user_id()
         if not current_user_id:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        # Check if blocked
+        if BlockedUser.query.filter_by(user_id=user_id, blocked_user_id=current_user_id).first():
+            return jsonify({'success': False, 'error': 'You are blocked by this user'}), 403
 
         after_id = request.args.get('after', 0, type=int)
         limit = request.args.get('limit', 50, type=int)
@@ -424,7 +480,12 @@ def send_personal_message():
         if BlockedUser.query.filter_by(user_id=receiver_id, blocked_user_id=current_user_id).first():
             return jsonify({'success': False, 'error': 'You are blocked'}), 403
 
-        new_message = Message(content=content, sender_id=current_user_id, receiver_id=receiver_id)
+        new_message = Message(
+            content=content,
+            sender_id=current_user_id,
+            receiver_id=receiver_id,
+            timestamp=datetime.utcnow()
+        )
         db.session.add(new_message)
         db.session.flush()
 
@@ -460,8 +521,13 @@ def send_group_message():
         if not membership:
             return jsonify({'success': False, 'error': 'Not a member'}), 403
 
-        new_message = Message(content=content, sender_id=current_user_id, group_id=group_id,
-                              receiver_id=current_user_id)
+        new_message = Message(
+            content=content,
+            sender_id=current_user_id,
+            group_id=group_id,
+            receiver_id=current_user_id,
+            timestamp=datetime.utcnow()
+        )
         db.session.add(new_message)
         db.session.flush()
 
@@ -496,8 +562,13 @@ def send_channel_message():
         if not channel or channel.owner_id != current_user_id:
             return jsonify({'success': False, 'error': 'Only owner can post'}), 403
 
-        new_message = Message(content=content, sender_id=current_user_id, channel_id=channel_id,
-                              receiver_id=current_user_id)
+        new_message = Message(
+            content=content,
+            sender_id=current_user_id,
+            channel_id=channel_id,
+            receiver_id=current_user_id,
+            timestamp=datetime.utcnow()
+        )
         db.session.add(new_message)
         db.session.commit()
 
@@ -545,7 +616,17 @@ def get_reactions(message_id):
                 grouped[r.reaction_type] = {'type': r.reaction_type, 'count': 0}
             grouped[r.reaction_type]['count'] += 1
 
-        return jsonify({'success': True, 'reactions': list(grouped.values())})
+        # Check if current user reacted
+        user_reaction = Reaction.query.filter_by(
+            message_id=message_id,
+            user_id=current_user_id
+        ).first()
+
+        return jsonify({
+            'success': True,
+            'reactions': list(grouped.values()),
+            'user_reaction': user_reaction.reaction_type if user_reaction else None
+        })
     except Exception as e:
         print(f"Error in get_reactions: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -630,7 +711,7 @@ def update_profile():
             user.bio = bio[:500] if bio else None
 
         if 'username' in data:
-            new_username = data['username'].strip()
+            new_username = data['username'].strip().lower()
             if len(new_username) >= 3 and re.match(r'^[a-zA-Z0-9_]+$', new_username):
                 existing = User.query.filter_by(username=new_username).first()
                 if not existing or existing.id == current_user_id:
@@ -688,6 +769,42 @@ def block_user(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@spa_bp.route('/unblock_user/<int:user_id>', methods=['POST'])
+def unblock_user(user_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        BlockedUser.query.filter_by(user_id=current_user_id, blocked_user_id=user_id).delete()
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in unblock_user: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@spa_bp.route('/blocked_users', methods=['GET'])
+def get_blocked_users():
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        blocks = BlockedUser.query.filter_by(user_id=current_user_id).all()
+        blocked_users = []
+        for block in blocks:
+            user = User.query.get(block.blocked_user_id)
+            if user:
+                blocked_users.append(user_to_dict(user))
+
+        return jsonify({'success': True, 'blocked_users': blocked_users})
+    except Exception as e:
+        print(f"Error in get_blocked_users: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @spa_bp.route('/clear_chat/<int:user_id>', methods=['POST'])
 def clear_chat(user_id):
     try:
@@ -715,6 +832,17 @@ def leave_group(group_id):
         current_user_id = get_current_user_id()
         if not current_user_id:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        membership = GroupMember.query.filter_by(user_id=current_user_id, group_id=group_id).first()
+        if membership and membership.role == 'owner':
+            # Transfer ownership or delete group
+            other_members = GroupMember.query.filter_by(group_id=group_id).filter(
+                GroupMember.user_id != current_user_id).first()
+            if other_members:
+                other_members.role = 'owner'
+            else:
+                # Delete group if no other members
+                Group.query.filter_by(id=group_id).delete()
 
         GroupMember.query.filter_by(user_id=current_user_id, group_id=group_id).delete()
         db.session.commit()
@@ -750,29 +878,25 @@ def get_stories():
         if not current_user_id:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
 
+        # Check if premium (stories are premium feature)
+        user = User.query.get(current_user_id)
+        if not getattr(user, 'is_premium', False):
+            return jsonify({'success': True, 'stories': [], 'premium_required': True})
+
         cutoff = datetime.utcnow() - timedelta(hours=24)
 
-        # Get contacts/users the current user has messaged
         sent = db.session.query(Message.receiver_id).filter_by(sender_id=current_user_id).distinct().all()
         recv = db.session.query(Message.sender_id).filter_by(receiver_id=current_user_id).distinct().all()
         contact_ids = set([id[0] for id in sent] + [id[0] for id in recv])
-
-        # Add current user
         contact_ids.add(current_user_id)
 
-        # Get stories from these users
         stories = Story.query.filter(
             Story.user_id.in_(contact_ids),
             Story.created_at >= cutoff
         ).order_by(Story.created_at.desc()).all()
 
-        # Group stories by user
         user_stories = {}
-        viewed_story_ids = set()
-
-        # Get viewed stories for current user
-        story_views = StoryView.query.filter_by(viewer_id=current_user_id).all()
-        viewed_story_ids = {sv.story_id for sv in story_views}
+        viewed_story_ids = {sv.story_id for sv in StoryView.query.filter_by(viewer_id=current_user_id).all()}
 
         for story in stories:
             user = story.user
@@ -787,11 +911,7 @@ def get_stories():
                     'has_unviewed': False
                 }
 
-            # Check if story is liked by current user
-            liked = StoryLike.query.filter_by(
-                story_id=story.id,
-                user_id=current_user_id
-            ).first() is not None
+            liked = StoryLike.query.filter_by(story_id=story.id, user_id=current_user_id).first() is not None
 
             story_data = {
                 'id': story.id,
@@ -810,7 +930,6 @@ def get_stories():
             if not story_data['viewed']:
                 user_stories[user.id]['has_unviewed'] = True
 
-        # Sort users: current user first, then users with unviewed stories, then by most recent story
         def get_sort_key(item):
             is_current = 0 if item['user_id'] == current_user_id else 1
             has_unviewed = 0 if item['has_unviewed'] else 1
@@ -834,6 +953,11 @@ def create_story():
         current_user_id = get_current_user_id()
         if not current_user_id:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        # Check premium
+        user = User.query.get(current_user_id)
+        if not getattr(user, 'is_premium', False):
+            return jsonify({'success': False, 'error': 'Premium required for stories'}), 403
 
         caption = request.form.get('caption', '').strip()
 
@@ -866,7 +990,8 @@ def create_story():
             user_id=current_user_id,
             media_path=relative_path,
             media_type=media_type,
-            caption=caption
+            caption=caption,
+            created_at=datetime.utcnow()
         )
         db.session.add(new_story)
         db.session.commit()
@@ -902,7 +1027,7 @@ def view_story(story_id):
         ).first()
 
         if not existing:
-            db.session.add(StoryView(story_id=story_id, viewer_id=current_user_id))
+            db.session.add(StoryView(story_id=story_id, viewer_id=current_user_id, viewed_at=datetime.utcnow()))
             db.session.commit()
 
         return jsonify({'success': True})
@@ -952,7 +1077,6 @@ def delete_story(story_id):
         if story.user_id != current_user_id:
             return jsonify({'success': False, 'error': 'Not authorized'}), 403
 
-        # Delete media file
         if story.media_path:
             file_path = os.path.join('uploads', story.media_path)
             if os.path.exists(file_path):
@@ -967,7 +1091,7 @@ def delete_story(story_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ============ GROUPS/CREATE ============
+# ============ GROUPS ============
 
 @spa_bp.route('/groups/create', methods=['POST'])
 def create_group():
@@ -996,12 +1120,12 @@ def create_group():
             description=description,
             owner_id=current_user_id,
             is_public=is_public,
-            invite_link=invite_link
+            invite_link=invite_link,
+            created_at=datetime.utcnow()
         )
         db.session.add(new_group)
         db.session.flush()
 
-        # Handle avatar upload
         if 'avatar' in request.files:
             file = request.files['avatar']
             if file and file.filename:
@@ -1042,7 +1166,52 @@ def create_group():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ============ CHANNELS/CREATE ============
+@spa_bp.route('/groups/<int:group_id>', methods=['GET'])
+def get_group(group_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        group = Group.query.get(group_id)
+        if not group:
+            return jsonify({'success': False, 'error': 'Group not found'}), 404
+
+        membership = GroupMember.query.filter_by(user_id=current_user_id, group_id=group_id).first()
+
+        members = []
+        for m in GroupMember.query.filter_by(group_id=group_id).all():
+            user = User.query.get(m.user_id)
+            if user:
+                members.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'display_name': user.display_name or user.username,
+                    'avatar_url': user.avatar_url,
+                    'role': m.role
+                })
+
+        return jsonify({
+            'success': True,
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'description': group.description,
+                'avatar_url': group.avatar_url,
+                'is_public': group.is_public,
+                'owner_id': group.owner_id,
+                'member_count': len(members),
+                'members': members,
+                'is_member': membership is not None,
+                'role': membership.role if membership else None
+            }
+        })
+    except Exception as e:
+        print(f"Error in get_group: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============ CHANNELS ============
 
 @spa_bp.route('/channels/create', methods=['POST'])
 def create_channel():
@@ -1065,12 +1234,12 @@ def create_channel():
             description=description,
             owner_id=current_user_id,
             is_public=is_public,
-            invite_link=invite_link
+            invite_link=invite_link,
+            created_at=datetime.utcnow()
         )
         db.session.add(new_channel)
         db.session.flush()
 
-        # Handle avatar upload
         if 'avatar' in request.files:
             file = request.files['avatar']
             if file and file.filename:
@@ -1106,6 +1275,39 @@ def create_channel():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@spa_bp.route('/channels/<int:channel_id>/subscribe', methods=['POST'])
+def subscribe_channel(channel_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        existing = ChannelSubscriber.query.filter_by(user_id=current_user_id, channel_id=channel_id).first()
+        if not existing:
+            db.session.add(ChannelSubscriber(user_id=current_user_id, channel_id=channel_id))
+            db.session.commit()
+
+        return jsonify({'success': True, 'subscribed': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@spa_bp.route('/channels/<int:channel_id>/unsubscribe', methods=['POST'])
+def unsubscribe_channel(channel_id):
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        ChannelSubscriber.query.filter_by(user_id=current_user_id, channel_id=channel_id).delete()
+        db.session.commit()
+        return jsonify({'success': True, 'subscribed': False})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============ FORWARD ============
 
 @spa_bp.route('/forward_message', methods=['POST'])
@@ -1135,7 +1337,8 @@ def forward_message():
             file_name=original.file_name,
             file_path=original.file_path,
             file_type=original.file_type,
-            file_size=original.file_size
+            file_size=original.file_size,
+            timestamp=datetime.utcnow()
         )
 
         if target_type == 'personal':
@@ -1178,12 +1381,38 @@ def delete_message(message_id):
         if message.sender_id != current_user_id:
             return jsonify({'success': False, 'error': 'Not authorized'}), 403
 
+        # Delete associated file
+        if message.file_path:
+            file_path = os.path.join('uploads', message.file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
         db.session.delete(message)
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
         print(f"Error in delete_message: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============ PREMIUM STATUS ============
+
+@spa_bp.route('/premium/<int:user_id>', methods=['GET'])
+def check_premium(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'is_premium': getattr(user, 'is_premium', False),
+            'premium_since': user.premium_since.isoformat() if getattr(user, 'premium_since', None) else None,
+            'premium_expires': user.premium_expires_at.isoformat() if getattr(user, 'premium_expires_at',
+                                                                              None) else None
+        })
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
