@@ -1,0 +1,63 @@
+{
+  "promo_codes": {
+    "KISELGRAMPREMIUM47TX": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "KISELGRAMPREMIUM92FG": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "KISELGRAMPREMIUM58HV": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "KISELGRAMPREMIUM03QL": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "KISELGRAMPREMIUM76DR": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "WELCOMETOKISELGRAM67": {
+      "duration_days": 1,
+      "max_uses": 1,
+      "used_count": 1,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    }
+  },
+  "settings": {
+    "price_monthly": 4.99,
+    "price_yearly": 49.99,
+    "trial_days": 7
+  }
+}
