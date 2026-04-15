@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Kiselgram Free Mobile</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#fb6340">
+    <link rel="stylesheet" href="/static/css/desktop.css">
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="upgrade-banner-mobile" id="upgradeBanner">✨ Upgrade to Premium - Stories, Fonts & More ✨</div>
+
+        <div class="mobile-header">
+            <button class="menu-btn-mobile" id="mobileMenuBtn" type="button">☰</button>
+            <h1>Kiselgram</h1>
+            <span style="font-size: 12px; color: var(--text-muted);">Free</span>
+        </div>
+
+        <div class="mobile-content" id="mobileContent">
+            <div class="stories-row-mobile" id="storiesRowMobile">
+                <div class="story-item-mobile locked" id="lockedStory">
+                    <div class="story-avatar-mobile" style="background: var(--border-color);"><span style="font-size: 32px;">🔒</span></div>
+                    <span style="font-size: 11px; color: var(--text-muted);">Premium</span>
+                </div>
+            </div>
+            <div class="chat-list-mobile" id="chatListMobile"></div>
+        </div>
+
+        <div class="mobile-nav">
+            <div class="nav-item active" id="navChats"><span class="nav-icon">💬</span><span>Чаты</span></div>
+            <div class="nav-item" id="navContacts"><span class="nav-icon">👥</span><span>Контакты</span></div>
+            <div class="nav-item" id="navCreate"><span class="nav-icon">➕</span><span>Создать</span></div>
+            <div class="nav-item" id="navSettings"><span class="nav-icon">⚙️</span><span>Ещё</span></div>
+        </div>
+    </div>
+
+    <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="menu-item-mobile" id="menuProfile"><span>👤</span> Профиль</div>
+        <div class="menu-item-mobile" id="menuSettings"><span>⚙️</span> Настройки</div>
+        <div class="menu-item-mobile locked-feature-mobile" id="menuCustomize"><span>🎨</span> Стиль чата <span style="margin-left: auto;">🔒</span></div>
+        <div class="menu-divider-mobile"></div>
+        <div class="menu-item-mobile" id="menuPremium"><span>👑</span> Upgrade to Premium</div>
+        <div class="menu-item-mobile" id="menuAbout"><span>ℹ️</span> О приложении</div>
+        <div class="menu-divider-mobile"></div>
+        <div class="menu-item-mobile" id="menuLogout" style="color: var(--accent-red);"><span>🚪</span> Выйти</div>
+    </div>
+
+    <button class="fab" id="fabButton" type="button">+</button>
+    <div id="modalRoot"></div>
+
+    <script>
+        sessionStorage.setItem('kiselgram_is_mobile', 'true');
+        sessionStorage.setItem('kiselgram_is_premium', 'false');
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/app-worker.js');
+
+        const $ = (id) => document.getElementById(id);
+
+        function closeMenu() { $('mobileMenu').classList.remove('open'); $('mobileMenuBackdrop').classList.remove('open'); }
+        function toggleMenu() { $('mobileMenu').classList.toggle('open'); $('mobileMenuBackdrop').classList.toggle('open'); }
+        function setActive(el) { document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); el?.classList.add('active'); }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Free Mobile DOM loaded');
+
+            $('upgradeBanner')?.addEventListener('click', () => location.href = '/premium');
+            $('lockedStory')?.addEventListener('click', () => { if (typeof showPremiumModal === 'function') showPremiumModal('stories'); });
+
+            $('mobileMenuBtn')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleMenu(); });
+            $('mobileMenuBackdrop')?.addEventListener('click', closeMenu);
+
+            $('navChats')?.addEventListener('click', (e) => { e.preventDefault(); setActive($('navChats')); closeMenu(); });
+            $('navContacts')?.addEventListener('click', (e) => { e.preventDefault(); setActive($('navContacts')); closeMenu(); if (typeof showContactsView === 'function') showContactsView(); });
+            $('navCreate')?.addEventListener('click', (e) => { e.preventDefault(); setActive($('navCreate')); closeMenu(); showCreateMenu(); });
+            $('navSettings')?.addEventListener('click', (e) => { e.preventDefault(); setActive($('navSettings')); toggleMenu(); });
+
+            $('menuProfile')?.addEventListener('click', (e) => { e.preventDefault(); closeMenu(); if (typeof openProfileModal === 'function') openProfileModal(); });
+            $('menuSettings')?.addEventListener('click', (e) => { e.preventDefault(); closeMenu(); if (typeof openSettingsPanel === 'function') openSettingsPanel(); });
+            $('menuCustomize')?.addEventListener('click', (e) => { e.preventDefault(); closeMenu(); if (typeof showPremiumModal === 'function') showPremiumModal('wallpapers'); });
+            $('menuPremium')?.addEventListener('click', (e) => { e.preventDefault(); location.href = '/premium'; });
+            $('menuAbout')?.addEventListener('click', (e) => { e.preventDefault(); location.href = '/kis_info'; });
+            $('menuLogout')?.addEventListener('click', (e) => { e.preventDefault(); if (typeof logout === 'function') logout(); });
+
+            $('fabButton')?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); closeMenu(); showCreateMenu(); });
+        });
+
+        function showCreateMenu() {
+            const menu = document.createElement('div');
+            menu.className = 'mobile-menu open';
+            menu.style.cssText = 'position:fixed;z-index:1001;';
+            menu.innerHTML = `
+                <div class="menu-item-mobile" id="createGroup"><span>👥</span> Создать группу</div>
+                <div class="menu-item-mobile" id="createChannel"><span>📢</span> Создать канал</div>
+                <div class="menu-item-mobile" id="addContact"><span>👤</span> Добавить контакт</div>
+                <div class="menu-divider-mobile"></div>
+                <div class="menu-item-mobile" id="cancelCreate" style="color: var(--text-muted);"><span>✕</span> Отмена</div>
+            `;
+            document.body.appendChild(menu);
+            document.getElementById('createGroup')?.addEventListener('click', () => { menu.remove(); if (typeof showCreateGroupView === 'function') showCreateGroupView(); });
+            document.getElementById('createChannel')?.addEventListener('click', () => { menu.remove(); if (typeof showCreateChannelView === 'function') showCreateChannelView(); });
+            document.getElementById('addContact')?.addEventListener('click', () => { menu.remove(); if (typeof showAddContactModal === 'function') showAddContactModal(); });
+            document.getElementById('cancelCreate')?.addEventListener('click', () => menu.remove());
+        }
+    </script>
+
+    <script src="/static/js/free.js"></script>
+</body>
+</html>
