@@ -10,12 +10,10 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    <!-- Existing stylesheets (untouched) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
-    <!-- Mobile layout overrides (new) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-layout.css') }}">
 
     <style>
@@ -42,13 +40,8 @@
             right: 4px;
             font-size: 12px;
         }
-        .font-option.locked {
-            opacity: 0.6;
-        }
-        /* Hide mobile-only by default (shown via media query) */
-        .mobile-only {
-            display: none !important;
-        }
+        .font-option.locked { opacity: 0.6; }
+        .mobile-only { display: none !important; }
     </style>
 </head>
 <body>
@@ -57,9 +50,7 @@
     </div>
 
     <button class="menu-btn" id="menuBtn" aria-label="Menu">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
     </button>
 
     <aside class="popout-menu-column" id="popoutMenu">
@@ -71,16 +62,13 @@
             </div>
             <div class="menu-user-arrow">›</div>
         </div>
-
         <div class="nav-list">
             <a href="#" class="nav-item" onclick="showChatsView(); return false;"><span>💬</span><span>Chats</span></a>
             <a href="#" class="nav-item" onclick="showContactsView(); return false;"><span>👥</span><span>Contacts</span></a>
             <a href="#" class="nav-item" onclick="showCreateGroupView(); return false;"><span>👥</span><span>Create Group</span></a>
             <a href="#" class="nav-item" onclick="showCreateChannelView(); return false;"><span>📢</span><span>Create Channel</span></a>
         </div>
-
         <div class="menu-divider"></div>
-
         <div class="nav-list">
             <a href="#" class="nav-item" onclick="openSettingsPanel(); return false;"><span>⚙️</span><span>Settings</span></a>
             <a href="#" class="nav-item" onclick="openPrivacyPanel(); return false;"><span>🔒</span><span>Privacy</span></a>
@@ -88,7 +76,6 @@
             <a href="/premium" class="nav-item premium-link"><span>👑</span><span>Upgrade to Premium</span></a>
             <a href="{{ url_for('chats.kis_info') }}" class="nav-item"><span>ℹ️</span><span>About</span></a>
         </div>
-
         <div class="menu-footer-section">
             <button class="logout-btn-sidebar" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
             <span>🔒 Kiselgram Free v4.0.0</span>
@@ -188,7 +175,6 @@
     </div>
 
     <div class="app-container">
-        <!-- Desktop Sidebar -->
         <div class="chat-sidebar" id="chatSidebar">
             <div class="sidebar-header">
                 <h1><a href="{{ url_for('chats.kis_info') }}" style="text-decoration:none">Kiselgram</a></h1>
@@ -205,13 +191,11 @@
             <div class="chat-list" id="chatList"><div class="loading-spinner"></div></div>
         </div>
 
-        <!-- Main Chat Area -->
         <div class="chat-area" id="chatArea">
             <div class="empty-chat" id="emptyChat">
                 <div class="empty-chat-icon">💬</div>
                 <h3>Welcome to Kiselgram Free</h3>
                 <p>Select a chat to start messaging</p>
-                <!-- Mobile-only chat list container -->
                 <div class="mobile-chat-list-container mobile-only">
                     <div class="chat-list mobile-chat-list" id="mobileChatList"></div>
                 </div>
@@ -222,10 +206,7 @@
                 <div class="chat-header">
                     <div class="chat-header-left">
                         <div class="chat-header-avatar" id="chatHeaderAvatar"></div>
-                        <div class="chat-header-info">
-                            <div class="chat-header-name" id="chatHeaderName"></div>
-                            <div class="chat-header-status" id="chatHeaderStatus"></div>
-                        </div>
+                        <div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName"></div><div class="chat-header-status" id="chatHeaderStatus"></div></div>
                     </div>
                     <div class="chat-header-actions">
                         <button class="header-action-btn locked-feature" onclick="showPremiumModal('wallpapers')">🎨</button>
@@ -235,13 +216,7 @@
                 </div>
                 <div class="messages-container" id="messagesContainer"><div class="loading-spinner"></div></div>
                 <div class="chat-input-area">
-                    <div id="replyPreview" class="reply-preview" style="display:none">
-                        <div class="reply-preview-content">
-                            <div class="reply-preview-name"></div>
-                            <div class="reply-preview-text"></div>
-                        </div>
-                        <button class="cancel-reply-btn" onclick="cancelReply()">✕</button>
-                    </div>
+                    <div id="replyPreview" class="reply-preview" style="display:none"><div class="reply-preview-content"><div class="reply-preview-name"></div><div class="reply-preview-text"></div></div><button class="cancel-reply-btn" onclick="cancelReply()">✕</button></div>
                     <div class="input-wrapper">
                         <button class="attachment-btn" onclick="triggerFileUpload()">📎</button>
                         <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
@@ -251,101 +226,49 @@
             </div>
 
             <div id="contactsView" class="panel-view" style="display:none">
-                <div class="panel-header">
-                    <button class="back-btn" onclick="hideContactsView()">←</button>
-                    <h2>Contacts</h2>
-                    <button class="header-action-btn" onclick="showAddContactModal()">➕</button>
-                </div>
-                <div class="contacts-search">
-                    <input type="text" class="search-input" id="contactSearchInput" placeholder="Search contacts...">
-                </div>
+                <div class="panel-header"><button class="back-btn" onclick="hideContactsView()">←</button><h2>Contacts</h2><button class="header-action-btn" onclick="showAddContactModal()">➕</button></div>
+                <div class="contacts-search"><input type="text" class="search-input" id="contactSearchInput" placeholder="Search contacts..."></div>
                 <div class="contacts-list" id="contactsList"></div>
             </div>
 
             <div id="createGroupView" class="panel-view" style="display:none">
-                <div class="panel-header">
-                    <button class="back-btn" onclick="hideCreateGroupView()">←</button>
-                    <h2>Create Group</h2>
-                    <div></div>
-                </div>
+                <div class="panel-header"><button class="back-btn" onclick="hideCreateGroupView()">←</button><h2>Create Group</h2><div></div></div>
                 <div class="create-form-content">
                     <div class="avatar-upload-section">
-                        <div class="group-avatar-upload" onclick="triggerGroupAvatarUpload()">
-                            <div class="group-avatar-preview" id="groupAvatarPreview">👥</div>
-                            <input type="file" id="groupAvatarInput" accept="image/*" style="display:none" onchange="previewGroupAvatar(this)">
-                        </div>
+                        <div class="group-avatar-upload" onclick="triggerGroupAvatarUpload()"><div class="group-avatar-preview" id="groupAvatarPreview">👥</div><input type="file" id="groupAvatarInput" accept="image/*" style="display:none" onchange="previewGroupAvatar(this)"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Group Name</label>
-                        <input type="text" id="groupName" class="form-input" placeholder="Group name">
-                    </div>
-                    <div class="form-group">
-                        <label>Add Members</label>
-                        <input type="text" id="memberSearchInput" class="form-input" placeholder="Search users...">
-                        <div id="selectedMembers" class="selected-members"></div>
-                        <div id="userListForGroup" class="user-select-list"></div>
-                    </div>
+                    <div class="form-group"><label>Group Name</label><input type="text" id="groupName" class="form-input" placeholder="Group name"></div>
+                    <div class="form-group"><label>Add Members</label><input type="text" id="memberSearchInput" class="form-input" placeholder="Search users..."><div id="selectedMembers" class="selected-members"></div><div id="userListForGroup" class="user-select-list"></div></div>
                     <button class="create-btn" onclick="createGroup()">Create Group</button>
                 </div>
             </div>
 
             <div id="createChannelView" class="panel-view" style="display:none">
-                <div class="panel-header">
-                    <button class="back-btn" onclick="hideCreateChannelView()">←</button>
-                    <h2>Create Channel</h2>
-                    <div></div>
-                </div>
+                <div class="panel-header"><button class="back-btn" onclick="hideCreateChannelView()">←</button><h2>Create Channel</h2><div></div></div>
                 <div class="create-form-content">
                     <div class="avatar-upload-section">
-                        <div class="channel-avatar-upload" onclick="triggerChannelAvatarUpload()">
-                            <div class="channel-avatar-preview" id="channelAvatarPreview">📢</div>
-                            <input type="file" id="channelAvatarInput" accept="image/*" style="display:none" onchange="previewChannelAvatar(this)">
-                        </div>
+                        <div class="channel-avatar-upload" onclick="triggerChannelAvatarUpload()"><div class="channel-avatar-preview" id="channelAvatarPreview">📢</div><input type="file" id="channelAvatarInput" accept="image/*" style="display:none" onchange="previewChannelAvatar(this)"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Channel Name</label>
-                        <input type="text" id="channelName" class="form-input" placeholder="Channel name">
-                    </div>
+                    <div class="form-group"><label>Channel Name</label><input type="text" id="channelName" class="form-input" placeholder="Channel name"></div>
                     <button class="create-btn" onclick="createChannel()">Create Channel</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Mobile-only Bottom Navigation -->
     <nav class="mobile-bottom-nav mobile-only">
-        <a href="#" class="bottom-nav-item" data-view="contacts" onclick="showContactsView(); return false;">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">Contacts</span>
-        </a>
-        <a href="#" class="bottom-nav-item active" data-view="chats" onclick="showChatsView(); return false;">
-            <span class="nav-icon">💬</span>
-            <span class="nav-label">Chats</span>
-        </a>
-        <a href="#" class="bottom-nav-item" data-view="search" onclick="window.setActiveTab && setActiveTab('search'); return false;">
-            <span class="nav-icon">🔍</span>
-            <span class="nav-label">Search</span>
-        </a>
-        <a href="#" class="bottom-nav-item" data-view="settings" onclick="openSettingsPanel(); return false;">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-label">Settings</span>
-        </a>
+        <a href="#" class="bottom-nav-item" data-view="contacts" onclick="showContactsView(); return false;"><span class="nav-icon">👥</span><span class="nav-label">Contacts</span></a>
+        <a href="#" class="bottom-nav-item active" data-view="chats" onclick="showChatsView(); return false;"><span class="nav-icon">💬</span><span class="nav-label">Chats</span></a>
+        <a href="#" class="bottom-nav-item" data-view="search" onclick="window.setActiveTab && setActiveTab('search'); return false;"><span class="nav-icon">🔍</span><span class="nav-label">Search</span></a>
+        <a href="#" class="bottom-nav-item" data-view="settings" onclick="openSettingsPanel(); return false;"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
     </nav>
 
     <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
-    <div class="upload-area" id="uploadArea">
-        <div id="uploadFileName">No file selected</div>
-        <div class="upload-actions">
-            <button class="upload-btn" onclick="uploadFile()">Upload</button>
-            <button class="upload-btn cancel" onclick="cancelUpload()">Cancel</button>
-        </div>
-    </div>
+    <div class="upload-area" id="uploadArea"><div id="uploadFileName">No file selected</div><div class="upload-actions"><button class="upload-btn" onclick="uploadFile()">Upload</button><button class="upload-btn cancel" onclick="cancelUpload()">Cancel</button></div></div>
     <div id="modalRoot"></div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
-    <!-- Core JavaScript (untouched) -->
     <script src="{{ url_for('static', filename='js/free.js') }}"></script>
-    <!-- Mobile-specific enhancements -->
     <script src="{{ url_for('static', filename='js/mobile-spec.js') }}"></script>
 </body>
 </html>

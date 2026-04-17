@@ -7,6 +7,16 @@
 }
 
 @media (max-width: 768px) {
+    /* Prevent body scrolling */
+    html, body {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     /* Show mobile-only elements */
     .mobile-only {
         display: flex !important;
@@ -15,51 +25,50 @@
         display: block !important;
     }
 
-    /* Hide desktop-only elements */
-    .desktop-only {
-        display: none !important;
-    }
-
-    /* Hide desktop sidebar and menu button */
+    /* Hide desktop elements */
     .chat-sidebar,
     .menu-btn,
-    .mobile-menu-btn {
+    .mobile-menu-btn,
+    .popout-menu-column {
         display: none !important;
     }
 
-    /* Full-screen app container */
+    /* Full-screen app container - NO SCROLLING */
     .app-container {
         flex-direction: column !important;
         height: 100vh !important;
         width: 100vw !important;
         overflow: hidden !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
     }
 
-    /* Chat area takes full width and height */
+    /* Chat area fills available space */
     .chat-area {
         width: 100% !important;
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
-        min-height: 0 !important; /* important for flex children */
+        min-height: 0 !important;
     }
 
-    /* Add top header */
+    /* Top header */
     .chat-area::before {
-        content: "Kiselgram Free";
+        content: "Kiselgram";
         display: block !important;
         font-size: 20px !important;
         font-weight: 700 !important;
         text-align: center !important;
-        padding: 10px !important;
+        padding: 12px !important;
         background: var(--bg-surface) !important;
         border-bottom: 1px solid var(--border-color) !important;
         color: var(--text-primary) !important;
         flex-shrink: 0 !important;
     }
 
-    /* Global search repositioned */
+    /* Search bar */
     .global-search-container {
         display: block !important;
         padding: 8px 12px !important;
@@ -88,21 +97,23 @@
         z-index: 200 !important;
         background: var(--bg-secondary) !important;
         box-shadow: var(--shadow-lg) !important;
+        overflow-y: auto !important;
     }
 
     /* Stories row */
     .stories-row {
         flex-shrink: 0 !important;
         background: var(--bg-surface) !important;
+        overflow-x: auto !important;
     }
 
-    /* Empty chat adjustments */
-    .empty-chat {
+    /* Empty chat (default view with chat list) */
+    #emptyChat {
         display: flex !important;
         flex-direction: column !important;
-        padding: 0 !important;
-        overflow: hidden !important;
         flex: 1 !important;
+        overflow: hidden !important;
+        background: var(--bg-surface) !important;
     }
 
     .empty-chat-icon,
@@ -113,47 +124,86 @@
     }
 
     .mobile-chat-list-container {
-        display: block !important;
         flex: 1 !important;
         overflow-y: auto !important;
         padding: 8px 0 !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
-    /* Panel views (contacts, create group, etc.) */
-    .panel-view {
+    /* Contacts view - as panel */
+    #contactsView {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        bottom: 0 !important; /* will be adjusted by JS to leave room for bottom nav */
+        bottom: 60px !important;
         background: var(--bg-surface) !important;
         z-index: 50 !important;
         overflow-y: auto !important;
-        display: flex !important;
+        display: none !important;
         flex-direction: column !important;
     }
 
-    /* Chat view specific */
+    /* Create group/channel views */
+    #createGroupView,
+    #createChannelView {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 60px !important;
+        background: var(--bg-surface) !important;
+        z-index: 50 !important;
+        overflow-y: auto !important;
+        display: none !important;
+    }
+
+    /* Chat view - FULL SCREEN OVERLAY (modal) */
     #chatView {
-        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: var(--bg-surface) !important;
+        z-index: 1000 !important;
+        display: none !important;
         flex-direction: column !important;
-        height: 100% !important;
+        overflow: hidden !important;
     }
 
+    /* When chat view is active, hide bottom nav */
+    #chatView[style*="display: flex"] ~ .mobile-bottom-nav,
+    #chatView[style*="display: flex"] + .mobile-bottom-nav,
+    body:has(#chatView[style*="display: flex"]) .mobile-bottom-nav {
+        display: none !important;
+    }
+
+    /* Chat header */
     .chat-header {
         flex-shrink: 0 !important;
+        padding: 8px 16px !important;
+        border-bottom: 1px solid var(--border-color) !important;
     }
 
+    /* Messages container - scrollable */
     .messages-container {
         flex: 1 !important;
         overflow-y: auto !important;
         min-height: 0 !important;
+        padding: 16px !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
+    /* Chat input area */
     .chat-input-area {
         flex-shrink: 0 !important;
-        padding-bottom: 8px !important;
-        /* bottom padding added to avoid nav overlap */
+        padding: 8px 16px !important;
+        border-top: 1px solid var(--border-color) !important;
+        background: var(--bg-surface) !important;
+        padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
     }
 
     /* Bottom navigation */
@@ -163,12 +213,12 @@
         align-items: center !important;
         background: var(--bg-secondary) !important;
         border-top: 1px solid var(--border-color) !important;
-        padding: 8px 0 !important;
+        padding: 8px 0 env(safe-area-inset-bottom) !important;
         flex-shrink: 0 !important;
         width: 100% !important;
-        z-index: 100 !important;
-        height: 60px !important;
-        position: relative !important;
+        z-index: 90 !important;
+        height: auto !important;
+        min-height: 60px !important;
     }
 
     .bottom-nav-item {
@@ -198,38 +248,43 @@
         font-weight: 500 !important;
     }
 
-    /* Hide popout menu */
-    .popout-menu-column {
-        display: none !important;
+    /* Settings/Privacy panels */
+    .settings-panel,
+    .privacy-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        bottom: 60px !important;
+        height: auto !important;
+        max-height: calc(100vh - 60px) !important;
     }
 
-    /* Chat header back button */
+    .panel-overlay {
+        bottom: 60px !important;
+    }
+
+    /* Back button in chat header */
     #mobileBackBtn {
-        display: block !important;
         background: none !important;
         border: none !important;
         font-size: 24px !important;
         cursor: pointer !important;
         color: var(--text-primary) !important;
-        padding: 4px 8px !important;
+        padding: 8px !important;
         margin-right: 8px !important;
     }
 
-    /* Settings panel adjustments */
-    .settings-panel {
-        width: 100% !important;
-        max-width: 100% !important;
-        bottom: 60px !important; /* leave room for bottom nav */
-        height: auto !important;
+    /* Story viewer overlay */
+    body.story-viewer-open .mobile-bottom-nav {
+        display: none !important;
     }
 
-    .privacy-panel {
-        bottom: 60px !important;
-        height: auto !important;
+    /* Hide panel overlay when chat view is active */
+    #chatView[style*="display: flex"] ~ .panel-overlay {
+        display: none !important;
     }
 
-    /* Adjust panel overlay to not cover bottom nav */
-    .panel-overlay {
-        bottom: 60px !important;
+    /* Ensure modal overlays are above chat view */
+    .modal-overlay {
+        z-index: 2000 !important;
     }
 }

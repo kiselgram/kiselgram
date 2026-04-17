@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-layout.css') }}">
 
     <style>
         .premium-badge {
@@ -25,58 +26,28 @@
             font-weight: 600;
             margin-left: 8px;
         }
-
-        .premium-glow {
-            position: relative;
-        }
-
+        .premium-glow { position: relative; }
         .premium-glow::after {
             content: '';
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
             border-radius: inherit;
             background: linear-gradient(135deg, #fb6340, #2dce89);
             opacity: 0.3;
             z-index: -1;
         }
-
         .story-viewer {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #000;
             z-index: 3000;
         }
-
-        .wallpaper-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .wallpaper-option {
-            aspect-ratio: 1;
-            border-radius: 8px;
-            border: 2px solid var(--border-color);
-            cursor: pointer;
-        }
-
-        .locked-feature {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .mobile-only { display: none !important; }
     </style>
 </head>
 <body>
     <button class="menu-btn" id="menuBtn" aria-label="Menu">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
     </button>
 
     <aside class="popout-menu-column" id="popoutMenu">
@@ -91,23 +62,19 @@
             </div>
             <div class="menu-user-arrow">›</div>
         </div>
-
         <div class="nav-list">
             <a href="#" class="nav-item" onclick="showChatsView(); return false;"><span>💬</span><span>Chats</span></a>
             <a href="#" class="nav-item" onclick="showContactsView(); return false;"><span>👥</span><span>Contacts</span></a>
             <a href="#" class="nav-item" onclick="showCreateGroupView(); return false;"><span>👥</span><span>Create Group</span></a>
             <a href="#" class="nav-item" onclick="showCreateChannelView(); return false;"><span>📢</span><span>Create Channel</span></a>
         </div>
-
         <div class="menu-divider"></div>
-
         <div class="nav-list">
             <a href="#" class="nav-item" onclick="openSettingsPanel(); return false;"><span>⚙️</span><span>Settings</span></a>
             <a href="#" class="nav-item" onclick="openPrivacyPanel(); return false;"><span>🔒</span><span>Privacy</span></a>
             <a href="#" class="nav-item" onclick="openChatCustomization(); return false;"><span>🎨</span><span>Chat Style</span></a>
             <a href="{{ url_for('chats.kis_info') }}" class="nav-item"><span>ℹ️</span><span>About</span></a>
         </div>
-
         <div class="menu-footer-section">
             <button class="logout-btn-sidebar" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
             <span>✨ Kiselgram Premium v4.0.0</span>
@@ -117,10 +84,7 @@
     <div class="panel-overlay" id="panelOverlay" onclick="closeAllPanels()"></div>
 
     <div class="settings-panel" id="settingsPanel">
-        <div class="settings-header">
-            <h2>Settings</h2>
-            <button class="settings-close" onclick="closeSettingsPanel()">✕</button>
-        </div>
+        <div class="settings-header"><h2>Settings</h2><button class="settings-close" onclick="closeSettingsPanel()">✕</button></div>
         <div class="settings-content">
             <div class="settings-section">
                 <h3>Appearance</h3>
@@ -152,10 +116,7 @@
     <div class="privacy-panel" id="privacyPanel">
         <div class="privacy-header"><h2>Privacy</h2><button class="privacy-close" onclick="closePrivacyPanel()">✕</button></div>
         <div class="privacy-content">
-            <div class="settings-section">
-                <h3>Profile Visibility</h3>
-                <select class="modal-input" id="profileVisibility"><option value="everyone">Everyone</option><option value="contacts">Contacts Only</option><option value="nobody">Nobody</option></select>
-            </div>
+            <div class="settings-section"><h3>Profile Visibility</h3><select class="modal-input" id="profileVisibility"><option value="everyone">Everyone</option><option value="contacts">Contacts Only</option><option value="nobody">Nobody</option></select></div>
             <div class="modal-footer"><button class="modal-btn modal-btn-primary" onclick="savePrivacySettings()">Save</button></div>
         </div>
     </div>
@@ -231,7 +192,15 @@
         </div>
 
         <div class="chat-area" id="chatArea">
-            <div class="empty-chat" id="emptyChat"><div class="empty-chat-icon">✨</div><h3>Welcome to Premium</h3><p>Select a chat</p></div>
+            <div class="empty-chat" id="emptyChat">
+                <div class="empty-chat-icon">✨</div>
+                <h3>Welcome to Premium</h3>
+                <p>Select a chat</p>
+                <div class="mobile-chat-list-container mobile-only">
+                    <div class="chat-list mobile-chat-list" id="mobileChatList"></div>
+                </div>
+            </div>
+
             <div id="chatView" class="panel-view" style="display:none">
                 <div class="chat-header">
                     <div class="chat-header-left">
@@ -288,11 +257,19 @@
         </div>
     </div>
 
+    <nav class="mobile-bottom-nav mobile-only">
+        <a href="#" class="bottom-nav-item" data-view="contacts" onclick="showContactsView(); return false;"><span class="nav-icon">👥</span><span class="nav-label">Contacts</span></a>
+        <a href="#" class="bottom-nav-item active" data-view="chats" onclick="showChatsView(); return false;"><span class="nav-icon">💬</span><span class="nav-label">Chats</span></a>
+        <a href="#" class="bottom-nav-item" data-view="search" onclick="window.setActiveTab && setActiveTab('search'); return false;"><span class="nav-icon">🔍</span><span class="nav-label">Search</span></a>
+        <a href="#" class="bottom-nav-item" data-view="settings" onclick="openSettingsPanel(); return false;"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+    </nav>
+
     <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
     <div class="upload-area" id="uploadArea"><div id="uploadFileName">No file selected</div><div class="upload-actions"><button class="upload-btn" onclick="uploadFile()">Upload</button><button class="upload-btn cancel" onclick="cancelUpload()">Cancel</button></div></div>
     <div id="modalRoot"></div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
     <script src="{{ url_for('static', filename='js/prem.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-prem.js') }}"></script>
 </body>
 </html>
