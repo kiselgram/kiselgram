@@ -2,624 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Kiselgram</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
     <style>
-        .about-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #fb6340 0%, #2dce89 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .about-card {
-            max-width: 800px;
-            width: 100%;
-            background: var(--bg-secondary);
-            border-radius: 32px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: scaleIn 0.4s ease-out;
-        }
-
-        .about-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .about-logo {
-            font-size: 64px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fb6340, #2dce89);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-
-        .about-version {
-            display: inline-block;
-            background: linear-gradient(135deg, #fb6340, #2dce89);
-            color: white;
-            padding: 6px 20px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .about-tagline {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-
-        .feature-item {
-            background: var(--bg-surface);
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .feature-item:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-md);
-            border-color: #fb6340;
-        }
-
-        .feature-icon {
-            font-size: 36px;
-            margin-bottom: 12px;
-        }
-
-        .feature-title {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 6px;
-            color: var(--text-primary);
-        }
-
-        .feature-desc {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .whats-new {
-            background: linear-gradient(135deg, rgba(251, 99, 64, 0.1), rgba(45, 206, 137, 0.1));
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 32px;
-            border: 1px solid rgba(251, 99, 64, 0.2);
-        }
-
-        .whats-new h3 {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: var(--text-primary);
-        }
-
-        .update-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .update-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .update-list li:last-child {
-            border-bottom: none;
-        }
-
-        .update-badge {
-            background: #2dce89;
-            color: white;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            flex-shrink: 0;
-        }
-
-        .update-badge.new {
-            background: #fb6340;
-        }
-
-        .update-badge.improved {
-            background: #f0a500;
-        }
-
-        .stats-section {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 32px;
-            padding: 20px;
-            background: var(--bg-surface);
-            border-radius: 20px;
-        }
-
-        .stat-card {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fb6340, #2dce89);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 13px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .about-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .back-btn-about {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #fb6340, #2dce89);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .back-btn-about:hover {
-            transform: translateX(-4px);
-            opacity: 0.9;
-            box-shadow: 0 4px 12px rgba(251, 99, 64, 0.4);
-        }
-
-        .copyright {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .credits {
-            display: flex;
-            gap: 16px;
-        }
-
-        .credit-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 13px;
-            transition: color 0.2s;
-        }
-
-        .credit-link:hover {
-            color: #fb6340;
-        }
-
-        [data-theme="dark"] .about-container {
-            background: linear-gradient(135deg, #1a0a00 0%, #0a1a10 100%);
-        }
-
-        [data-theme="dark"] .feature-item {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        @media (max-width: 600px) {
-            .about-card {
-                padding: 24px;
-            }
-
-            .about-logo {
-                font-size: 48px;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-            }
-
-            .feature-item {
-                padding: 16px;
-            }
-
-            .feature-icon {
-                font-size: 28px;
-            }
-
-            .stats-section {
-                flex-direction: column;
-                gap: 20px;
-            }
-
-            .about-footer {
-                flex-direction: column;
-                gap: 16px;
-                text-align: center;
-            }
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+        .banner { height: 180px; border-radius: 12px; margin-bottom: 32px; background: linear-gradient(135deg, #fb6340, #2dce89, #5e72e4, #f093fb); background-size: 400% 400%; animation: gradientShift 8s ease infinite; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .banner-overlay { height: 100%; background: rgba(13,17,23,0.4); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; }
+        .banner-title { font-size: 52px; font-weight: 700; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .banner-badge { display: inline-block; padding: 4px 16px; background: rgba(255,255,255,0.2); border-radius: 30px; font-size: 14px; color: white; backdrop-filter: blur(10px); margin-top: 8px; }
+        h1 { font-size: 32px; color: #f0f6fc; display: flex; align-items: center; gap: 12px; }
+        h2 { font-size: 20px; color: #f0f6fc; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #30363d; }
+        .badges { display: flex; gap: 8px; margin: 16px 0 24px; flex-wrap: wrap; }
+        .badge { padding: 4px 12px; background: #21262d; border-radius: 20px; font-size: 13px; border: 1px solid #30363d; }
+        .badge.green { background: rgba(46,160,67,0.15); border-color: rgba(46,160,67,0.3); color: #3fb950; }
+        .badge.orange { background: rgba(251,99,64,0.15); border-color: rgba(251,99,64,0.3); color: #fb6340; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+        .feature-card { padding: 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; text-align: center; animation: fadeInUp 0.5s forwards; opacity: 0; }
+        .feature-card:nth-child(1) { animation-delay: 0.05s; } .feature-card:nth-child(2) { animation-delay: 0.1s; } .feature-card:nth-child(3) { animation-delay: 0.15s; } .feature-card:nth-child(4) { animation-delay: 0.2s; } .feature-card:nth-child(5) { animation-delay: 0.25s; } .feature-card:nth-child(6) { animation-delay: 0.3s; } .feature-card:nth-child(7) { animation-delay: 0.35s; } .feature-card:nth-child(8) { animation-delay: 0.4s; } .feature-card:nth-child(9) { animation-delay: 0.45s; } .feature-card:nth-child(10) { animation-delay: 0.5s; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .feature-card:hover { border-color: #fb6340; transform: translateY(-2px); background: #1c2128; }
+        .feature-icon { font-size: 28px; margin-bottom: 8px; }
+        .feature-name { font-weight: 600; color: #f0f6fc; margin-bottom: 4px; }
+        .premium-note { background: linear-gradient(135deg, rgba(251,99,64,0.08), rgba(45,206,137,0.08)); border: 1px solid rgba(251,99,64,0.2); border-radius: 8px; padding: 20px; margin: 24px 0; }
+        .premium-note strong { color: #fb6340; }
+        .pricing { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
+        .price-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; text-align: center; flex: 1; max-width: 200px; }
+        .price-card.premium { border-color: #fb6340; }
+        .price-value { font-size: 32px; font-weight: 700; color: #f0f6fc; }
+        .price-period { font-size: 13px; color: #8b949e; }
+        .save-badge { background: #2dce89; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 4px; }
+        .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #21262d; display: flex; justify-content: space-between; color: #8b949e; font-size: 13px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; text-decoration: none; }
+        .back-btn:hover { background: #30363d; border-color: #fb6340; }
     </style>
 </head>
 <body>
-    <div class="about-container">
-        <div class="about-card">
-            <div class="about-header">
-                <div class="about-logo">Kiselgram</div>
-                <div class="about-version">Version 4.0.0</div>
-                <div class="about-tagline">Connect • Share • Discover</div>
-            </div>
-
-            <div class="whats-new">
-                <h3>
-                    <span>✨</span>
-                    What's New in Version 4
-                </h3>
-                <ul class="update-list">
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Stories Feature</strong> - Share moments that disappear after 24 hours with photos and videos</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>11 Premium Fonts</strong> - Inter, Satoshi, DM Sans, Roboto, Poppins, Public Sans, Work Sans, SF Pro, Nunito, Space Grotesk, and Courier New</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Chat Customization</strong> - Personalize chat bubbles, wallpapers, and text sizes</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Global Search</strong> - Find users, groups, and channels instantly</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Kiselgram Premium</strong> - Unlock exclusive features and customizations</span>
-                    </li>
-                    <li>
-                        <span class="update-badge improved">IMPROVED</span>
-                        <span><strong>Message Replies</strong> - Reply to specific messages with context</span>
-                    </li>
-                    <li>
-                        <span class="update-badge improved">IMPROVED</span>
-                        <span><strong>File Sharing</strong> - Support for images, videos, audio, and documents</span>
-                    </li>
-                    <li>
-                        <span class="update-badge improved">IMPROVED</span>
-                        <span><strong>Dark Mode</strong> - Enhanced dark theme with better contrast</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Chat Export</strong> - Export conversations as text files</span>
-                    </li>
-                    <li>
-                        <span class="update-badge new">NEW</span>
-                        <span><strong>Privacy Controls</strong> - Granular settings for profile visibility</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="feature-grid">
-                <div class="feature-item">
-                    <div class="feature-icon">💬</div>
-                    <div class="feature-title">Real-time Chat</div>
-                    <div class="feature-desc">Instant messaging with read receipts</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">👥</div>
-                    <div class="feature-title">Groups</div>
-                    <div class="feature-desc">Create and manage group conversations</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📢</div>
-                    <div class="feature-title">Channels</div>
-                    <div class="feature-desc">Broadcast messages to subscribers</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📸</div>
-                    <div class="feature-title">Stories</div>
-                    <div class="feature-desc">Share ephemeral photos and videos</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🎨</div>
-                    <div class="feature-title">Customization</div>
-                    <div class="feature-desc">Themes, fonts, and wallpapers</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🔒</div>
-                    <div class="feature-title">Privacy First</div>
-                    <div class="feature-desc">Block users and control visibility</div>
-                </div>
-            </div>
-
-            <div class="stats-section">
-                <div class="stat-card">
-                    <div class="stat-number">∞</div>
-                    <div class="stat-label">Messages</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">100%</div>
-                    <div class="stat-label">Free Tier</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">24/7</div>
-                    <div class="stat-label">Available</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">🔐</div>
-                    <div class="stat-label">Secure</div>
-                </div>
-            </div>
-
-            <div class="about-footer">
-                <a href="{{ url_for('chats.chat_list') }}" class="back-btn-about">
-                    <span>←</span>
-                    <span>Back to Chats</span>
-                </a>
-                <div class="copyright">
-                    © 2026 Kiselgram v4.0.0
-                </div>
-                <div class="credits">
-                    <a href="#" class="credit-link" onclick="showCredits(); return false;">Credits</a>
-                    <a href="#" class="credit-link" onclick="showPrivacyPolicy(); return false;">Privacy</a>
-                    <a href="#" class="credit-link" onclick="showTerms(); return false;">Terms</a>
+    <div class="container">
+        <div class="banner">
+            <div class="banner-overlay">
+                <div style="text-align:center">
+                    <div class="banner-title">Kiselgram</div>
+                    <div class="banner-badge">v4.0.0</div>
                 </div>
             </div>
         </div>
+
+        <h1>Kiselgram <span style="font-size:14px;font-weight:400;color:#8b949e">modern messaging</span></h1>
+
+        <div class="badges">
+            <span class="badge green">● Active</span>
+            <span class="badge orange">Premium $3.99/mo</span>
+            <span class="badge">v4.0.0</span>
+        </div>
+
+        <p style="color:#8b949e;margin-bottom:24px">A real-time messaging application with channels, groups, stories, and premium features.</p>
+
+        <div class="pricing">
+            <div class="price-card">
+                <div class="price-value">Free</div>
+                <div class="price-period">Forever</div>
+                <div style="margin-top:12px;font-size:13px;color:#8b949e">2 fonts • 100MB</div>
+            </div>
+            <div class="price-card premium">
+                <div class="price-value">$3.99</div>
+                <div class="price-period">per month</div>
+                <div style="margin-top:12px;font-size:13px;color:#fb6340">All features</div>
+            </div>
+            <div class="price-card">
+                <div class="price-value">$39.99</div>
+                <div class="price-period">per year <span class="save-badge">SAVE 16%</span></div>
+                <div style="margin-top:12px;font-size:13px;color:#8b949e">2 months free</div>
+            </div>
+        </div>
+
+        <h2>✨ All Premium Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🎨</div><div class="feature-name">11 Premium Fonts</div></div>
+            <div class="feature-card"><div class="feature-icon">📸</div><div class="feature-name">Stories</div></div>
+            <div class="feature-card"><div class="feature-icon">🖼️</div><div class="feature-name">Custom Wallpapers</div></div>
+            <div class="feature-card"><div class="feature-icon">✨</div><div class="feature-name">Animated Stickers</div></div>
+            <div class="feature-card"><div class="feature-icon">🎥</div><div class="feature-name">Video Avatars</div></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-name">Chat Statistics</div></div>
+            <div class="feature-card"><div class="feature-icon">🔔</div><div class="feature-name">Custom Notifications</div></div>
+            <div class="feature-card"><div class="feature-icon">🗂️</div><div class="feature-name">500MB Uploads</div></div>
+            <div class="feature-card"><div class="feature-icon">🤖</div><div class="feature-name">Bot API</div></div>
+            <div class="feature-card"><div class="feature-icon">💬</div><div class="feature-name">Priority Support</div></div>
+        </div>
+
+        <div class="premium-note">
+            <p><strong>✨ Kiselgram Premium</strong> — Unlock all 10 premium features for just $3.99/month or $39.99/year.</p>
+            <p style="margin-top:8px;font-size:14px">Use code <code style="background:#21262d;padding:2px 6px;border-radius:4px">WELCOMETOKISELGRAM</code> for 1 year free!</p>
+        </div>
+
+        <div class="footer">
+            <a href="{{ url_for('chats.chat_list') }}" class="back-btn">← Back to Chats</a>
+            <span>© 2026 Kiselgram v4.0.0</span>
+        </div>
     </div>
-
-    <div id="modalRoot"></div>
-
-    <script>
-        (function() {
-            const theme = localStorage.getItem('kiselgram_theme');
-            if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-
-            const font = localStorage.getItem('kiselgram_font');
-            if (font) {
-                document.body.style.setProperty('--font-family', font);
-            }
-        })();
-
-        function showCredits() {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.style.display = 'flex';
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-            modal.innerHTML = `
-                <div class="modal-container" style="max-width: 450px; max-height: 80vh; overflow-y: auto;">
-                    <div class="modal-header">
-                        <h3>Credits</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <div style="font-size: 48px; margin-bottom: 8px;">✨</div>
-                            <h4 style="margin-bottom: 4px;">Kiselgram</h4>
-                            <p style="color: var(--text-muted);">Version 4.0.0</p>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Development</h3>
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
-                                <div>
-                                    <strong>Lead Developer</strong>
-                                    <p style="color: var(--text-muted);">Kisel Team</p>
-                                </div>
-                                <div>
-                                    <strong>Design</strong>
-                                    <p style="color: var(--text-muted);">Modern messaging interface</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Technologies</h3>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                <span style="background: #fb6340; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px;">Flask</span>
-                                <span style="background: #2dce89; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px;">Python</span>
-                                <span style="background: #fb6340; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px;">JavaScript</span>
-                                <span style="background: #2dce89; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px;">HTML5/CSS3</span>
-                                <span style="background: #fb6340; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px;">SQLAlchemy</span>
-                            </div>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Fonts</h3>
-                            <p style="color: var(--text-muted); font-size: 13px;">
-                                Inter, Satoshi, DM Sans, Roboto, Poppins, Public Sans,
-                                Work Sans, SF Pro, Nunito, Space Grotesk, Courier New
-                            </p>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Acknowledgments</h3>
-                            <p style="color: var(--text-muted); font-size: 13px;">
-                                Thanks to all contributors and the open-source community.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()" style="background: linear-gradient(135deg, #fb6340, #2dce89);">Close</button>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('modalRoot').appendChild(modal);
-        }
-
-        function showPrivacyPolicy() {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.style.display = 'flex';
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-            modal.innerHTML = `
-                <div class="modal-container" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-                    <div class="modal-header">
-                        <h3>Privacy Policy</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="settings-section">
-                            <h3>Your Privacy Matters</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">
-                                Kiselgram is designed with privacy in mind. We believe you should have control over your data.
-                            </p>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Data We Collect</h3>
-                            <ul style="color: var(--text-secondary); padding-left: 20px; line-height: 1.8;">
-                                <li>Basic profile information (username, display name)</li>
-                                <li>Messages and shared content</li>
-                                <li>Connection and usage data</li>
-                            </ul>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>How We Use Your Data</h3>
-                            <ul style="color: var(--text-secondary); padding-left: 20px; line-height: 1.8;">
-                                <li>To provide and improve our services</li>
-                                <li>To facilitate communication between users</li>
-                                <li>To ensure platform security</li>
-                            </ul>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Your Rights</h3>
-                            <ul style="color: var(--text-secondary); padding-left: 20px; line-height: 1.8;">
-                                <li>Access your personal data</li>
-                                <li>Request data deletion</li>
-                                <li>Control privacy settings</li>
-                                <li>Block unwanted users</li>
-                            </ul>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Data Retention</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">
-                                Stories are automatically deleted after 24 hours.
-                                You can delete your messages and account at any time.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()" style="background: linear-gradient(135deg, #fb6340, #2dce89);">Got it</button>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('modalRoot').appendChild(modal);
-        }
-
-        function showTerms() {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.style.display = 'flex';
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-
-            modal.innerHTML = `
-                <div class="modal-container" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-                    <div class="modal-header">
-                        <h3>Terms of Service</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="settings-section">
-                            <h3>Acceptance of Terms</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">
-                                By using Kiselgram, you agree to these terms of service.
-                            </p>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>User Conduct</h3>
-                            <ul style="color: var(--text-secondary); padding-left: 20px; line-height: 1.8;">
-                                <li>Be respectful to other users</li>
-                                <li>Do not share illegal or harmful content</li>
-                                <li>Do not spam or harass others</li>
-                                <li>Do not impersonate others</li>
-                                <li>Protect your account credentials</li>
-                            </ul>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Content Guidelines</h3>
-                            <ul style="color: var(--text-secondary); padding-left: 20px; line-height: 1.8;">
-                                <li>You retain ownership of your content</li>
-                                <li>We may remove content that violates our policies</li>
-                                <li>Do not post copyrighted material without permission</li>
-                            </ul>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Account Termination</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">
-                                We reserve the right to suspend or terminate accounts that violate these terms.
-                            </p>
-                        </div>
-
-                        <div class="settings-section">
-                            <h3>Disclaimer</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.6;">
-                                Kiselgram is provided "as is" without warranties of any kind.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').remove()" style="background: linear-gradient(135deg, #fb6340, #2dce89);">I Understand</button>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('modalRoot').appendChild(modal);
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-            }
-        });
-    </script>
 </body>
 </html>
