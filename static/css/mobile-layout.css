@@ -1,0 +1,235 @@
+/* static/css/mobile-layout.css */
+/* Mobile-first overrides – only applies on screens ≤ 768px */
+
+/* Hide mobile-only elements by default */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    /* Show mobile-only elements */
+    .mobile-only {
+        display: flex !important;
+    }
+    .mobile-only.mobile-chat-list-container {
+        display: block !important;
+    }
+
+    /* Hide desktop-only elements */
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Hide desktop sidebar and menu button */
+    .chat-sidebar,
+    .menu-btn,
+    .mobile-menu-btn {
+        display: none !important;
+    }
+
+    /* Full-screen app container */
+    .app-container {
+        flex-direction: column !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        overflow: hidden !important;
+    }
+
+    /* Chat area takes full width and height */
+    .chat-area {
+        width: 100% !important;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important; /* important for flex children */
+    }
+
+    /* Add top header */
+    .chat-area::before {
+        content: "Kiselgram Free";
+        display: block !important;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        padding: 10px !important;
+        background: var(--bg-surface) !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        color: var(--text-primary) !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Global search repositioned */
+    .global-search-container {
+        display: block !important;
+        padding: 8px 12px !important;
+        background: var(--bg-surface) !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        flex-shrink: 0 !important;
+    }
+
+    .global-search {
+        position: relative !important;
+        width: 100% !important;
+    }
+
+    .global-search-input {
+        background: var(--bg-secondary) !important;
+        padding: 10px 16px 10px 40px !important;
+        border-radius: 20px !important;
+    }
+
+    .search-results {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-height: 60vh !important;
+        z-index: 200 !important;
+        background: var(--bg-secondary) !important;
+        box-shadow: var(--shadow-lg) !important;
+    }
+
+    /* Stories row */
+    .stories-row {
+        flex-shrink: 0 !important;
+        background: var(--bg-surface) !important;
+    }
+
+    /* Empty chat adjustments */
+    .empty-chat {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        flex: 1 !important;
+    }
+
+    .empty-chat-icon,
+    .empty-chat h3,
+    .empty-chat p,
+    .empty-chat .upgrade-banner {
+        display: none !important;
+    }
+
+    .mobile-chat-list-container {
+        display: block !important;
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 8px 0 !important;
+    }
+
+    /* Panel views (contacts, create group, etc.) */
+    .panel-view {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important; /* will be adjusted by JS to leave room for bottom nav */
+        background: var(--bg-surface) !important;
+        z-index: 50 !important;
+        overflow-y: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Chat view specific */
+    #chatView {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+
+    .chat-header {
+        flex-shrink: 0 !important;
+    }
+
+    .messages-container {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+    }
+
+    .chat-input-area {
+        flex-shrink: 0 !important;
+        padding-bottom: 8px !important;
+        /* bottom padding added to avoid nav overlap */
+    }
+
+    /* Bottom navigation */
+    .mobile-bottom-nav {
+        display: flex !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        background: var(--bg-secondary) !important;
+        border-top: 1px solid var(--border-color) !important;
+        padding: 8px 0 !important;
+        flex-shrink: 0 !important;
+        width: 100% !important;
+        z-index: 100 !important;
+        height: 60px !important;
+        position: relative !important;
+    }
+
+    .bottom-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-decoration: none !important;
+        color: var(--text-muted) !important;
+        font-size: 12px !important;
+        padding: 4px 12px !important;
+        border-radius: 20px !important;
+        transition: all 0.2s !important;
+    }
+
+    .bottom-nav-item.active {
+        color: var(--accent-blue) !important;
+        background: var(--active-bg) !important;
+    }
+
+    .nav-icon {
+        font-size: 22px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .nav-label {
+        font-size: 11px !important;
+        font-weight: 500 !important;
+    }
+
+    /* Hide popout menu */
+    .popout-menu-column {
+        display: none !important;
+    }
+
+    /* Chat header back button */
+    #mobileBackBtn {
+        display: block !important;
+        background: none !important;
+        border: none !important;
+        font-size: 24px !important;
+        cursor: pointer !important;
+        color: var(--text-primary) !important;
+        padding: 4px 8px !important;
+        margin-right: 8px !important;
+    }
+
+    /* Settings panel adjustments */
+    .settings-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        bottom: 60px !important; /* leave room for bottom nav */
+        height: auto !important;
+    }
+
+    .privacy-panel {
+        bottom: 60px !important;
+        height: auto !important;
+    }
+
+    /* Adjust panel overlay to not cover bottom nav */
+    .panel-overlay {
+        bottom: 60px !important;
+    }
+}
