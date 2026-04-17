@@ -1,63 +1,43 @@
 // static/js/mobile-prem.js
-// Mobile-specific behavior for Kiselgram Premium
-
 (function() {
     'use strict';
-
     if (window.innerWidth > 768) return;
 
-    console.log('✨ Kiselgram Premium Mobile active');
+    console.log('✨ Premium Mobile active');
 
-    function adjustPanelBottom() {
+    function adjustPanels() {
         const navHeight = 60;
-        ['contactsView', 'createGroupView', 'createChannelView'].forEach(id => {
+        ['contactsView', 'createGroupView', 'createChannelView', 'chatView'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.bottom = navHeight + 'px';
         });
-        const settingsPanel = document.getElementById('settingsPanel');
-        if (settingsPanel) settingsPanel.style.bottom = navHeight + 'px';
-        const privacyPanel = document.getElementById('privacyPanel');
-        if (privacyPanel) privacyPanel.style.bottom = navHeight + 'px';
-        const overlay = document.getElementById('panelOverlay');
-        if (overlay) overlay.style.bottom = navHeight + 'px';
     }
 
-    function moveSearchToMain() {
-        const searchContainer = document.querySelector('.global-search-container');
+    function moveSearch() {
+        const search = document.querySelector('.global-search-container');
         const chatArea = document.getElementById('chatArea');
-        const storiesRow = document.getElementById('storiesRow');
-        if (searchContainer && chatArea) {
-            const parent = searchContainer.parentNode;
-            if (parent) parent.removeChild(searchContainer);
-            chatArea.insertBefore(searchContainer, chatArea.firstChild);
-            if (storiesRow) {
-                const storiesParent = storiesRow.parentNode;
-                if (storiesParent) storiesParent.removeChild(storiesRow);
-                searchContainer.insertAdjacentElement('afterend', storiesRow);
-            }
+        if (search && chatArea) {
+            chatArea.insertBefore(search, chatArea.firstChild);
+            const stories = document.getElementById('storiesRow');
+            if (stories) search.insertAdjacentElement('afterend', stories);
         }
     }
 
     const navItems = document.querySelectorAll('.bottom-nav-item');
-
     window.setActiveTab = function(viewId) {
         navItems.forEach(item => {
             item.classList.toggle('active', item.dataset.view === viewId);
         });
 
-        ['contactsView', 'createGroupView', 'createChannelView'].forEach(id => {
+        ['contactsView', 'createGroupView', 'createChannelView', 'chatView'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
 
         const emptyChat = document.getElementById('emptyChat');
-        const chatView = document.getElementById('chatView');
         const contactsView = document.getElementById('contactsView');
         const searchContainer = document.querySelector('.global-search-container');
         const storiesRow = document.getElementById('storiesRow');
-
-        // Always close chat view when switching tabs
-        if (chatView) chatView.style.display = 'none';
 
         if (viewId === 'contacts') {
             if (contactsView) contactsView.style.display = 'flex';
@@ -77,219 +57,155 @@
             if (contactsView) contactsView.style.display = 'none';
             if (searchContainer) searchContainer.style.display = 'block';
             if (storiesRow) storiesRow.style.display = 'flex';
-            const searchInput = document.getElementById('globalSearchInput');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.dispatchEvent(new Event('focus'));
-            }
+            document.getElementById('globalSearchInput')?.focus();
         }
-        adjustPanelBottom();
+        adjustPanels();
     };
 
-    const originalShowContacts = window.showContactsView;
+    const origShowContacts = window.showContactsView;
     window.showContactsView = function() {
-        if (originalShowContacts) originalShowContacts.call(this);
+        if (origShowContacts) origShowContacts.call(this);
         setActiveTab('contacts');
     };
 
-    const originalShowChats = window.showChatsView;
+    const origShowChats = window.showChatsView;
     window.showChatsView = function() {
-        if (originalShowChats) originalShowChats.call(this);
+        if (origShowChats) origShowChats.call(this);
         setActiveTab('chats');
     };
 
-    const originalOpenSettings = window.openSettingsPanel;
+    const origOpenSettings = window.openSettingsPanel;
     window.openSettingsPanel = function() {
-        if (originalOpenSettings) originalOpenSettings.call(this);
+        if (origOpenSettings) origOpenSettings.call(this);
         setActiveTab('settings');
     };
 
-    const originalOpenChat = window.openChat;
+    const origOpenChat = window.openChat;
     window.openChat = async function(type, id) {
-        if (originalOpenChat) await originalOpenChat.call(this, type, id);
-        const emptyChat = document.getElementById('emptyChat');
+        if (origOpenChat) await origOpenChat.call(this, type, id);
+        document.getElementById('emptyChat').style.display = 'none';
+        document.getElementById('contactsView').style.display = 'none';
+        document.querySelector('.global-search-container').style.display = 'none';
+        document.getElementById('storiesRow').style.display = 'none';
         const chatView = document.getElementById('chatView');
-        const contactsView = document.getElementById('contactsView');
-        const searchContainer = document.querySelector('.global-search-container');
-        const storiesRow = document.getElementById('storiesRow');
-
-        if (emptyChat) emptyChat.style.display = 'none';
-        if (contactsView) contactsView.style.display = 'none';
-        if (searchContainer) searchContainer.style.display = 'none';
-        if (storiesRow) storiesRow.style.display = 'none';
-
-        if (chatView) {
-            chatView.style.display = 'flex';
-            chatView.style.position = 'fixed';
-            chatView.style.top = '0';
-            chatView.style.left = '0';
-            chatView.style.right = '0';
-            chatView.style.bottom = '0';
-            chatView.style.zIndex = '1000';
-        }
-
-        addChatBackButton();
-
-        const msgContainer = document.getElementById('messagesContainer');
-        if (msgContainer) {
-            setTimeout(() => {
-                if (msgContainer.querySelector('.loading-spinner')) {
-                    if (typeof window.loadMessages === 'function') window.loadMessages(type, id);
-                }
-            }, 1000);
-        }
-
+        chatView.style.display = 'flex';
+        addBackButton();
+        adjustPanels();
         setActiveTab('chats');
     };
 
-    const originalHideContacts = window.hideContactsView;
+    const origHideContacts = window.hideContactsView;
     window.hideContactsView = function() {
-        if (originalHideContacts) originalHideContacts.call(this);
+        if (origHideContacts) origHideContacts.call(this);
         setActiveTab('chats');
     };
 
-    function syncMobileChatList() {
-        const realList = document.getElementById('chatList');
-        const mobileList = document.getElementById('mobileChatList');
-        if (realList && mobileList) mobileList.innerHTML = realList.innerHTML;
+    function syncChatList() {
+        const real = document.getElementById('chatList');
+        const mobile = document.getElementById('mobileChatList');
+        if (real && mobile) mobile.innerHTML = real.innerHTML;
     }
 
-    const originalLoadChatList = window.loadChatList;
-    if (originalLoadChatList) {
+    const origLoadChatList = window.loadChatList;
+    if (origLoadChatList) {
         window.loadChatList = async function() {
-            await originalLoadChatList();
-            syncMobileChatList();
+            await origLoadChatList();
+            syncChatList();
         };
     }
 
-    function addChatBackButton() {
-        const chatHeaderLeft = document.querySelector('.chat-header-left');
-        if (chatHeaderLeft && !document.getElementById('mobileBackBtn')) {
-            const backBtn = document.createElement('button');
-            backBtn.id = 'mobileBackBtn';
-            backBtn.innerHTML = '←';
-            backBtn.onclick = () => {
-                const chatView = document.getElementById('chatView');
-                if (chatView) chatView.style.display = 'none';
+    function addBackButton() {
+        const left = document.querySelector('.chat-header-left');
+        if (left && !document.getElementById('mobileBackBtn')) {
+            const btn = document.createElement('button');
+            btn.id = 'mobileBackBtn';
+            btn.innerHTML = '←';
+            btn.onclick = () => {
+                document.getElementById('chatView').style.display = 'none';
                 setActiveTab('chats');
             };
-            chatHeaderLeft.prepend(backBtn);
+            left.prepend(btn);
         }
     }
 
-    function addProfileToSettings() {
-        const settingsContent = document.querySelector('.settings-content');
-        if (settingsContent && !document.getElementById('mobileProfileBtn')) {
+    function addProfileButton() {
+        const content = document.querySelector('.settings-content');
+        if (content && !document.getElementById('mobileProfileBtn')) {
             const section = document.createElement('div');
             section.className = 'settings-section';
-            section.innerHTML = `<h3>Account</h3><button id="mobileProfileBtn" class="profile-action-btn" style="width:100%;justify-content:center;"><span>👤</span><span>View / Edit Profile</span></button>`;
-            settingsContent.appendChild(section);
-            document.getElementById('mobileProfileBtn').addEventListener('click', () => {
+            section.innerHTML = '<h3>Account</h3><button id="mobileProfileBtn" class="profile-action-btn" style="width:100%;justify-content:center;"><span>👤</span><span>View / Edit Profile</span></button>';
+            content.appendChild(section);
+            document.getElementById('mobileProfileBtn').onclick = () => {
                 if (typeof window.openProfileModal === 'function') window.openProfileModal();
                 if (typeof window.closeSettingsPanel === 'function') window.closeSettingsPanel();
-            });
+            };
         }
     }
 
-    function addCreateButtonsToContactsHeader() {
-        const contactsHeader = document.querySelector('#contactsView .panel-header');
-        if (contactsHeader && !document.getElementById('mobileCreateGroupBtn')) {
-            const btnContainer = document.createElement('div');
-            btnContainer.style.display = 'flex';
-            btnContainer.style.gap = '8px';
-            const groupBtn = document.createElement('button');
-            groupBtn.id = 'mobileCreateGroupBtn';
-            groupBtn.className = 'header-action-btn';
-            groupBtn.innerHTML = '👥+';
-            groupBtn.title = 'Create Group';
-            groupBtn.onclick = () => { if (typeof window.showCreateGroupView === 'function') window.showCreateGroupView(); };
-            const channelBtn = document.createElement('button');
-            channelBtn.id = 'mobileCreateChannelBtn';
-            channelBtn.className = 'header-action-btn';
-            channelBtn.innerHTML = '📢+';
-            channelBtn.title = 'Create Channel';
-            channelBtn.onclick = () => { if (typeof window.showCreateChannelView === 'function') window.showCreateChannelView(); };
-            btnContainer.appendChild(groupBtn);
-            btnContainer.appendChild(channelBtn);
-            const existingAddBtn = contactsHeader.querySelector('.header-action-btn');
-            if (existingAddBtn) existingAddBtn.insertAdjacentElement('afterend', btnContainer);
-            else contactsHeader.appendChild(btnContainer);
+    function addCreateButtons() {
+        const header = document.querySelector('#contactsView .panel-header');
+        if (header && !document.getElementById('mobileCreateGroupBtn')) {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '8px';
+            div.innerHTML = `
+                <button id="mobileCreateGroupBtn" class="header-action-btn" title="Create Group">👥+</button>
+                <button id="mobileCreateChannelBtn" class="header-action-btn" title="Create Channel">📢+</button>
+            `;
+            const existing = header.querySelector('.header-action-btn');
+            if (existing) existing.insertAdjacentElement('afterend', div);
+            else header.appendChild(div);
+            document.getElementById('mobileCreateGroupBtn').onclick = () => window.showCreateGroupView?.();
+            document.getElementById('mobileCreateChannelBtn').onclick = () => window.showCreateChannelView?.();
         }
     }
-
-    const observer = new MutationObserver(() => {
-        const chatView = document.getElementById('chatView');
-        if (chatView && chatView.style.display === 'flex') {
-            addChatBackButton();
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
 
     document.addEventListener('DOMContentLoaded', () => {
         ['contactsView', 'createGroupView', 'createChannelView', 'chatView'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
-        const emptyChat = document.getElementById('emptyChat');
-        if (emptyChat) emptyChat.style.display = 'flex';
+        document.getElementById('emptyChat').style.display = 'flex';
 
-        moveSearchToMain();
-        adjustPanelBottom();
-        addProfileToSettings();
-        addCreateButtonsToContactsHeader();
+        moveSearch();
+        adjustPanels();
+        addProfileButton();
+        addCreateButtons();
+        setActiveTab('chats');
 
         setTimeout(() => {
             const chatView = document.getElementById('chatView');
             if (chatView && chatView.style.display === 'flex') {
                 chatView.style.display = 'none';
-                const emptyChat = document.getElementById('emptyChat');
-                if (emptyChat) emptyChat.style.display = 'flex';
-                setActiveTab('chats');
+                document.getElementById('emptyChat').style.display = 'flex';
             }
-        }, 200);
+        }, 100);
 
-        setTimeout(syncMobileChatList, 500);
-        setActiveTab('chats');
+        setTimeout(syncChatList, 300);
     });
 
-    window.addEventListener('resize', adjustPanelBottom);
-    window.togglePopoutMenu = () => {};
-    window.closePopout = () => {};
+    new MutationObserver(() => {
+        if (document.getElementById('chatView')?.style.display === 'flex') addBackButton();
+    }).observe(document.body, { childList: true, subtree: true });
 
-    // Premium story viewer integration
-    const originalOpenStoryViewer = window.openStoryViewer;
-    if (originalOpenStoryViewer) {
+    window.addEventListener('resize', adjustPanels);
+    window.togglePopoutMenu = window.closePopout = () => {};
+
+    // Story viewer integration
+    const origOpenStory = window.openStoryViewer;
+    if (origOpenStory) {
         window.openStoryViewer = function(uid) {
-            originalOpenStoryViewer.call(this, uid);
+            origOpenStory.call(this, uid);
             document.body.classList.add('story-viewer-open');
-            const bottomNav = document.querySelector('.mobile-bottom-nav');
-            if (bottomNav) bottomNav.style.display = 'none';
+            document.querySelector('.mobile-bottom-nav').style.display = 'none';
         };
     }
-
-    const originalCloseStoryViewer = window.closeStoryViewer;
-    if (originalCloseStoryViewer) {
+    const origCloseStory = window.closeStoryViewer;
+    if (origCloseStory) {
         window.closeStoryViewer = function() {
-            originalCloseStoryViewer.call(this);
+            origCloseStory.call(this);
             document.body.classList.remove('story-viewer-open');
-            const bottomNav = document.querySelector('.mobile-bottom-nav');
-            if (bottomNav) bottomNav.style.display = 'flex';
-        };
-    }
-
-    const originalNextStory = window.nextStory;
-    if (originalNextStory) {
-        window.nextStory = function() {
-            originalNextStory.call(this);
-            if (!document.getElementById('storyViewer')) document.body.classList.remove('story-viewer-open');
-        };
-    }
-
-    const originalPreviousStory = window.previousStory;
-    if (originalPreviousStory) {
-        window.previousStory = function() {
-            originalPreviousStory.call(this);
-            if (!document.getElementById('storyViewer')) document.body.classList.remove('story-viewer-open');
+            document.querySelector('.mobile-bottom-nav').style.display = 'flex';
         };
     }
 })();
