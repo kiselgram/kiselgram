@@ -186,6 +186,15 @@ def index():
         return redirect(url_for('chats.chat_list'))
     return redirect(url_for('auth.login'))
 
+@chats_bp.route('/mobile')
+def mobile():
+        if not get_current_user():
+            return redirect('/')
+
+        current_user = get_current_user()
+        is_premium = getattr(current_user, 'is_premium', False)
+        return render_template('mobile.html', is_premium=is_premium)
+
 
 @chats_bp.route('/kis_info')
 def kis_info():

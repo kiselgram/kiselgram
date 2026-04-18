@@ -12,6 +12,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(80), unique=True, nullable=False)
     display_name = db.Column(db.String(80), nullable=True)
     password_hash = db.Column(db.String(120), nullable=False)
     telegram_chat_id = db.Column(db.String(50), unique=True, nullable=True)
@@ -57,6 +58,10 @@ class User(db.Model):
     stories = db.relationship('Story', backref='user', lazy='dynamic')
     story_views = db.relationship('StoryView', backref='viewer', lazy='dynamic')
     story_likes = db.relationship('StoryLike', backref='user', lazy='dynamic')
+
+
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    profile_pic = db.Column(db.String(200), nullable=True)
 
     def to_dict(self):
         return {
@@ -168,6 +173,9 @@ class Message(db.Model):
     file_path = db.Column(db.String(500), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
     thumbnail_path = db.Column(db.String(500), nullable=True)
+    is_encrypted = db.Column(db.Boolean, default=False)
+    encrypted_content = db.Column(db.Text)  # Base64 encrypted data
+    encryption_key_id = db.Column(db.Integer)  # Optional key identifier
 
     reactions = db.relationship('Reaction', backref='message', lazy=True, cascade='all, delete-orphan')
     replies_to = db.relationship('Reply', foreign_keys='Reply.original_message_id', backref='original_message',
@@ -289,3 +297,12 @@ class Report(db.Model):
     reporter = db.relationship('User', foreign_keys=[reporter_id])
     reported_user = db.relationship('User', foreign_keys=[reported_user_id])
     reported_message = db.relationship('Message', foreign_keys=[reported_message_id])
+
+
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh = db.Column(db.Text, nullable=False)
+    auth = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

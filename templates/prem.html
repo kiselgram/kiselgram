@@ -14,7 +14,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-layout.css') }}">
+
+    <script>
+        if (window.innerWidth <= 768) {
+            window.location.replace("{{ url_for('chats.mobile') }}");
+        }
+    </script>
 
     <style>
         .premium-badge {
@@ -270,6 +275,5 @@
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
     <script src="{{ url_for('static', filename='js/prem.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mobile-prem.js') }}"></script>
 </body>
 </html>

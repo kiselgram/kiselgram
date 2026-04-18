@@ -1,20 +1,58 @@
-# check_config.py
+"""Migration to add push subscriptions, encryption, premium, and profile fields."""
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Create a minimal app to access the database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.getcwd(), 'instance', 'kiselgram.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-from app import create_app
+def upgrade():
+    with app.app_context():
+        # PushSubscription table
+        db.session.execute(text('''
+            CREATE TABLE IF NOT EXISTS push_subscription (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                endpoint TEXT NOT NULL,
+                p256dh TEXT NOT NULL,
+                auth TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES user (id)
+            )
+        '''))
 
-app = create_app()
-with app.app_context():
-    print(f"Database URI: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
-    print(f"Instance path: {app.instance_path}")
+        # Add columns to message table (ignore errors if column exists)
+        columns_to_add = [
+            ('is_encrypted', 'BOOLEAN DEFAULT FALSE'),
+            ('encrypted_content', 'TEXT'),
+            ('encryption_key_id', 'INTEGER')
+        ]
+        for col_name, col_def in columns_to_add:
+            try:
+                db.session.execute(text(f'ALTER TABLE message ADD COLUMN {col_name} {col_def}'))
+            except Exception as e:
+                print(f"Column {col_name} may already exist: {e}")
 
-    # Check if directory exists
-    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-    if db_uri.startswith('sqlite:///'):
-        db_path = db_uri.replace('sqlite:///', '')
-        print(f"Database path: {db_path}")
-        print(f"Directory exists: {os.path.exists(os.path.dirname(db_path) if os.path.dirname(db_path) else '.')}")
-        print(f"File exists: {os.path.exists(db_path)}")
+        # Add columns to user table
+        user_columns = [
+            ('profile_completed', 'BOOLEAN DEFAULT FALSE'),
+            ('is_admin', 'BOOLEAN DEFAULT FALSE'),
+            ('is_premium', 'BOOLEAN DEFAULT FALSE'),
+            ('premium_since', 'TIMESTAMP'),
+            ('premium_expires_at', 'TIMESTAMP')
+        ]
+        for col_name, col_def in user_columns:
+            try:
+                db.session.execute(text(f'ALTER TABLE user ADD COLUMN {col_name} {col_def}'))
+            except Exception as e:
+                print(f"Column {col_name} may already exist: {e}")
+
+        db.session.commit()
+        print("✅ Migration completed successfully.")
+
+if __name__ == '__main__':
+    upgrade()

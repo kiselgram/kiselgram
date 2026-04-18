@@ -10,13 +10,20 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
+    <!-- Original desktop stylesheets (unchanged) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-layout.css') }}">
+
+    <script>
+        if (window.innerWidth <= 768) {
+            window.location.replace("{{ url_for('chats.mobile') }}");
+        }
+    </script>
 
     <style>
+        /* Original inline styles */
         .upgrade-banner {
             background: linear-gradient(135deg, #fb6340, #2dce89);
             color: white;
@@ -41,10 +48,10 @@
             font-size: 12px;
         }
         .font-option.locked { opacity: 0.6; }
-        .mobile-only { display: none !important; }
     </style>
 </head>
 <body>
+    <!-- Original desktop content (kept exactly as before) -->
     <div class="upgrade-banner" onclick="window.location.href='/premium'">
         <span>✨ Upgrade to Kiselgram Premium - Unlock Stories, Fonts & Wallpapers ✨</span>
     </div>
@@ -196,7 +203,8 @@
                 <div class="empty-chat-icon">💬</div>
                 <h3>Welcome to Kiselgram Free</h3>
                 <p>Select a chat to start messaging</p>
-                <div class="mobile-chat-list-container mobile-only">
+                <!-- Mobile chat list will be populated by JS -->
+                <div class="mobile-chat-list-container" style="display:none;">
                     <div class="chat-list mobile-chat-list" id="mobileChatList"></div>
                 </div>
                 <button class="upgrade-banner" onclick="window.location.href='/premium'">👑 Upgrade to Premium</button>
@@ -256,11 +264,12 @@
         </div>
     </div>
 
-    <nav class="mobile-bottom-nav mobile-only">
-        <a href="#" class="bottom-nav-item" data-view="contacts" onclick="showContactsView(); return false;"><span class="nav-icon">👥</span><span class="nav-label">Contacts</span></a>
-        <a href="#" class="bottom-nav-item active" data-view="chats" onclick="showChatsView(); return false;"><span class="nav-icon">💬</span><span class="nav-label">Chats</span></a>
-        <a href="#" class="bottom-nav-item" data-view="search" onclick="window.setActiveTab && setActiveTab('search'); return false;"><span class="nav-icon">🔍</span><span class="nav-label">Search</span></a>
-        <a href="#" class="bottom-nav-item" data-view="settings" onclick="openSettingsPanel(); return false;"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+    <!-- Bottom navigation (hidden on desktop, shown on mobile) -->
+    <nav class="mobile-bottom-nav" style="display:none;">
+        <a href="#" class="bottom-nav-item" data-view="contacts">👥<span>Contacts</span></a>
+        <a href="#" class="bottom-nav-item active" data-view="chats">💬<span>Chats</span></a>
+        <a href="#" class="bottom-nav-item" data-view="search">🔍<span>Search</span></a>
+        <a href="#" class="bottom-nav-item" data-view="settings">⚙️<span>Settings</span></a>
     </nav>
 
     <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
@@ -268,7 +277,7 @@
     <div id="modalRoot"></div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
+    <!-- Original core JS -->
     <script src="{{ url_for('static', filename='js/free.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mobile-spec.js') }}"></script>
 </body>
 </html>

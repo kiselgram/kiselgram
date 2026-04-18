@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Kiselgram Mobile</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#fb6340">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- Core CSS (desktop styles overridden where needed) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+
+
+    <style>
+        /* ========== MOBILE OVERRIDES ========== */
+        * { box-sizing: border-box; }
+
+        /* Lock page – NO scrolling */
+        html, body {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: var(--bg-primary);
+            -webkit-overflow-scrolling: auto !important;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Hide desktop elements */
+        .chat-sidebar,
+        .menu-btn,
+        .mobile-menu-btn,
+        .popout-menu-column,
+        .upgrade-banner,
+        .panel-overlay {
+            display: none !important;
+        }
+
+        /* Use dynamic viewport height – automatically adjusts when keyboard opens */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            position: relative;
+            background: var(--bg-primary);
+        }
+
+        /* Header */
+        .mobile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .mobile-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        .mobile-header-search {
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--accent-blue);
+        }
+
+        /* Search bar */
+        .global-search-container {
+            display: none;
+            padding: 8px 12px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .global-search-container.active { display: block; }
+        .global-search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border-radius: 20px;
+            background: var(--bg-secondary);
+            border: none;
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 60vh;
+            z-index: 200;
+            background: var(--bg-secondary);
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Stories row */
+        .stories-row {
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            overflow-x: auto;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .story-item {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 8px;
+            cursor: pointer;
+        }
+        .story-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            padding: 2px;
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        }
+        .story-avatar.viewed { background: var(--border-color); }
+        .story-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--bg-surface);
+        }
+        .story-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            border: 2px solid var(--bg-surface);
+        }
+        .story-username {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            max-width: 64px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Empty chat (chat list) */
+        #emptyChat {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+        #emptyChat .empty-chat-icon,
+        #emptyChat h3,
+        #emptyChat p,
+        #emptyChat .upgrade-banner { display: none; }
+
+        .mobile-chat-list-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .chat-list {
+            width: 100%;
+            padding: 0;
+        }
+        .chat-item {
+            width: 100%;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            background: var(--bg-surface);
+        }
+        .chat-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 20px;
+            overflow: hidden;
+        }
+        .chat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-name-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .chat-name {
+            font-weight: 600;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .chat-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .chat-preview {
+            font-size: 14px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .unread-badge {
+            background: var(--accent-blue);
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Panel views */
+        #contactsView,
+        #createGroupView,
+        #createChannelView {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 60px;
+            background: var(--bg-surface);
+            z-index: 50;
+            overflow-y: auto;
+            display: none;
+        }
+
+        /* Chat view – full screen overlay (but respects bottom nav) */
+        #chatView {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-surface);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #chatView .chat-header {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #chatView .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+        #chatView .chat-input-area {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+        }
+
+        /* Bottom navigation - ICONS ONLY */
+        .mobile-bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 0 env(safe-area-inset-bottom, 0);
+            flex-shrink: 0;
+            width: 100%;
+            z-index: 90;
+            min-height: 60px;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0;
+            padding: 8px 16px;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+        .bottom-nav-item.active {
+            color: var(--accent-blue);
+            background: var(--active-bg);
+        }
+        .bottom-nav-item span:first-child {
+            font-size: 24px;
+            margin: 0;
+        }
+        .bottom-nav-item span:last-child {
+            display: none;
+        }
+
+        /* Back button */
+        #mobileBackBtn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 8px;
+            margin-right: 8px;
+        }
+
+        /* Settings panel */
+        .settings-panel,
+        .privacy-panel {
+            width: 100%;
+            max-width: 100%;
+            bottom: 60px;
+            height: auto;
+            max-height: calc(100dvh - 60px);
+        }
+
+        /* Story viewer override */
+        body.story-viewer-open .mobile-bottom-nav { display: none; }
+
+        /* Premium badge */
+        .premium-badge {
+            background: linear-gradient(135deg, #fb6340, #2dce89);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Message action sheet */
+        .message-action-sheet {
+            transition: transform 0.3s ease;
+        }
+        .action-sheet-overlay {
+            transition: opacity 0.3s;
+        }
+        .action-sheet-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .action-sheet-btn:hover {
+            background: var(--hover-bg);
+        }
+        .action-sheet-btn span:first-child {
+            font-size: 24px;
+            width: 32px;
+        }
+
+        /* Modals fit mobile */
+        .modal-overlay {
+            z-index: 2000 !important;
+            align-items: flex-end !important;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .modal-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            border-radius: 20px 20px 0 0 !important;
+            max-height: 80vh !important;
+        }
+        .story-create-modal .modal-body {
+            padding: 16px !important;
+        }
+        .story-media-upload {
+            aspect-ratio: 1/1 !important;
+            max-height: 300px !important;
+            margin-bottom: 12px !important;
+        }
+        .modal-footer {
+            padding: 12px 16px 20px !important;
+            flex-wrap: wrap !important;
+        }
+        .modal-btn {
+            flex: 1 1 0 !important;
+            min-width: 120px !important;
+        }
+    </style>
+
+    <script>
+        (function() {
+            // Wait for DOM to be ready
+            document.addEventListener('DOMContentLoaded', function() {
+                var messageInput = document.getElementById('messageInput');
+                var messagesContainer = document.getElementById('messagesContainer');
+
+                if (!messageInput || !messagesContainer) return;
+
+                // When input is focused, scroll messages to bottom after keyboard appears
+                messageInput.addEventListener('focus', function() {
+                    setTimeout(function() {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 300); // delay to let keyboard animation finish
+                });
+
+                // Also scroll to bottom when new messages are added (already handled in loadMessages, but add a backup)
+                var observer = new MutationObserver(function() {
+                    if (document.getElementById('chatView').style.display === 'flex') {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                });
+                observer.observe(messagesContainer, { childList: true, subtree: true });
+
+                // Prevent touch events from scrolling the page
+                document.body.addEventListener('touchmove', function(e) {
+                    if (!e.target.closest('.messages-container') &&
+                        !e.target.closest('.mobile-chat-list-container') &&
+                        !e.target.closest('.contacts-list')) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            });
+        })();
+    </script>
+</head>
+<body>
+    <!-- Header -->
+    <div class="mobile-header">
+        <h1>Kiselgram {% if is_premium %}<span class="premium-badge">PREMIUM</span>{% endif %}</h1>
+        <span class="mobile-header-search" id="mobileSearchIcon">🔍</span>
+    </div>
+
+    <!-- Search bar -->
+    <div class="global-search-container">
+        <div class="global-search">
+            <span class="global-search-icon">🔍</span>
+            <input type="text" class="global-search-input" id="globalSearchInput" placeholder="Search..." autocomplete="off">
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- Stories row -->
+    <div class="stories-row" id="storiesRow"></div>
+
+    <!-- Main container -->
+    <div class="app-container">
+        <div class="chat-area" id="chatArea">
+            <!-- Empty chat (chat list) -->
+            <div class="empty-chat" id="emptyChat">
+                <div class="mobile-chat-list-container">
+                    <div class="chat-list" id="mobileChatList"><div class="loading-spinner"></div></div>
+                </div>
+            </div>
+
+            <!-- Chat view -->
+            <div id="chatView" class="panel-view">
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="chat-header-avatar" id="chatHeaderAvatar"></div>
+                        <div class="chat-header-info">
+                            <div class="chat-header-name" id="chatHeaderName"></div>
+                            <div class="chat-header-status" id="chatHeaderStatus"></div>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="header-action-btn" id="chatCustomizeBtn">🎨</button>
+                        <button class="header-action-btn" onclick="showChatInfo()">ℹ️</button>
+                        <button class="header-action-btn" onclick="showChatMenu()">⋮</button>
+                    </div>
+                </div>
+                <div class="messages-container" id="messagesContainer"><div class="loading-spinner"></div></div>
+                <div class="chat-input-area">
+                    <div id="replyPreview" class="reply-preview" style="display:none">
+                        <div class="reply-preview-content">
+                            <div class="reply-preview-name"></div>
+                            <div class="reply-preview-text"></div>
+                        </div>
+                        <button class="cancel-reply-btn" onclick="cancelReply()">✕</button>
+                    </div>
+                    <div class="input-wrapper">
+                        <button class="attachment-btn" onclick="triggerFileUpload()">📎</button>
+                        <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+                        <button class="send-btn" id="sendBtn" disabled>➤</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts view -->
+            <div id="contactsView" class="panel-view">
+                <div class="panel-header">
+                    <button class="back-btn" id="contactsBackBtn">←</button>
+                    <h2>Contacts</h2>
+                    <button class="header-action-btn" onclick="showAddContactModal()">➕</button>
+                </div>
+                <div class="contacts-search">
+                    <input type="text" class="search-input" id="contactSearchInput" placeholder="Search contacts...">
+                </div>
+                <div class="contacts-list" id="contactsList"></div>
+            </div>
+
+            <!-- Create Group view -->
+            <div id="createGroupView" class="panel-view">
+                <div class="panel-header">
+                    <button class="back-btn" id="createGroupBackBtn">←</button>
+                    <h2>Create Group</h2>
+                    <div></div>
+                </div>
+                <div class="create-form-content">
+                    <div class="avatar-upload-section">
+                        <div class="group-avatar-upload" onclick="triggerGroupAvatarUpload()">
+                            <div class="group-avatar-preview" id="groupAvatarPreview">👥</div>
+                            <input type="file" id="groupAvatarInput" accept="image/*" style="display:none" onchange="previewGroupAvatar(this)">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Group Name</label>
+                        <input type="text" id="groupName" class="form-input" placeholder="Group name">
+                    </div>
+                    {% if is_premium %}
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="groupDescription" class="form-input" placeholder="Description" rows="3"></textarea>
+                    </div>
+                    {% endif %}
+                    <div class="form-group">
+                        <label>Add Members</label>
+                        <input type="text" id="memberSearchInput" class="form-input" placeholder="Search users...">
+                        <div id="selectedMembers" class="selected-members"></div>
+                        <div id="userListForGroup" class="user-select-list"></div>
+                    </div>
+                    <button class="create-btn" onclick="createGroup()">Create Group</button>
+                </div>
+            </div>
+
+            <!-- Create Channel view -->
+            <div id="createChannelView" class="panel-view">
+                <div class="panel-header">
+                    <button class="back-btn" id="createChannelBackBtn">←</button>
+                    <h2>Create Channel</h2>
+                    <div></div>
+                </div>
+                <div class="create-form-content">
+                    <div class="avatar-upload-section">
+                        <div class="channel-avatar-upload" onclick="triggerChannelAvatarUpload()">
+                            <div class="channel-avatar-preview" id="channelAvatarPreview">📢</div>
+                            <input type="file" id="channelAvatarInput" accept="image/*" style="display:none" onchange="previewChannelAvatar(this)">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Channel Name</label>
+                        <input type="text" id="channelName" class="form-input" placeholder="Channel name">
+                    </div>
+                    {% if is_premium %}
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="channelDescription" class="form-input" placeholder="Description" rows="3"></textarea>
+                    </div>
+                    {% endif %}
+                    <button class="create-btn" onclick="createChannel()">Create Channel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom navigation (icons only) -->
+        <nav class="mobile-bottom-nav">
+            <a href="#" class="bottom-nav-item" data-view="contacts"><span>👥</span><span>Contacts</span></a>
+            <a href="#" class="bottom-nav-item active" data-view="chats"><span>💬</span><span>Chats</span></a>
+            <a href="#" class="bottom-nav-item" data-view="search"><span>🔍</span><span>Search</span></a>
+            <a href="#" class="bottom-nav-item" data-view="settings"><span>⚙️</span><span>Settings</span></a>
+        </nav>
+    </div>
+
+    <!-- Hidden container for core JS (free.js/prem.js expects #chatList) -->
+    <div style="display: none;">
+        <div id="chatList"></div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay" style="display:none">
+        <div class="modal-container profile-modal">
+            <div class="modal-header">
+                <h3>Profile {% if is_premium %}<span class="premium-badge">PREMIUM</span>{% endif %}</h3>
+                <button class="modal-close" onclick="closeProfileModal()">✕</button>
+            </div>
+            <div class="modal-body" style="padding:0;max-height:70vh;overflow-y:auto">
+                <div class="profile-header">
+                    <div class="profile-avatar-container {% if is_premium %}premium-glow{% endif %}">
+                        <div id="profileAvatar"></div>
+                        <button class="avatar-upload-btn" onclick="triggerAvatarUpload()"><span>📷</span></button>
+                        <input type="file" id="avatarInput" accept="image/*{% if is_premium %},video/*{% endif %}" style="display:none" onchange="uploadAvatar(this)">
+                    </div>
+                    <div class="profile-name" id="profileDisplayName"></div>
+                    <div class="profile-username" id="profileUsername"></div>
+                    <div class="profile-stats">
+                        <div class="stat-item" onclick="showFollowers()"><div class="stat-value" id="followersCount">0</div><div class="stat-label">Followers</div></div>
+                        <div class="stat-item" onclick="showFollowing()"><div class="stat-value" id="followingCount">0</div><div class="stat-label">Following</div></div>
+                        <div class="stat-item" onclick="showGroups()"><div class="stat-value" id="groupsCount">0</div><div class="stat-label">Groups</div></div>
+                    </div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-section-title">About</div>
+                    <div class="profile-bio" id="profileBio">No bio yet</div>
+                </div>
+                {% if is_premium %}
+                <div class="profile-section">
+                    <div class="profile-section-title">Info</div>
+                    <div class="profile-info-item" onclick="openEditProfileModal()"><span class="profile-info-icon">👤</span><div class="profile-info-content"><div class="profile-info-label">Display Name</div><div class="profile-info-value" id="profileDisplayNameValue"></div></div></div>
+                    <div class="profile-info-item" onclick="openEditProfileModal()"><span class="profile-info-icon">📧</span><div class="profile-info-content"><div class="profile-info-label">Username</div><div class="profile-info-value" id="profileUsernameValue"></div></div></div>
+                    <div class="profile-info-item" onclick="openEditProfileModal()"><span class="profile-info-icon">📝</span><div class="profile-info-content"><div class="profile-info-label">Bio</div><div class="profile-info-value" id="profileBioValue"></div></div></div>
+                </div>
+                {% endif %}
+                <div class="profile-actions">
+                    <button class="profile-action-btn" onclick="closeProfileModal();openSettingsPanel()"><span>⚙️</span><span>Settings</span></button>
+                    {% if not is_premium %}
+                    <button class="profile-action-btn" onclick="window.location.href='/premium'"><span>👑</span><span>Upgrade to Premium</span></button>
+                    {% endif %}
+                    <button class="profile-action-btn danger" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal-overlay" style="display:none">
+        <div class="modal-container">
+            <div class="modal-header"><h3>Edit Profile</h3><button class="modal-close" onclick="closeEditProfileModal()">✕</button></div>
+            <div class="modal-body">
+                <label class="modal-label">Display Name</label>
+                <input type="text" id="editDisplayName" class="modal-input" placeholder="Display name" maxlength="80">
+                <label class="modal-label">Username</label>
+                <input type="text" id="editUsername" class="modal-input" placeholder="Username">
+                <small style="color:var(--text-muted)">Only letters, numbers, underscores</small>
+                <label class="modal-label">Bio</label>
+                <textarea id="editBio" class="modal-input" placeholder="About yourself" rows="4" maxlength="500"></textarea>
+                <small style="color:var(--text-muted)"><span id="bioCharCount">0</span>/500</small>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeEditProfileModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="saveProfile()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header"><h2>Settings</h2><button class="settings-close" onclick="closeSettingsPanel()">✕</button></div>
+        <div class="settings-content">
+            <div class="settings-section">
+                <h3>Appearance</h3>
+                <div class="theme-options">
+                    <div class="theme-option active" onclick="setTheme('light')"><span>☀️</span>Light</div>
+                    <div class="theme-option" onclick="setTheme('dark')"><span>🌙</span>Dark</div>
+                    <div class="theme-option" onclick="setTheme('auto')"><span>🔄</span>Auto</div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>Font {% if not is_premium %}(2 Free){% else %}(All Unlocked){% endif %}</h3>
+                <div class="font-options" id="fontOptions">
+                    <div class="font-option active" data-font="'Inter', -apple-system, sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Inter'">Inter</div><div class="font-name">Inter <span class="font-tag">Free</span></div></div>
+                    {% if is_premium %}
+                    <div class="font-option" data-font="'Satoshi', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Satoshi'">Satoshi</div><div class="font-name">Satoshi</div></div>
+                    <div class="font-option" data-font="'DM Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'DM Sans'">DM Sans</div><div class="font-name">DM Sans</div></div>
+                    <div class="font-option" data-font="'Roboto', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Roboto'">Roboto</div><div class="font-name">Roboto</div></div>
+                    <div class="font-option" data-font="'Poppins', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Poppins'">Poppins</div><div class="font-name">Poppins</div></div>
+                    <div class="font-option" data-font="'Public Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Public Sans'">Public Sans</div><div class="font-name">Public Sans</div></div>
+                    <div class="font-option" data-font="'Work Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Work Sans'">Work Sans</div><div class="font-name">Work Sans</div></div>
+                    <div class="font-option" data-font="'SF Pro', -apple-system, sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'SF Pro'">SF Pro</div><div class="font-name">SF Pro</div></div>
+                    <div class="font-option" data-font="'Nunito', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Nunito'">Nunito</div><div class="font-name">Nunito</div></div>
+                    <div class="font-option" data-font="'Space Grotesk', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Space Grotesk'">Space Grotesk</div><div class="font-name">Space Grotesk</div></div>
+                    {% else %}
+                    <div class="font-option locked" data-font="'Satoshi', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Satoshi'">Satoshi</div><div class="font-name">Satoshi <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'DM Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'DM Sans'">DM Sans</div><div class="font-name">DM Sans <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Roboto', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Roboto'">Roboto</div><div class="font-name">Roboto <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Poppins', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Poppins'">Poppins</div><div class="font-name">Poppins <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Public Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Public Sans'">Public Sans</div><div class="font-name">Public Sans <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Work Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Work Sans'">Work Sans</div><div class="font-name">Work Sans <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'SF Pro', -apple-system, sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'SF Pro'">SF Pro</div><div class="font-name">SF Pro <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Nunito', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Nunito'">Nunito</div><div class="font-name">Nunito <span class="font-tag">Premium</span></div></div>
+                    <div class="font-option locked" data-font="'Space Grotesk', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Space Grotesk'">Space Grotesk</div><div class="font-name">Space Grotesk <span class="font-tag">Premium</span></div></div>
+                    {% endif %}
+                    <div class="font-option" data-font="'Courier New', monospace" onclick="setFont(this)"><div class="font-preview" style="font-family:'Courier New'">Courier</div><div class="font-name">Courier <span class="font-tag">Free</span></div></div>
+                </div>
+            </div>
+            {% if not is_premium %}
+            <div class="settings-section">
+                <h3>Premium</h3>
+                <button class="upgrade-banner" style="width:100%" onclick="window.location.href='/premium'">👑 Upgrade to Premium 👑</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Privacy Panel -->
+    <div class="privacy-panel" id="privacyPanel">
+        <div class="privacy-header"><h2>Privacy</h2><button class="privacy-close" onclick="closePrivacyPanel()">✕</button></div>
+        <div class="privacy-content">
+            <div class="settings-section"><h3>Profile Visibility</h3><select class="modal-input" id="profileVisibility"><option value="everyone">Everyone</option><option value="contacts">Contacts Only</option><option value="nobody">Nobody</option></select></div>
+            <div class="modal-footer"><button class="modal-btn modal-btn-primary" onclick="savePrivacySettings()">Save</button></div>
+        </div>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="uploadArea">
+        <div id="uploadFileName">No file selected</div>
+        <div class="upload-actions">
+            <button class="upload-btn" onclick="uploadFile()">Upload</button>
+            <button class="upload-btn cancel" onclick="cancelUpload()">Cancel</button>
+        </div>
+    </div>
+    <div id="modalRoot"></div>
+    <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
+
+    <!-- Core JS -->
+    {% if is_premium %}
+    <script src="{{ url_for('static', filename='js/prem.js') }}"></script>
+    {% else %}
+    <script src="{{ url_for('static', filename='js/free.js') }}"></script>
+    {% endif %}
+
+    <!-- Mobile-specific initialization (with reply/forward/reaction) -->
+    <script>
+        (function() {
+            console.log('📱 Mobile interface active');
+
+            var isChatOpen = false;
+
+            function adjustPanels() {
+                var navHeight = 60;
+                ['contactsView','createGroupView','createChannelView'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.bottom = navHeight + 'px';
+                });
+                var sp = document.getElementById('settingsPanel');
+                if (sp) sp.style.bottom = navHeight + 'px';
+                var pp = document.getElementById('privacyPanel');
+                if (pp) pp.style.bottom = navHeight + 'px';
+            }
+
+            function positionStories() {
+                var stories = document.getElementById('storiesRow');
+                var search = document.querySelector('.global-search-container');
+                if (stories && search) {
+                    search.insertAdjacentElement('afterend', stories);
+                }
+            }
+
+            var navItems = document.querySelectorAll('.bottom-nav-item');
+            function setActiveTab(viewId) {
+                if (isChatOpen && viewId === 'chats') {
+                    console.log('Chat open, ignoring switch to chats tab');
+                    return;
+                }
+
+                navItems.forEach(function(item) {
+                    item.classList.toggle('active', item.dataset.view === viewId);
+                });
+                ['contactsView','createGroupView','createChannelView','chatView'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+                var emptyChat = document.getElementById('emptyChat');
+                var contactsView = document.getElementById('contactsView');
+                var searchCont = document.querySelector('.global-search-container');
+                var storiesRow = document.getElementById('storiesRow');
+
+                if (viewId === 'contacts') {
+                    isChatOpen = false;
+                    if (contactsView) contactsView.style.display = 'flex';
+                    if (emptyChat) emptyChat.style.display = 'none';
+                    if (searchCont) searchCont.style.display = 'none';
+                    if (storiesRow) storiesRow.style.display = 'none';
+                } else if (viewId === 'chats') {
+                    isChatOpen = false;
+                    if (emptyChat) emptyChat.style.display = 'flex';
+                    if (contactsView) contactsView.style.display = 'none';
+                    if (searchCont) { searchCont.style.display = 'block'; searchCont.classList.remove('active'); }
+                    if (storiesRow) storiesRow.style.display = 'flex';
+                    if (typeof window.loadChatList === 'function') window.loadChatList();
+                } else if (viewId === 'settings') {
+                    if (typeof window.openSettingsPanel === 'function') window.openSettingsPanel();
+                } else if (viewId === 'search') {
+                    isChatOpen = false;
+                    if (emptyChat) emptyChat.style.display = 'flex';
+                    if (contactsView) contactsView.style.display = 'none';
+                    if (searchCont) { searchCont.style.display = 'block'; searchCont.classList.add('active'); }
+                    if (storiesRow) storiesRow.style.display = 'flex';
+                    document.getElementById('globalSearchInput')?.focus();
+                }
+                adjustPanels();
+            }
+
+            navItems.forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    setActiveTab(this.dataset.view);
+                });
+            });
+
+            document.getElementById('mobileSearchIcon').addEventListener('click', function() {
+                var sc = document.querySelector('.global-search-container');
+                sc.classList.toggle('active');
+                if (sc.classList.contains('active')) {
+                    document.getElementById('globalSearchInput').focus();
+                }
+            });
+
+            document.getElementById('contactsBackBtn').addEventListener('click', function() { setActiveTab('chats'); });
+            document.getElementById('createGroupBackBtn')?.addEventListener('click', function() { setActiveTab('contacts'); });
+            document.getElementById('createChannelBackBtn')?.addEventListener('click', function() { setActiveTab('contacts'); });
+
+            // ========== MESSAGE ACTION SHEET ==========
+            var actionSheet = document.createElement('div');
+            actionSheet.id = 'messageActionSheet';
+            actionSheet.className = 'message-action-sheet';
+            actionSheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--bg-surface);border-radius:20px 20px 0 0;padding:20px;z-index:3000;transform:translateY(100%);transition:transform 0.3s;box-shadow:0 -4px 12px rgba(0,0,0,0.1);';
+            actionSheet.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:16px;">
+                    <button class="action-sheet-btn" data-action="reply"><span>↩️</span> Reply</button>
+                    <button class="action-sheet-btn" data-action="forward"><span>↗️</span> Forward</button>
+                    <button class="action-sheet-btn" data-action="react"><span>😊</span> React</button>
+                    <button class="action-sheet-btn" data-action="copy"><span>📋</span> Copy</button>
+                    <button class="action-sheet-btn" data-action="delete" style="color:var(--accent-red);"><span>🗑️</span> Delete</button>
+                    <button class="action-sheet-btn" data-action="cancel" style="margin-top:8px;">Cancel</button>
+                </div>
+            `;
+            document.body.appendChild(actionSheet);
+            var actionSheetOverlay = document.createElement('div');
+            actionSheetOverlay.className = 'action-sheet-overlay';
+            actionSheetOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2999;display:none;';
+            document.body.appendChild(actionSheetOverlay);
+
+            var currentMessageId = null;
+            var currentMessageContent = '';
+
+            function showActionSheet(messageId, content, isOwn) {
+                currentMessageId = messageId;
+                currentMessageContent = content;
+                var deleteBtn = actionSheet.querySelector('[data-action="delete"]');
+                deleteBtn.style.display = isOwn ? 'block' : 'none';
+                var reactBtn = actionSheet.querySelector('[data-action="react"]');
+                reactBtn.style.display = (typeof window.isPremium !== 'undefined' && window.isPremium) ? 'block' : 'none';
+                actionSheetOverlay.style.display = 'block';
+                actionSheet.style.transform = 'translateY(0)';
+            }
+
+            function hideActionSheet() {
+                actionSheet.style.transform = 'translateY(100%)';
+                actionSheetOverlay.style.display = 'none';
+                currentMessageId = null;
+            }
+
+            actionSheetOverlay.addEventListener('click', hideActionSheet);
+            actionSheet.addEventListener('click', function(e) {
+                var btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                var action = btn.dataset.action;
+                if (action === 'cancel') { hideActionSheet(); return; }
+                if (!currentMessageId) return;
+                switch(action) {
+                    case 'reply': if (typeof window.setReply === 'function') window.setReply(currentMessageId); break;
+                    case 'forward': if (typeof window.showForwardModal === 'function') window.showForwardModal(currentMessageId); else alert('Forward not available'); break;
+                    case 'react': if (typeof window.showReactionPicker === 'function') window.showReactionPicker(currentMessageId); else alert('Reactions require Premium'); break;
+                    case 'copy': navigator.clipboard?.writeText(currentMessageContent).then(() => window.showToast?.('Copied!', 'success')); break;
+                    case 'delete': if (confirm('Delete message?') && typeof window.deleteMessage === 'function') window.deleteMessage(currentMessageId); break;
+                }
+                hideActionSheet();
+            });
+
+            function attachMessageMenu() {
+                var container = document.getElementById('messagesContainer');
+                if (!container) return;
+                container.addEventListener('contextmenu', e => e.preventDefault());
+                container.addEventListener('click', function(e) {
+                    var bubble = e.target.closest('.message-bubble');
+                    if (!bubble) return;
+                    var wrapper = bubble.closest('.message-wrapper');
+                    if (!wrapper) return;
+                    var msgId = wrapper.id.replace('msg-', '');
+                    var textEl = bubble.querySelector('.message-text');
+                    var content = textEl ? textEl.innerText : '';
+                    var isOwn = wrapper.classList.contains('outgoing');
+                    showActionSheet(msgId, content, isOwn);
+                });
+            }
+
+            // ========== CORRECT OVERRIDE FOR loadMessages ==========
+            // Store original once
+            var originalLoadMessages = window.loadMessages;
+            if (originalLoadMessages) {
+                window.loadMessages = async function(type, id) {
+                    try {
+                        // Call original with correct context and arguments
+                        await originalLoadMessages.call(this, type, id);
+                        attachMessageMenu();
+                    } catch (e) {
+                        console.error('Failed to load messages:', e);
+                        var container = document.getElementById('messagesContainer');
+                        if (container) {
+                            container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load messages</p><button class="modal-btn modal-btn-primary" onclick="window.loadMessages(\'' + type + '\',' + id + ')">Retry</button></div>';
+                        }
+                    }
+                };
+            }
+
+            var originalOpenChat = window.openChat;
+            window.openChat = async function(type, id) {
+                console.log('openChat called:', type, id);
+                if (originalOpenChat) {
+                    try { await originalOpenChat.call(this, type, id); } catch (e) { console.error('openChat error:', e); }
+                }
+                document.getElementById('emptyChat').style.display = 'none';
+                document.getElementById('contactsView').style.display = 'none';
+                document.querySelector('.global-search-container').style.display = 'none';
+                document.getElementById('storiesRow').style.display = 'none';
+                document.getElementById('chatView').style.display = 'flex';
+                addBackButton();
+                attachMessageMenu();
+                isChatOpen = true;
+                navItems.forEach(item => item.classList.toggle('active', item.dataset.view === 'chats'));
+                adjustPanels();
+            };
+
+            var originalShowChats = window.showChatsView;
+            window.showChatsView = function() {
+                if (isChatOpen) {
+                    document.getElementById('chatView').style.display = 'none';
+                    isChatOpen = false;
+                }
+                if (originalShowChats) originalShowChats.call(this);
+                setActiveTab('chats');
+            };
+
+            var originalHideContacts = window.hideContactsView;
+            window.hideContactsView = function() {
+                if (originalHideContacts) originalHideContacts.call(this);
+                setActiveTab('chats');
+            };
+
+            function addBackButton() {
+                var left = document.querySelector('#chatView .chat-header-left');
+                if (left && !document.getElementById('mobileBackBtn')) {
+                    var btn = document.createElement('button');
+                    btn.id = 'mobileBackBtn';
+                    btn.innerHTML = '←';
+                    btn.onclick = function() {
+                        document.getElementById('chatView').style.display = 'none';
+                        isChatOpen = false;
+                        setActiveTab('chats');
+                    };
+                    left.prepend(btn);
+                }
+            }
+
+            function syncChatList() {
+                var real = document.getElementById('chatList');
+                var mobile = document.getElementById('mobileChatList');
+                if (real && mobile) {
+                    mobile.innerHTML = real.innerHTML;
+                    mobile.querySelectorAll('.chat-item').forEach(function(item) {
+                        var type = item.dataset.chatType;
+                        var id = item.dataset.chatId;
+                        if (type && id) item.onclick = () => window.openChat(type, parseInt(id));
+                    });
+                    console.log('Chat list synced, items:', mobile.querySelectorAll('.chat-item').length);
+                }
+            }
+
+            var origLoadChatList = window.loadChatList;
+            if (origLoadChatList) {
+                window.loadChatList = async function() {
+                    await origLoadChatList.apply(this, arguments);
+                    syncChatList();
+                };
+            }
+
+            var customizeBtn = document.getElementById('chatCustomizeBtn');
+            if (customizeBtn) {
+                customizeBtn.onclick = typeof window.openChatCustomization === 'function' ? window.openChatCustomization : () => window.showPremiumModal?.('wallpapers');
+            }
+
+            function addProfileButton() {
+                var content = document.querySelector('.settings-content');
+                if (content && !document.getElementById('mobileProfileBtn')) {
+                    var section = document.createElement('div');
+                    section.className = 'settings-section';
+                    section.innerHTML = '<h3>Account</h3><button id="mobileProfileBtn" class="profile-action-btn" style="width:100%;justify-content:center;"><span>👤</span><span>View / Edit Profile</span></button>';
+                    content.appendChild(section);
+                    document.getElementById('mobileProfileBtn').onclick = () => { window.openProfileModal?.(); window.closeSettingsPanel?.(); };
+                }
+            }
+
+            function addCreateButtons() {
+                var header = document.querySelector('#contactsView .panel-header');
+                if (header && !document.getElementById('mobileCreateGroupBtn')) {
+                    var div = document.createElement('div');
+                    div.style.display = 'flex'; div.style.gap = '8px';
+                    div.innerHTML = '<button id="mobileCreateGroupBtn" class="header-action-btn" title="Create Group">👥+</button><button id="mobileCreateChannelBtn" class="header-action-btn" title="Create Channel">📢+</button>';
+                    var existing = header.querySelector('.header-action-btn');
+                    if (existing) existing.insertAdjacentElement('afterend', div); else header.appendChild(div);
+                    document.getElementById('mobileCreateGroupBtn').onclick = () => window.showCreateGroupView?.();
+                    document.getElementById('mobileCreateChannelBtn').onclick = () => window.showCreateChannelView?.();
+                }
+            }
+
+            if (typeof window.openStoryViewer === 'function') {
+                var origOpen = window.openStoryViewer;
+                window.openStoryViewer = function(uid) {
+                    origOpen.call(this, uid);
+                    document.body.classList.add('story-viewer-open');
+                    document.querySelector('.mobile-bottom-nav').style.display = 'none';
+                };
+                var origClose = window.closeStoryViewer;
+                window.closeStoryViewer = function() {
+                    origClose.call(this);
+                    document.body.classList.remove('story-viewer-open');
+                    document.querySelector('.mobile-bottom-nav').style.display = 'flex';
+                };
+            }
+
+            positionStories();
+            adjustPanels();
+            addProfileButton();
+            addCreateButtons();
+            setActiveTab('chats');
+            setTimeout(syncChatList, 500);
+            setTimeout(syncChatList, 1000);
+            setTimeout(syncChatList, 2000);
+
+            new MutationObserver(function() {
+                if (document.getElementById('chatView')?.style.display === 'flex') {
+                    addBackButton();
+                    attachMessageMenu();
+                }
+            }).observe(document.body, { childList: true, subtree: true });
+
+            window.togglePopoutMenu = window.closePopout = function() {};
+        })();
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Sign In - Kiselgram{% endblock %}
+{% block title %}Sign Up - Kiselgram{% endblock %}
 
 {% block styles %}
 <style>
@@ -124,17 +124,23 @@
         border-color: var(--tg-primary);
     }
 
-    .register-link {
+    .login-link {
         text-align: center;
         margin-top: 24px;
         color: var(--tg-text-light);
         font-size: 14px;
     }
 
-    .register-link a {
+    .login-link a {
         color: var(--tg-primary);
         text-decoration: none;
         font-weight: 600;
+    }
+
+    .password-hint {
+        font-size: 12px;
+        color: var(--tg-text-light);
+        margin-top: 4px;
     }
 
     @media (max-width: 480px) {
@@ -159,7 +165,7 @@
         <div class="logo">
             <div class="logo-icon"></div>
             <h1>Kiselgram</h1>
-            <p>Welcome back</p>
+            <p>Create your account</p>
         </div>
 
         {% if error %}
@@ -168,7 +174,7 @@
         </div>
         {% endif %}
 
-        <form method="POST" id="loginForm">
+        <form method="POST" id="registerForm">
             <div class="form-group">
                 <input type="text"
                        name="username"
@@ -179,30 +185,63 @@
                        autofocus>
             </div>
             <div class="form-group">
+                <input type="email"
+                       name="email"
+                       class="form-input"
+                       placeholder="Email address"
+                       value="{{ email or '' }}"
+                       required>
+            </div>
+            <div class="form-group">
                 <input type="password"
                        name="password"
                        class="form-input"
                        placeholder="Password"
+                       required
+                       minlength="6">
+                <div class="password-hint">At least 6 characters</div>
+            </div>
+            <div class="form-group">
+                <input type="password"
+                       name="confirm_password"
+                       class="form-input"
+                       placeholder="Confirm password"
                        required>
             </div>
-            <button type="submit" class="submit-btn">Sign In</button>
+            <button type="submit" class="submit-btn">Create Account</button>
         </form>
 
         <a href="{{ url_for('auth.google_login') }}" class="google-login-btn">
             <img src="{{ url_for('static', filename='img/google-signin-button.png') }}" alt="Google Logo" width="100">
+            Sign up with Google
         </a>
 
-        <div class="register-link">
-            Don't have an account? <a href="{{ url_for('auth.register') }}">Create one</a>
+        <div class="login-link">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
         </div>
     </div>
 </div>
 
 <script>
-    document.getElementById('loginForm').addEventListener('submit', function() {
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        const password = this.querySelector('input[name="password"]').value;
+        const confirm = this.querySelector('input[name="confirm_password"]').value;
+
+        if (password !== confirm) {
+            e.preventDefault();
+            alert('Passwords do not match');
+            return;
+        }
+
+        if (password.length < 6) {
+            e.preventDefault();
+            alert('Password must be at least 6 characters');
+            return;
+        }
+
         const btn = this.querySelector('.submit-btn');
         btn.disabled = true;
-        btn.textContent = 'Signing in...';
+        btn.textContent = 'Creating account...';
     });
 </script>
 {% endblock %}

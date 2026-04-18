@@ -1,11 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
-from app import db
+# app/routes/auth.py
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify, current_app, flash
+import requests
+from app import db, oauth
 from app.models import User, Message, Channel, ChannelSubscriber, Group, GroupMember, BlockedUser, UserSession, Report
 from app.utils.helpers import hash_password, get_current_user, get_current_user_id
 import re
 from datetime import datetime
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
 @auth_bp.route('/', methods=['GET'])
@@ -13,84 +15,177 @@ def index():
     return redirect(url_for('auth.login'))
 
 
+# ========== LOGIN (username + password only) ==========
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
         if not username or not password:
-            return render_template('login.html', error="Username and password required", login=True)
+            return render_template('login.html', error="Username and password required", username=username)
 
         password_hash = hash_password(password)
         user = User.query.filter_by(username=username).first()
 
-        if user:
-            if user.password_hash == password_hash:
-                session['username'] = username
-                session['user_id'] = user.id
-                user.is_online = True
-                user.last_seen = datetime.utcnow()
-                db.session.commit()
-                return redirect('/chat_list')
-            else:
-                return render_template('login.html', error="Invalid password", login=True)
+        if user and user.password_hash == password_hash:
+            session['username'] = username
+            session['user_id'] = user.id
+            user.is_online = True
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
+            return redirect('/chat_list')
         else:
-            try:
-                new_user = User(username=username, password_hash=password_hash)
-                db.session.add(new_user)
-                db.session.commit()
-                session['username'] = username
-                session['user_id'] = new_user.id
-                return redirect('/chat_list')
-            except:
-                db.session.rollback()
-                return render_template('login.html', error="Username exists", login=True)
+            return render_template('login.html', error="Invalid username or password", username=username)
 
-    return render_template('login.html', login=True)
+    return render_template('login.html')
 
 
-@auth_bp.route('/api/login', methods=['GET', 'POST'])
-def api_login():
-    """
-    request body
-    {"username":str, "password":str}
-    returns
-
-    """
+# ========== REGISTER (username + email + password + confirm) ==========
+@auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if not username or not password:
-            return render_template('login.html', error="Username and password required", login=True)
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
 
+        # Validation
+        if not username or not email or not password:
+            return render_template('register.html', error='All fields are required', username=username, email=email)
+
+        if password != confirm:
+            return render_template('register.html', error='Passwords do not match', username=username, email=email)
+
+        if len(password) < 6:
+            return render_template('register.html', error='Password must be at least 6 characters', username=username, email=email)
+
+        if len(username) < 3:
+            return render_template('register.html', error='Username must be at least 3 characters', username=username, email=email)
+
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return render_template('register.html', error='Username can only contain letters, numbers, and underscores', username=username, email=email)
+
+        # Check for existing username
+        if User.query.filter_by(username=username).first():
+            return render_template('register.html', error='Username already taken', username=username, email=email)
+
+        # Check for existing email (if email column exists)
+        if hasattr(User, 'email'):
+            if User.query.filter_by(email=email).first():
+                return render_template('register.html', error='Email already registered', username=username, email=email)
+
+        # Create user
         password_hash = hash_password(password)
-        user = User.query.filter_by(username=username).first()
+        new_user = User(username=username, password_hash=password_hash)
+        if hasattr(User, 'email'):
+            new_user.email = email
+        # Set default values
+        new_user.display_name = username
+        if hasattr(new_user, 'profile_completed'):
+            new_user.profile_completed = False
 
-        if user:
-            if user.password_hash == password_hash:
-                session['username'] = username
-                session['user_id'] = user.id
-                user.is_online = True
-                user.last_seen = datetime.utcnow()
-                db.session.commit()
-                return redirect('/chat_list')
-            else:
-                return render_template('login.html', error="Invalid password", login=True)
+        db.session.add(new_user)
+        db.session.commit()
+
+        session['username'] = username
+        session['user_id'] = new_user.id
+        new_user.is_online = True
+        new_user.last_seen = datetime.utcnow()
+        db.session.commit()
+
+        return redirect('/chat_list')
+
+    return render_template('register.html')
+
+
+# ========== GOOGLE OAUTH ==========
+@auth_bp.route('/google')
+def google_login():
+    redirect_uri = url_for('auth.google_authorize', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/google/callback')
+def google_authorize():
+    try:
+        token = oauth.google.authorize_access_token()
+    except Exception as e:
+        current_app.logger.error(f"OAuth token error: {e}")
+        flash("Authorization with Google failed.", "error")
+        return redirect(url_for('auth.login'))
+
+    user_info = token.get('userinfo')
+    if not user_info:
+        resp = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {token["access_token"]}'}
+        )
+        user_info = resp.json()
+
+    if not user_info:
+        flash("Failed to fetch user information from Google.", "error")
+        return redirect(url_for('auth.login'))
+
+    google_id = user_info.get('sub')
+    email = user_info.get('email')
+    name = user_info.get('name')
+    picture = user_info.get('picture')
+
+    # Find or create user
+    user = User.query.filter_by(google_id=google_id).first()
+    if not user:
+        # Try to find by email if email column exists
+        if hasattr(User, 'email') and email:
+            user = User.query.filter_by(email=email).first()
+
+        if not user:
+            # Generate a unique username from email
+            base_username = email.split('@')[0] if email else 'user'
+            username = base_username
+            counter = 1
+            while User.query.filter_by(username=username).first():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            user = User(
+                username=username,
+                display_name=name,
+                google_id=google_id,
+                avatar_url=picture
+            )
+            if hasattr(User, 'email'):
+                user.email = email
+            if hasattr(user, 'profile_completed'):
+                user.profile_completed = False
+            db.session.add(user)
         else:
-            try:
-                new_user = User(username=username, password_hash=password_hash)
-                db.session.add(new_user)
-                db.session.commit()
-                session['username'] = username
-                session['user_id'] = new_user.id
-                return redirect('/chat_list')
-            except:
-                db.session.rollback()
-                return render_template('login.html', error="Username exists", login=True)
+            # Link existing account to Google
+            user.google_id = google_id
+            if not user.avatar_url:
+                user.avatar_url = picture
+            if not user.display_name:
+                user.display_name = name
 
-    return render_template('login.html', login=True)
+    # Update user info on each login
+    user.display_name = name
+    user.avatar_url = picture
+    db.session.commit()
+
+    session['username'] = user.username
+    session['user_id'] = user.id
+    user.is_online = True
+    user.last_seen = datetime.utcnow()
+    db.session.commit()
+
+    flash(f"Welcome, {user.display_name or user.username}!", "success")
+
+    if hasattr(user, 'profile_completed') and not user.profile_completed:
+        return redirect(url_for('auth.edit_profile'))
+    return redirect('/chat_list')
 
 
+# ========== LOGOUT ==========
 @auth_bp.route('/logout')
 def logout():
     user_id = session.get('user_id')
@@ -101,20 +196,13 @@ def logout():
             user.last_seen = datetime.utcnow()
             db.session.commit()
     session.clear()
-    return redirect('/login')
+    return redirect('/auth/login')
 
-
-@auth_bp.route('/settings')
-def settings():
-    if not get_current_user():
-        return redirect('/login')
-    return render_template('settings.html', current_user=get_current_user())
-
-
+# ========== EDIT PROFILE ==========
 @auth_bp.route('/edit_profile', methods=['GET', 'POST'])
 def edit_profile():
     if not get_current_user():
-        return redirect('/login')
+        return redirect('/auth/login')
     user = User.query.get(get_current_user_id())
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -140,6 +228,9 @@ def edit_profile():
         if bio:
             user.bio = bio[:500]
 
+        if hasattr(user, 'profile_completed') and user.display_name:
+            user.profile_completed = True
+
         db.session.commit()
         return redirect(url_for('auth.settings'))
 
@@ -149,10 +240,34 @@ def edit_profile():
 @auth_bp.route('/profile/<username>')
 def view_profile(username):
     if not get_current_user():
-        return redirect('/login')
+        return redirect('/auth/login')
     user = User.query.filter_by(username=username).first_or_404()
     return render_template('profile.html', profile_user=user, is_own_profile=(user.id == get_current_user_id()),
                            current_user=get_current_user())
+
+
+# ========== API ROUTES (unchanged) ==========
+@auth_bp.route('/api/login', methods=['GET', 'POST'])
+def api_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if not username or not password:
+            return jsonify({'error': 'Username and password required'}), 400
+
+        password_hash = hash_password(password)
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.password_hash == password_hash:
+            session['username'] = username
+            session['user_id'] = user.id
+            user.is_online = True
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
+            return jsonify({'success': True, 'redirect': '/chat_list'})
+        else:
+            return jsonify({'error': 'Invalid username or password'}), 401
+    return jsonify({'error': 'Method not allowed'}), 405
 
 
 @auth_bp.route('/api/check_username', methods=['POST'])
@@ -280,7 +395,7 @@ def api_delete_account():
 @auth_bp.route('/api/export_data', methods=['GET'])
 def api_export_data():
     if not get_current_user():
-        return redirect('/login')
+        return redirect('/auth/login')
     current_user_id = get_current_user_id()
     user = User.query.get(current_user_id)
     data = {
