@@ -10,9 +10,6 @@ from datetime import datetime
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-@auth_bp.route('/', methods=['GET'])
-def index():
-    return redirect(url_for('auth.login'))
 
 
 # ========== LOGIN (username + password only) ==========

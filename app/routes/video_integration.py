@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 video_int_bp = Blueprint('video', __name__, url_prefix='/video')
 
+"""
+
 dotenv.load_dotenv()
 
 # Configuration
@@ -21,12 +23,10 @@ VIDEO_TIMEOUT = 5  # seconds
 
 
 def get_video_url():
-    """Get the base URL for the video server"""
     return VIDEO_BASE_URL
 
 
 def check_video_server():
-    """Check if video server is running"""
     try:
         response = requests.get(f"{VIDEO_BASE_URL}/health", timeout=VIDEO_TIMEOUT)
         return response.status_code == 200
@@ -35,7 +35,6 @@ def check_video_server():
 
 
 def login_required(f):
-    """Decorator to require login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -47,7 +46,6 @@ def login_required(f):
 
 
 def video_server_required(f):
-    """Decorator to check if video server is running"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not check_video_server():
@@ -62,7 +60,6 @@ def video_server_required(f):
 @login_required
 @video_server_required
 def video_index():
-    """Video chat landing page"""
     try:
         # Get active rooms to display
         rooms_response = requests.get(f"{VIDEO_BASE_URL}/rooms", timeout=VIDEO_TIMEOUT)
@@ -81,7 +78,6 @@ def video_index():
 @login_required
 @video_server_required
 def create_room():
-    """Create a video room on the video server"""
     try:
         # Get room name from request if provided
         data = flask_request.get_json(silent=True) or {}
@@ -119,7 +115,6 @@ def create_room():
 @login_required
 @video_server_required
 def list_rooms():
-    """List active video rooms"""
     try:
         response = requests.get(f"{VIDEO_BASE_URL}/rooms", timeout=VIDEO_TIMEOUT)
 
@@ -141,7 +136,6 @@ def list_rooms():
 @login_required
 @video_server_required
 def join_room(room_id):
-    """Redirect to video room with auth"""
     # URL encode the username to handle special characters
     encoded_username = quote(session.get('username', ''))
 
@@ -159,7 +153,6 @@ def join_room(room_id):
 @login_required
 @video_server_required
 def room_info(room_id):
-    """Get information about a specific room"""
     try:
         response = requests.get(
             f"{VIDEO_BASE_URL}/rooms/{room_id}",
@@ -181,7 +174,6 @@ def room_info(room_id):
 
 @video_int_bp.route('/health')
 def health_check():
-    """Check if video server is accessible"""
     if check_video_server():
         return jsonify({
             'status': 'ok',
@@ -199,7 +191,6 @@ def health_check():
 @video_int_bp.route('/leave/<room_id>', methods=['POST'])
 @login_required
 def leave_room(room_id):
-    """Notify video server that user left a room"""
     try:
         response = requests.post(
             f"{VIDEO_BASE_URL}/rooms/{room_id}/leave",
@@ -210,3 +201,6 @@ def leave_room(room_id):
     except:
         # Even if video server doesn't respond, we consider the user left
         return jsonify({'success': True})
+    
+    
+    """

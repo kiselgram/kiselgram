@@ -179,7 +179,7 @@ def app_redirect():
     return redirect(url_for('chats.chat_list'))
 
 
-@chats_bp.route('/')
+@chats_bp.route('/app_1')
 def index():
     """Root route - redirect to chat list or login"""
     if get_current_user():

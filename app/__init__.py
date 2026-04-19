@@ -1,6 +1,6 @@
 # app/__init__.py
 import os
-from flask import Flask, redirect, url_for, session
+from flask import Flask, redirect, session, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -103,20 +103,17 @@ def create_app():
 
     @app.route('/', methods=['GET'])
     def index():
+        return render_template("kiselgram-home.html")
 
-        if not get_current_user():
-            return redirect(url_for('auth.login'))
-        else:
-            return redirect(url_for('chats.chat_list'))
 
-    @app.route('/logout')
+    @app.route('/logout', methods=['GET'])
     def logout():
         user_id = session.get('user_id')
         if user_id:
             user = User.query.get(user_id)
             if user:
                 user.is_online = False
-                user.last_seen = datetime.utcnow()
+                user.last_seen = datetime.datetime.now(datetime.timezone.utc)
                 db.session.commit()
         session.clear()
         return redirect('/auth/login')

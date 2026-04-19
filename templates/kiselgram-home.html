@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiselgram · Fresh Messaging</title>
+    <meta name="description" content="Kiselgram is a modern messenger with channels, groups, stories, and premium features.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+        }
+        .footer-link {
+            color: white;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+        .banner {
+            height: 180px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, #fb6340, #2dce89, #5e72e4, #f093fb);
+            background-size: 400% 400%;
+            animation: gradientShift 8s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .banner-overlay {
+            height: 100%;
+            background: rgba(13,17,23,0.4);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .banner-title {
+            font-size: 52px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .banner-badge {
+            display: inline-block;
+            padding: 4px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 30px;
+            font-size: 14px;
+            color: white;
+            backdrop-filter: blur(10px);
+            margin-top: 8px;
+        }
+        h1 {
+            font-size: 32px;
+            color: #f0f6fc;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h2 {
+            font-size: 20px;
+            color: #f0f6fc;
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        .badges {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0 24px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 4px 12px;
+            background: #21262d;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid #30363d;
+        }
+        .badge.green {
+            background: rgba(46,160,67,0.15);
+            border-color: rgba(46,160,67,0.3);
+            color: #3fb950;
+        }
+        .badge.orange {
+            background: rgba(251,99,64,0.15);
+            border-color: rgba(251,99,64,0.3);
+            color: #fb6340;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            padding: 16px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            text-align: center;
+            animation: fadeInUp 0.5s forwards;
+            opacity: 0;
+        }
+        .feature-card:nth-child(1) { animation-delay: 0.05s; }
+        .feature-card:nth-child(2) { animation-delay: 0.1s; }
+        .feature-card:nth-child(3) { animation-delay: 0.15s; }
+        .feature-card:nth-child(4) { animation-delay: 0.2s; }
+        .feature-card:nth-child(5) { animation-delay: 0.25s; }
+        .feature-card:nth-child(6) { animation-delay: 0.3s; }
+        .feature-card:nth-child(7) { animation-delay: 0.35s; }
+        .feature-card:nth-child(8) { animation-delay: 0.4s; }
+        .feature-card:nth-child(9) { animation-delay: 0.45s; }
+        .feature-card:nth-child(10) { animation-delay: 0.5s; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feature-card:hover {
+            border-color: #fb6340;
+            transform: translateY(-2px);
+            background: #1c2128;
+        }
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .feature-name {
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 4px;
+        }
+        .premium-note {
+            background: linear-gradient(135deg, rgba(251,99,64,0.08), rgba(45,206,137,0.08));
+            border: 1px solid rgba(251,99,64,0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .premium-note strong {
+            color: #fb6340;
+        }
+        .pricing {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .price-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            flex: 1;
+            max-width: 200px;
+        }
+        .price-card.premium {
+            border-color: #fb6340;
+        }
+        .price-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #f0f6fc;
+        }
+        .price-period {
+            font-size: 13px;
+            color: #8b949e;
+        }
+        .save-badge {
+            background: #2dce89;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        .footer {
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            color: #8b949e;
+            font-size: 13px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: #30363d;
+            border-color: #fb6340;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="banner">
+            <div class="banner-overlay">
+                <div style="text-align:center">
+                    <div class="banner-title">Kiselgram</div>
+                    <div class="banner-badge">v4.0.0</div>
+                </div>
+            </div>
+        </div>
+
+        <h1>Kiselgram <span style="font-size:14px;font-weight:400;color:#8b949e">modern messaging</span></h1>
+
+        <div class="badges">
+            <span class="badge green">● Active</span>
+            <span class="badge orange">Premium $3.99/mo</span>
+            <span class="badge">v4.0.0</span>
+        </div>
+
+        <p style="color:#8b949e;margin-bottom:24px">A real-time messaging application with channels, groups, stories, and premium features.</p>
+
+        <div class="pricing">
+            <div class="price-card">
+                <div class="price-value">Free</div>
+                <div class="price-period">Forever</div>
+                <div style="margin-top:12px;font-size:13px;color:#8b949e">2 fonts • 100MB</div>
+            </div>
+            <div class="price-card premium">
+                <div class="price-value">$3.99</div>
+                <div class="price-period">per month</div>
+                <div style="margin-top:12px;font-size:13px;color:#fb6340">All features</div>
+            </div>
+            <div class="price-card">
+                <div class="price-value">$39.99</div>
+                <div class="price-period">per year <span class="save-badge">SAVE 16%</span></div>
+                <div style="margin-top:12px;font-size:13px;color:#8b949e">2 months free</div>
+            </div>
+        </div>
+
+        <h2>✨ All Premium Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🎨</div><div class="feature-name">11 Premium Fonts</div></div>
+            <div class="feature-card"><div class="feature-icon">📸</div><div class="feature-name">Stories</div></div>
+            <div class="feature-card"><div class="feature-icon">🖼️</div><div class="feature-name">Custom Wallpapers</div></div>
+            <div class="feature-card"><div class="feature-icon">✨</div><div class="feature-name">Animated Stickers</div></div>
+            <div class="feature-card"><div class="feature-icon">🎥</div><div class="feature-name">Video Avatars</div></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-name">Chat Statistics</div></div>
+            <div class="feature-card"><div class="feature-icon">🔔</div><div class="feature-name">Custom Notifications</div></div>
+            <div class="feature-card"><div class="feature-icon">🗂️</div><div class="feature-name">500MB Uploads</div></div>
+            <div class="feature-card"><div class="feature-icon">🤖</div><div class="feature-name">Bot API</div></div>
+            <div class="feature-card"><div class="feature-icon">💬</div><div class="feature-name">Priority Support</div></div>
+        </div>
+
+        <div class="premium-note">
+            <p><strong>✨ Kiselgram Premium</strong> — Unlock all 10 premium features for just $3.99/month or $39.99/year.</p>
+            <p style="margin-top:8px;font-size:14px">Use code <code style="background:#21262d;padding:2px 6px;border-radius:4px">WELCOMETOKISELGRAM</code> for 7 days free!</p>
+        </div>
+
+        <div class="footer">
+            <div>
+                <a href="{{ url_for('auth.login') }}" class="footer-link">Sign In</a>
+                <a href="{{ url_for('auth.register') }}" class="footer-link" style="margin-left: 12px;">Sign Up</a>
+            </div>
+            <div class="footer-links">
+                <a href="/privacy" class="footer-link">Privacy Policy</a>
+                <a href="/terms"class="footer-link" >Terms of Service</a>
+            </div>
+            <span>© 2026 Kiselgram v4.0.0</span>
+        </div>
+    </div>
+</body>
+</html>

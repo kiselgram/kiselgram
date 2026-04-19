@@ -587,7 +587,7 @@
     window.showGroups = () => showToast('Groups', 'info');
     window.savePrivacySettings = () => { showToast('Saved', 'success'); window.closePrivacyPanel(); };
     window.toggleMobileSidebar = () => getEl('chatSidebar')?.classList.toggle('mobile-visible');
-    window.logout = () => fetch('/api/auth/logout', { method:'POST' }).then(() => location.href='/login');
+    window.logout = () => fetch('/api/auth/logout', { method:'POST' }).then(() => location.href='/auth/login');
     window.triggerGroupAvatarUpload = () => getEl('groupAvatarInput')?.click();
     window.previewGroupAvatar = (i) => { if (i.files?.[0]) { const r = new FileReader(); r.onload = e => { const p = getEl('groupAvatarPreview'); if (p) p.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }; r.readAsDataURL(i.files[0]); } };
     window.triggerChannelAvatarUpload = () => getEl('channelAvatarInput')?.click();
