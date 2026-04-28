@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-# ============ BASIC MODELS (No foreign keys to Group/Channel) ============
+# ============ BASIC MODELS ============
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -31,19 +31,22 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     premium_plan = db.Column(db.String(20), nullable=True)  # 'monthly' or 'yearly'
 
-        # Avatar type
+    # Avatar type
     avatar_type = db.Column(db.String(10), default='image')  # 'image' or 'video'
 
-        # Notification settings (premium)
+    # Notification settings (premium)
     notification_sound = db.Column(db.String(50), default='default')
     per_chat_sounds = db.Column(db.JSON, default={})
     mute_all = db.Column(db.Boolean, default=False)
     do_not_disturb = db.Column(db.Boolean, default=False)
 
-        # Bot fields
+    # Bot fields
     is_bot = db.Column(db.Boolean, default=False)
     bot_owner_id = db.Column(db.Integer, nullable=True)
     bot_token = db.Column(db.String(64), nullable=True)
+
+    # Status emoji (Premium)
+    status_emoji = db.Column(db.String(10), default='')
 
     # Relationships
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
@@ -59,7 +62,6 @@ class User(db.Model):
     story_views = db.relationship('StoryView', backref='viewer', lazy='dynamic')
     story_likes = db.relationship('StoryLike', backref='user', lazy='dynamic')
 
-
     google_id = db.Column(db.String(100), unique=True, nullable=True)
     profile_pic = db.Column(db.String(200), nullable=True)
 
@@ -72,7 +74,9 @@ class User(db.Model):
             'avatar_url': self.avatar_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
-            'is_online': self.is_online
+            'is_online': self.is_online,
+            'status_emoji': self.status_emoji,
+            'is_premium': self.is_premium
         }
 
     def set_password(self, password):

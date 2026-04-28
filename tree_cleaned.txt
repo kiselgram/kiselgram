@@ -1,0 +1,104 @@
+.
+├── NEW.md
+├── README.md
+├── app
+│   ├── __init__.py
+│   ├── config.py
+│   ├── models.py
+│   ├── routes
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   ├── chats.py
+│   │   ├── files.py
+│   │   ├── premium.json
+│   │   ├── premium.py
+│   │   ├── premium.toml
+│   │   ├── spa_app.py
+│   │   ├── utils_api.py
+│   │   └── video_integration.py
+│   ├── uploads
+│   ├── utils
+│   │   ├── __init__.py
+│   │   ├── bot_utils.py
+│   │   └── helpers.py
+│   └── utils.py
+├── config
+│   ├── banner.png
+│   ├── banner.txt
+│   ├── kis.toml
+│   └── promo.txt
+├── logs
+│   ├── kis_main.log
+│   ├── kis_vid.log
+│   └── kiselgram.log
+├── main.py
+├── manage.py
+├── requirements.txt
+├── restart.sh
+├── static
+│   ├── banner.jpg
+│   ├── banner.png
+│   ├── css
+│   │   ├── animations.css
+│   │   ├── chats.css
+│   │   ├── desktop.css
+│   │   ├── mobile-layout.css
+│   │   └── mobile.css
+│   ├── favicon.ico
+│   ├── images
+│   ├── img
+│   │   └── google-signin-button.png
+│   ├── js
+│   │   ├── app.js
+│   │   ├── free.js
+│   │   ├── mobile-prem.js
+│   │   ├── mobile-spec.js
+│   │   ├── prem.js
+│   │   ├── spa_app.js
+│   │   └── spa_app_prem.js
+│   ├── kiselgram-banner.jpg
+│   ├── manifest.json
+│   ├── sw.js
+│   └── videos
+├── status
+│   ├── kiselgram-main.json
+│   ├── kiselgram-video.json
+│   └── kiselgram.json
+├── templates
+│   ├── base.html
+│   ├── errors
+│   │   └── 404.html
+│   ├── free.html
+│   ├── index.html
+│   ├── kis_info.html
+│   ├── kiselgram-home.html
+│   ├── login.html
+│   ├── mobile.html
+│   ├── prem.html
+│   ├── premium
+│   │   ├── index.html
+│   │   └── success.html
+│   ├── profile
+│   │   └── public.html
+│   ├── register.html
+│   ├── spa_app.html
+│   └── video_integration.html
+├── tmp
+├── tree.txt
+├── video_server
+│   ├── __init__.py
+│   ├── app.py
+│   ├── auth_client.py
+│   ├── requirements.txt
+│   ├── static
+│   │   ├── css
+│   │   │   └── video.css
+│   │   ├── js
+│   └── templates
+│       └── video
+│           ├── base.html
+│           ├── menu.html
+│           ├── room.html
+│           ├── room_full.html
+│           └── room_not_found.html
+└── wsgi.py

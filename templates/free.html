@@ -10,7 +10,6 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    <!-- Original desktop stylesheets (unchanged) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
@@ -23,7 +22,6 @@
     </script>
 
     <style>
-        /* Original inline styles */
         .upgrade-banner {
             background: linear-gradient(135deg, #fb6340, #2dce89);
             color: white;
@@ -48,10 +46,33 @@
             font-size: 12px;
         }
         .font-option.locked { opacity: 0.6; }
+        .typing {
+            color: var(--accent-green) !important;
+        }
+        .message-action-sheet .action-sheet-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 12px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .message-action-sheet .action-sheet-btn:hover {
+            background: var(--hover-bg);
+        }
+        .reaction-picker span:hover {
+            transform: scale(1.2);
+            transition: transform 0.2s;
+        }
     </style>
 </head>
 <body>
-    <!-- Original desktop content (kept exactly as before) -->
     <div class="upgrade-banner" onclick="window.location.href='/premium'">
         <span>✨ Upgrade to Kiselgram Premium - Unlock Stories, Fonts & Wallpapers ✨</span>
     </div>
@@ -85,7 +106,7 @@
         </div>
         <div class="menu-footer-section">
             <button class="logout-btn-sidebar" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
-            <span>🔒 Kiselgram Free v4.0.0</span>
+            <span>🔒 Kiselgram Free v4.2.0</span>
         </div>
     </aside>
 
@@ -152,6 +173,13 @@
                     </div>
                 </div>
                 <div class="profile-section"><div class="profile-section-title">About</div><div class="profile-bio" id="profileBio">No bio yet</div></div>
+                <!-- Status Emoji (Locked for Free) -->
+                <div class="profile-section">
+                    <div class="profile-section-title">Status Emoji</div>
+                    <div class="locked-feature" onclick="showPremiumModal('custom_status')" style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-surface);border-radius:12px;">
+                        <span style="font-size:20px;">🔒</span> Unlock with Premium
+                    </div>
+                </div>
                 <div class="profile-actions">
                     <button class="profile-action-btn" onclick="closeProfileModal();openSettingsPanel()"><span>⚙️</span><span>Settings</span></button>
                     <button class="profile-action-btn" onclick="window.location.href='/premium'"><span>👑</span><span>Upgrade to Premium</span></button>
@@ -203,7 +231,6 @@
                 <div class="empty-chat-icon">💬</div>
                 <h3>Welcome to Kiselgram Free</h3>
                 <p>Select a chat to start messaging</p>
-                <!-- Mobile chat list will be populated by JS -->
                 <div class="mobile-chat-list-container" style="display:none;">
                     <div class="chat-list mobile-chat-list" id="mobileChatList"></div>
                 </div>
@@ -228,7 +255,7 @@
                     <div class="input-wrapper">
                         <button class="attachment-btn" onclick="triggerFileUpload()">📎</button>
                         <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
-                        <button class="send-btn" id="sendBtn" disabled>➤</button>
+                        <button class="send-btn" id="sendBtn" disabled onclick="sendMessage()">➤</button>
                     </div>
                 </div>
             </div>
@@ -264,7 +291,6 @@
         </div>
     </div>
 
-    <!-- Bottom navigation (hidden on desktop, shown on mobile) -->
     <nav class="mobile-bottom-nav" style="display:none;">
         <a href="#" class="bottom-nav-item" data-view="contacts">👥<span>Contacts</span></a>
         <a href="#" class="bottom-nav-item active" data-view="chats">💬<span>Chats</span></a>
@@ -277,7 +303,6 @@
     <div id="modalRoot"></div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
-    <!-- Original core JS -->
     <script src="{{ url_for('static', filename='js/free.js') }}"></script>
 </body>
 </html>
