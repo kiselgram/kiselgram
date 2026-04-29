@@ -1,6 +1,8 @@
 # app/__init__.py
 import os
 from flask import Flask, redirect, session, render_template
+from flask_cors import CORS
+from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -13,6 +15,7 @@ oauth = OAuth()
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+
 
 
 def create_app():
@@ -86,10 +89,10 @@ def create_app():
         return User.query.get(int(user_id))
 
     # Register blueprints
-    from app.routes import auth, chats, spa_app, premium, files
+    from app.routes import auth, chats, spa, premium, files
     app.register_blueprint(auth.auth_bp)
     app.register_blueprint(chats.chats_bp)
-    app.register_blueprint(spa_app.spa_bp)
+    spa.register_spa_blueprints(app)
     app.register_blueprint(premium.premium_bp)
     app.register_blueprint(files.files_bp)
 

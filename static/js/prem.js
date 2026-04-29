@@ -1,11 +1,11 @@
 // static/js/prem.js
-// Kiselgram Premium Edition – Full Featured with Offline, Push, Caching, Onboarding
-// Version 4.1.0
+// Kiselgram Premium Edition – Full Nexgram Features (v4.2)
+// Updated for SPA blueprint routes
 
 (function() {
     'use strict';
 
-    console.log('✨ Kiselgram Premium v4.1.0');
+    console.log('✨ Kiselgram Premium v4.2');
 
     // ========== GLOBALS & FEATURE FLAGS ==========
     window.isPremium = true;
@@ -37,15 +37,15 @@
     window.currentStoryUser = null;
     window.storyProgressInterval = null;
 
+    // Offline queue
+    let offlineQueue = [];
+    let isOnline = navigator.onLine;
+
     // Cache for messages
     const cachedMessages = new Map();
     function getMessagesHash(msgs) {
         return msgs.map(m => `${m.id}:${m.content}:${m.is_read}`).join('|');
     }
-
-    // Offline queue
-    let offlineQueue = [];
-    let isOnline = navigator.onLine;
 
     // DOM references
     function getEl(id) { return document.getElementById(id); }
@@ -56,7 +56,6 @@
         get createGroupView() { return getEl('createGroupView'); },
         get createChannelView() { return getEl('createChannelView'); },
         get chatList() { return getEl('chatList'); },
-        get storiesRow() { return getEl('storiesRow'); },
         get messagesContainer() { return getEl('messagesContainer'); },
         get messageInput() { return getEl('messageInput'); },
         get sendBtn() { return getEl('sendBtn'); },
@@ -66,10 +65,9 @@
         get replyPreview() { return getEl('replyPreview'); },
         get chatHeaderName() { return getEl('chatHeaderName'); },
         get chatHeaderAvatar() { return getEl('chatHeaderAvatar'); },
-        get chatHeaderStatus() { return getEl('chatHeaderStatus'); }
+        get chatHeaderStatus() { return getEl('chatHeaderStatus'); },
+        get storiesRow() { return getEl('storiesRow'); }
     };
-
-    window.hasFeature = (feature) => window.isPremium && window.PREMIUM_FEATURES[feature] === true;
 
     // ========== UTILITIES ==========
     function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
@@ -82,7 +80,6 @@
         if (diff < 86400000) return Math.floor(diff/3600000)+'h ago';
         return d.toLocaleDateString();
     }
-
     function showToast(msg, type='info') {
         const toast = document.createElement('div');
         toast.textContent = msg;
@@ -91,63 +88,7 @@
         setTimeout(() => toast.remove(), 3000);
     }
     window.showToast = showToast;
-
-    // ========== PUSH NOTIFICATIONS ==========
-    async function subscribeToPush() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            let subscription = await registration.pushManager.getSubscription();
-            if (!subscription) {
-                const vapidPublicKey = 'YOUR_VAPID_PUBLIC_KEY'; // Replace with actual key
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                });
-            }
-            await fetch('/api/push/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription })
-            });
-        } catch (e) {}
-    }
-
-    function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-        return outputArray;
-    }
-
-    // ========== OFFLINE SYNC ==========
-    async function syncOfflineMessages() {
-        if (offlineQueue.length === 0) return;
-        const toSync = [...offlineQueue];
-        offlineQueue = [];
-        try {
-            const res = await fetch('/api/sync_messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: toSync })
-            });
-            const data = await res.json();
-            if (data.success) {
-                data.synced.forEach(item => {
-                    const tempEl = document.getElementById(`temp-msg-${item.temp_id}`);
-                    if (tempEl) tempEl.outerHTML = renderMessage(item.message);
-                });
-                loadChatList();
-            }
-        } catch (e) {
-            offlineQueue.push(...toSync);
-        }
-    }
-
-    window.addEventListener('online', () => { isOnline = true; syncOfflineMessages(); });
-    window.addEventListener('offline', () => { isOnline = false; });
+    function formatFileSize(bytes) { if (!bytes) return ''; if (bytes<1024) return bytes+' B'; if (bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB'; return (bytes/(1024*1024)).toFixed(1)+' MB'; }
 
     // ========== INITIALIZATION ==========
     document.addEventListener('DOMContentLoaded', async () => {
@@ -161,11 +102,6 @@
         setupEventListeners();
         loadThemePreference();
         loadFontPreference();
-
-        if (hasFeature('videoAvatars')) {
-            const avatarInput = getEl('avatarInput');
-            if (avatarInput) avatarInput.accept = 'image/*,video/*';
-        }
 
         if (window.currentUserId && !localStorage.getItem('profile_completed')) {
             setTimeout(() => showProfileCompletionPrompt(), 1000);
@@ -183,44 +119,8 @@
 
         setInterval(loadChatList, 30000);
         setInterval(loadStories, 120000);
-        setInterval(() => { if (window.activeChat) loadMessages(window.activeChat.type, window.activeChat.id); }, 5000);
+        setInterval(() => { if (window.activeChat) refreshMessages(); }, 5000);
     });
-
-    function showProfileCompletionPrompt() {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
-            <div class="modal-container">
-                <div class="modal-header"><h3>Complete Your Profile</h3></div>
-                <div class="modal-body">
-                    <p>Add a display name and bio to help friends recognise you.</p>
-                    <input type="text" id="onboardDisplayName" class="modal-input" placeholder="Display name" value="${window.currentUserDisplayName}">
-                    <textarea id="onboardBio" class="modal-input" placeholder="Bio" rows="3"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Skip</button>
-                    <button class="modal-btn modal-btn-primary" id="saveOnboarding">Save</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        document.getElementById('saveOnboarding').onclick = async () => {
-            const dn = document.getElementById('onboardDisplayName').value.trim();
-            const bio = document.getElementById('onboardBio').value.trim();
-            if (dn) {
-                await fetch('/api/profile/update', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ display_name: dn, bio })
-                });
-                localStorage.setItem('profile_completed', 'true');
-                modal.remove();
-                showToast('Profile updated!', 'success');
-                loadCurrentUser();
-            }
-        };
-    }
 
     async function loadCurrentUser() {
         try {
@@ -277,7 +177,7 @@
         }
     }
 
-    // ========== STORIES (PREMIUM) ==========
+    // ========== STORIES (PREMIUM FULL) ==========
     async function loadStories() {
         if (!window.currentUserId) return;
         try {
@@ -404,6 +304,13 @@
                 <div class="story-actions">
                     <button onclick="likeCurrentStory()" id="storyLikeBtn">${story.liked ? '❤️' : '🤍'} <span>${story.like_count}</span></button>
                     ${story.user_id === window.currentUserId ? `<button onclick="deleteCurrentStory()">🗑️</button>` : ''}
+                    <button onclick="showStoryStats()">👁️</button>
+                    ${!story.user_id || story.user_id !== window.currentUserId ? `<div class="story-reactions">
+                        <span class="story-reaction" onclick="reactToCurrentStory('❤️')">❤️</span>
+                        <span class="story-reaction" onclick="reactToCurrentStory('🔥')">🔥</span>
+                        <span class="story-reaction" onclick="reactToCurrentStory('👎')">👎</span>
+                        <span class="story-reaction" onclick="reactToCurrentStory('👍')">👍</span>
+                    </div>` : ''}
                 </div>
             </div>
             <div class="story-nav">
@@ -488,6 +395,18 @@
         } catch (e) {}
     };
 
+    window.reactToCurrentStory = async (reaction) => {
+        const s = window.currentStoryUser?.stories?.[window.currentStoryIndex];
+        if (!s) return;
+        try {
+            await fetch('/api/stories/' + s.id + '/reaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction })
+            });
+        } catch (e) {}
+    };
+
     window.deleteCurrentStory = async () => {
         if (!confirm('Delete?')) return;
         const s = window.currentStoryUser?.stories?.[window.currentStoryIndex];
@@ -522,20 +441,34 @@
         closeStoryViewer();
     };
 
-    // ========== CHAT LIST WITH CACHING & SKELETON ==========
+    window.showStoryStats = () => {
+        const s = window.currentStoryUser?.stories?.[window.currentStoryIndex];
+        if (!s) return;
+        fetch(`/api/stories/${s.id}/stats`)
+            .then(r => r.json())
+            .then(stats => {
+                let html = '<div style="max-height:300px;overflow-y:auto;">';
+                html += `<p>👁️ Views: ${stats.total_views}</p><p>❤️ Likes: ${stats.total_likes}</p><p>😊 Reactions: ${stats.total_reactions}</p>`;
+                if (stats.viewers && stats.viewers.length) {
+                    html += '<p><strong>Viewers:</strong></p><ul>';
+                    stats.viewers.forEach(v => html += `<li>${escapeHtml(v.display_name)}</li>`);
+                    html += '</ul>';
+                }
+                html += '</div>';
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.display = 'flex';
+                modal.innerHTML = `<div class="modal-container"><div class="modal-header"><h3>Story Stats</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div><div class="modal-body">${html}</div></div>`;
+                document.body.appendChild(modal);
+                modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            });
+    };
+
+    // ========== CHAT LIST ==========
     async function loadChatList() {
         try {
             const cached = localStorage.getItem('kiselgram_chatlist_premium');
-            if (cached) {
-                renderChatList(JSON.parse(cached));
-            } else {
-                if (DOM.chatList) DOM.chatList.innerHTML = Array(6).fill(0).map(() => `
-                    <div class="chat-item skeleton-item">
-                        <div class="skeleton skeleton-avatar"></div>
-                        <div class="skeleton skeleton-text"></div>
-                    </div>
-                `).join('');
-            }
+            if (cached) renderChatList(JSON.parse(cached));
             const r = await fetch('/api/chat_list');
             const d = await r.json();
             if (d.success) {
@@ -553,48 +486,42 @@
             return;
         }
         c.innerHTML = chats.map(chat => {
-            const active = window.activeChat?.type === chat.type && window.activeChat?.id === chat.id;
-            return `<div class="chat-item ${active ? 'active' : ''}" data-chat-type="${chat.type}" data-chat-id="${chat.id}" onclick="openChat('${chat.type}',${chat.id})">
-                <div class="chat-avatar ${chat.type} ${chat.has_story ? 'has-story' : ''}">
-                    ${chat.avatar_url ? `<img src="${chat.avatar_url}">` : (chat.avatar || '?')}
-                    ${chat.type === 'personal' && chat.is_online ? '<span class="online-indicator"></span>' : ''}
+            const active = window.activeChat?.type===chat.type && window.activeChat?.id===chat.id;
+            return `<div class="chat-item ${active?'active':''}" data-chat-type="${chat.type}" data-chat-id="${chat.id}" onclick="openChat('${chat.type}',${chat.id})">
+                <div class="chat-avatar ${chat.type} ${chat.has_story?'has-story':''}">
+                    ${chat.avatar_url?`<img src="${chat.avatar_url}">`:(chat.avatar||'?')}
+                    ${chat.type==='personal'&&chat.is_online?'<span class="online-indicator"></span>':''}
                 </div>
                 <div class="chat-info">
-                    <div class="chat-name-row"><span class="chat-name">${escapeHtml(chat.name)}</span><span class="chat-time">${chat.timestamp || ''}</span></div>
-                    <div class="chat-preview"><span>${escapeHtml(chat.last_message || '')}</span>${chat.unread_count > 0 ? `<span class="unread-badge">${chat.unread_count}</span>` : ''}</div>
+                    <div class="chat-name-row"><span class="chat-name">${escapeHtml(chat.name)}</span><span class="chat-time">${chat.timestamp||''}</span></div>
+                    <div class="chat-preview"><span>${escapeHtml(chat.last_message||'')}</span>${chat.unread_count>0?`<span class="unread-badge">${chat.unread_count}</span>`:''}</div>
                 </div>
             </div>`;
         }).join('');
     }
 
-    // ========== MESSAGES (with channel fix) ==========
-    async function loadMessages(type, id, forceRender = false) {
-        const container = DOM.messagesContainer;
-        if (!container) return;
-        if (forceRender) container.innerHTML = '<div class="loading-spinner"></div>';
-        try {
-            let url;
-            if (type === 'personal') url = `/api/messages/${id}`;
-            else if (type === 'group') url = `/api/group_messages/${id}`;
-            else if (type === 'channel') url = `/api/channel_messages/${id}`;
-            else return;
-            const res = await fetch(`${url}?after=0&limit=50`);
-            const data = await res.json();
-            const msgs = data.messages || (data.success && data.messages) || [];
-            const newHash = getMessagesHash(msgs);
-            const cacheKey = `${type}_${id}`;
-            const oldHash = cachedMessages.get(cacheKey) || '';
-            if (forceRender || newHash !== oldHash) {
-                cachedMessages.set(cacheKey, newHash);
-                await renderMessages(msgs);
-                applyWallpaper();
-            }
-        } catch (e) {
-            if (forceRender) container.innerHTML = '<div class="empty-state"><p>Error</p></div>';
+    // ========== MESSAGES ==========
+    async function refreshMessages() {
+        if (!window.activeChat) return;
+        let url;
+        if (window.activeChat.type === 'personal') url = `/api/messages/${window.activeChat.id}`;
+        else if (window.activeChat.type === 'group') url = `/api/group_messages/${window.activeChat.id}`;
+        else if (window.activeChat.type === 'channel') url = `/api/channel_messages/${window.activeChat.id}`;
+        else return;
+        const res = await fetch(`${url}?after=0&limit=50`);
+        const data = await res.json();
+        const msgs = data.messages || (data.success && data.messages) || [];
+        const newHash = getMessagesHash(msgs);
+        const cacheKey = `${window.activeChat.type}_${window.activeChat.id}`;
+        const oldHash = cachedMessages.get(cacheKey) || '';
+        if (newHash !== oldHash) {
+            cachedMessages.set(cacheKey, newHash);
+            renderMessages(msgs);
+            applyWallpaper();
         }
     }
 
-    async function renderMessages(msgs) {
+    function renderMessages(msgs) {
         const c = DOM.messagesContainer;
         if (!c) return;
         let h = '', ld = null;
@@ -635,7 +562,6 @@
         </div>`;
     }
 
-    // ========== WALLPAPER (PREMIUM) ==========
     function applyWallpaper() {
         if (!window.activeChat) return;
         const w = localStorage.getItem(`wallpaper_${window.activeChat.type}_${window.activeChat.id}`) || 'default';
@@ -646,6 +572,7 @@
         }
     }
 
+    // ========== CHAT CUSTOMIZATION (PREMIUM) ==========
     window.openChatCustomization = () => {
         const m = document.createElement('div');
         m.className = 'modal-overlay';
@@ -658,7 +585,7 @@
                 <div class="modal-body">
                     <h4>Wallpaper</h4>
                     <div class="wallpaper-options" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-                        ${['gradient1', 'gradient2', 'gradient3', 'gradient4', 'gradient5', 'default'].map(w => `<div style="aspect-ratio:1;border-radius:8px;border:2px solid var(--border-color);cursor:pointer;background:${w === 'default' ? 'var(--bg-surface)' : ''}" onclick="setWallpaper('${w}')">${w === 'default' ? 'Default' : ''}</div>`).join('')}
+                        ${['gradient1', 'gradient2', 'gradient3', 'gradient4', 'gradient5', 'default'].map(w => `<div style="aspect-ratio:1;border-radius:8px;border:2px solid var(--border-color);cursor:pointer;background:${w==='default'?'var(--bg-surface)':''}" onclick="setWallpaper('${w}')">${w==='default'?'Default':''}</div>`).join('')}
                     </div>
                     <h4 style="margin-top:20px">Text Size</h4>
                     <div style="display:flex;gap:8px">
@@ -736,7 +663,7 @@
             sender_id: window.currentUserId,
             sender_name: window.currentUserDisplayName,
             timestamp: new Date().toISOString(),
-            timestamp_formatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp_formatted: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
             is_own: true,
             is_read: false,
             has_attachment: false,
@@ -779,7 +706,7 @@
             }
         } catch (e) {
             document.getElementById(`msg-${tempId}`)?.remove();
-            offlineQueue.push({ ...payload, temp_id: tempId, target_type: window.activeChat.type, target_id: window.activeChat.id });
+            offlineQueue.push({...payload, temp_id: tempId, target_type: window.activeChat.type, target_id: window.activeChat.id});
             showToast('Offline – message queued', 'info');
         }
     }
@@ -817,9 +744,9 @@
                 }
             } catch (e) {}
         } else {
-            if (DOM.chatHeaderName) DOM.chatHeaderName.textContent = type === 'group' ? 'Group' : 'Channel';
+            if (DOM.chatHeaderName) DOM.chatHeaderName.textContent = type==='group'?'Group':'Channel';
             if (DOM.chatHeaderAvatar) {
-                DOM.chatHeaderAvatar.textContent = type === 'group' ? '👥' : '📢';
+                DOM.chatHeaderAvatar.textContent = type==='group'?'👥':'📢';
                 DOM.chatHeaderAvatar.className = `chat-header-avatar ${type}`;
             }
         }
@@ -827,6 +754,27 @@
 
     function hideAllPanels() {
         [DOM.emptyChat, DOM.chatView, DOM.contactsView, DOM.createGroupView, DOM.createChannelView].forEach(el => { if (el) el.style.display = 'none'; });
+    }
+
+    async function loadMessages(type, id, forceRender = false) {
+        const container = DOM.messagesContainer;
+        if (!container) return;
+        if (forceRender) container.innerHTML = '<div class="loading-spinner"></div>';
+        try {
+            let url;
+            if (type === 'personal') url = `/api/messages/${id}`;
+            else if (type === 'group') url = `/api/group_messages/${id}`;
+            else if (type === 'channel') url = `/api/channel_messages/${id}`;
+            else return;
+            const res = await fetch(`${url}?after=0&limit=50`);
+            const data = await res.json();
+            const msgs = data.messages || (data.success && data.messages) || [];
+            cachedMessages.set(`${type}_${id}`, getMessagesHash(msgs));
+            renderMessages(msgs);
+            if (forceRender) applyWallpaper();
+        } catch (e) {
+            if (forceRender) container.innerHTML = '<div class="empty-state"><p>Error</p></div>';
+        }
     }
 
     // ========== SETTINGS / THEME / FONT ==========
@@ -860,62 +808,53 @@
     // ========== REPLY / FORWARD / REACTIONS ==========
     window.setReply = (id) => { window.replyToMessage = id; const msg = getEl(`msg-${id}`); if (msg && DOM.replyPreview) { const t = msg.querySelector('.message-text')?.textContent || ''; DOM.replyPreview.querySelector('.reply-preview-name').textContent = 'Replying'; DOM.replyPreview.querySelector('.reply-preview-text').textContent = t.substring(0, 50); DOM.replyPreview.style.display = 'flex'; } };
     window.cancelReply = () => { window.replyToMessage = null; if (DOM.replyPreview) DOM.replyPreview.style.display = 'none'; };
-    window.deleteMessage = async (id) => { if (!confirm('Delete?')) return; try { await fetch(`/api/messages/${id}`, { method: 'DELETE' }); getEl(`msg-${id}`)?.remove(); } catch (e) {} };
+    window.deleteMessage = async (id) => { if (!confirm('Delete?')) return; try { await fetch(`/api/messages/${id}`, { method:'DELETE' }); getEl(`msg-${id}`)?.remove(); } catch (e) {} };
     window.openImageViewer = (url) => window.open(url, '_blank');
-
-    window.showForwardModal = (messageId) => {
-        // Implement forward modal (simplified)
-        showToast('Forward feature coming soon', 'info');
-    };
-
-    window.showReactionPicker = (messageId) => {
-        // Implement reaction picker (simplified)
-        showToast('Reactions coming soon', 'info');
-    };
+    window.showForwardModal = (messageId) => { /* implement later */ showToast('Forward coming soon', 'info'); };
+    window.showReactionPicker = (messageId) => { /* implement later */ showToast('Reactions coming soon', 'info'); };
 
     // ========== CONTACTS ==========
     window.showContactsView = () => { window.closePopout(); hideAllPanels(); if (DOM.contactsView) DOM.contactsView.style.display = 'flex'; loadContacts(); };
     window.hideContactsView = () => { if (DOM.contactsView) DOM.contactsView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
-    async function loadContacts() { const c = getEl('contactsList'); if (!c) return; try { const r = await fetch('/api/contacts'); const d = await r.json(); if (d.success) { c.innerHTML = d.contacts.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id})"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div>${u.is_online ? '<span class="online-badge">●</span>' : ''}</div>`).join('') || '<div class="empty-state"><p>No contacts</p></div>'; } } catch (e) {} }
+    async function loadContacts() { const c = getEl('contactsList'); if (!c) return; try { const r = await fetch('/api/contacts'); const d = await r.json(); if (d.success) { c.innerHTML = d.contacts.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id})"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div></div>`).join('') || '<div class="empty-state"><p>No contacts</p></div>'; } } catch (e) {} }
 
     // ========== GLOBAL SEARCH ==========
-    async function handleGlobalSearch() { const q = DOM.globalSearchInput?.value.trim(); const r = DOM.searchResults; if (!r) return; if (!q || q.length < 2) { r.innerHTML = ''; r.classList.remove('active'); return; } try { const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`); const d = await res.json(); if (d.success) { let h = ''; if (d.results.users?.length) { h += '<div class="search-result-section">Users</div>'; d.results.users.forEach(u => { h += `<div class="search-result-item" onclick="openChat('personal',${u.id});closeSearchResults()"><div class="search-result-avatar">${u.username[0].toUpperCase()}</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(u.display_name)}</div><div class="search-result-type">@${escapeHtml(u.username)}</div></div></div>`; }); } if (d.results.groups?.length) { h += '<div class="search-result-section">Groups</div>'; d.results.groups.forEach(g => { h += `<div class="search-result-item" onclick="openChat('group',${g.id});closeSearchResults()"><div class="search-result-avatar">👥</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(g.name)}</div><div class="search-result-type">Group</div></div></div>`; }); } if (d.results.channels?.length) { h += '<div class="search-result-section">Channels</div>'; d.results.channels.forEach(c => { h += `<div class="search-result-item" onclick="openChat('channel',${c.id});closeSearchResults()"><div class="search-result-avatar">📢</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(c.name)}</div><div class="search-result-type">Channel</div></div></div>`; }); } r.innerHTML = h || '<div class="search-result-item">No results</div>'; r.classList.add('active'); } } catch (e) {} }
+    async function handleGlobalSearch() { const q = DOM.globalSearchInput?.value.trim(); const r = DOM.searchResults; if (!r) return; if (!q||q.length<2) { r.innerHTML = ''; r.classList.remove('active'); return; } try { const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`); const d = await res.json(); if (d.success) { let h = ''; if (d.results.users?.length) { h += '<div class="search-result-section">Users</div>'; d.results.users.forEach(u => { h += `<div class="search-result-item" onclick="openChat('personal',${u.id});closeSearchResults()"><div class="search-result-avatar">${u.username[0].toUpperCase()}</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(u.display_name)}</div><div class="search-result-type">@${escapeHtml(u.username)}</div></div></div>`; }); } if (d.results.groups?.length) { h += '<div class="search-result-section">Groups</div>'; d.results.groups.forEach(g => { h += `<div class="search-result-item" onclick="openChat('group',${g.id});closeSearchResults()"><div class="search-result-avatar">👥</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(g.name)}</div><div class="search-result-type">Group</div></div></div>`; }); } r.innerHTML = h || '<div class="search-result-item">No results</div>'; r.classList.add('active'); } } catch (e) {} }
     window.closeSearchResults = () => { DOM.searchResults?.classList.remove('active'); if (DOM.globalSearchInput) DOM.globalSearchInput.value = ''; };
 
     // ========== CREATE GROUP ==========
     window.showCreateGroupView = () => { window.closePopout(); hideAllPanels(); if (DOM.createGroupView) DOM.createGroupView.style.display = 'flex'; window.selectedMembers = []; const c = getEl('selectedMembers'); if (c) c.innerHTML = ''; };
     window.hideCreateGroupView = () => { if (DOM.createGroupView) DOM.createGroupView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
-    window.createGroup = async () => { const n = getEl('groupName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); fd.append('description', getEl('groupDescription')?.value || ''); fd.append('member_ids', JSON.stringify(window.selectedMembers || [])); const a = getEl('groupAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/groups/create', { method: 'POST', body: fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateGroupView(); loadChatList(); openChat('group', d.group.id); } } catch (e) {} };
+    window.createGroup = async () => { const n = getEl('groupName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); fd.append('member_ids', JSON.stringify(window.selectedMembers||[])); const a = getEl('groupAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/groups/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateGroupView(); loadChatList(); openChat('group', d.group.id); } } catch (e) {} };
 
     // ========== CREATE CHANNEL ==========
     window.showCreateChannelView = () => { window.closePopout(); hideAllPanels(); if (DOM.createChannelView) DOM.createChannelView.style.display = 'flex'; };
     window.hideCreateChannelView = () => { if (DOM.createChannelView) DOM.createChannelView.style.display = 'none'; if (window.activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
-    window.createChannel = async () => { const n = getEl('channelName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); fd.append('description', getEl('channelDescription')?.value || ''); const a = getEl('channelAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/channels/create', { method: 'POST', body: fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateChannelView(); loadChatList(); openChat('channel', d.channel.id); } } catch (e) {} };
+    window.createChannel = async () => { const n = getEl('channelName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); const a = getEl('channelAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/channels/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); window.hideCreateChannelView(); loadChatList(); openChat('channel', d.channel.id); } } catch (e) {} };
 
     // ========== PROFILE ==========
     window.openProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'flex'; loadProfileData(); };
     window.closeProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'none'; };
-    async function loadProfileData() { try { const r = await fetch('/api/profile'); const d = await r.json(); if (d.success && d.user) { const u = d.user; const dn = getEl('profileDisplayName'), un = getEl('profileUsername'), av = getEl('profileAvatar'), dnv = getEl('profileDisplayNameValue'), unv = getEl('profileUsernameValue'), bv = getEl('profileBioValue'), bio = getEl('profileBio'); if (dn) dn.textContent = u.display_name; if (un) un.textContent = '@' + u.username; if (bio) bio.textContent = u.bio || 'No bio yet'; if (dnv) dnv.textContent = u.display_name; if (unv) unv.textContent = '@' + u.username; if (bv) bv.textContent = u.bio || 'No bio yet'; if (av) av.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${u.username[0].toUpperCase()}</div>`; } } catch (e) {} }
-    window.openEditProfileModal = () => { const m = getEl('editProfileModal'); if (!m) return; const dn = window.currentUserDisplayName; const un = window.currentUserUsername; const bio = getEl('profileBio')?.textContent || ''; const ed = getEl('editDisplayName'), eu = getEl('editUsername'), eb = getEl('editBio'), cc = getEl('bioCharCount'); if (ed) ed.value = dn; if (eu) eu.value = un; if (eb) { eb.value = bio === 'No bio yet' ? '' : bio; if (cc) { cc.textContent = eb.value.length; eb.addEventListener('input', () => cc.textContent = eb.value.length); } } m.style.display = 'flex'; };
+    async function loadProfileData() { try { const r = await fetch('/api/profile'); const d = await r.json(); if (d.success && d.user) { const u = d.user; const dn = getEl('profileDisplayName'), un = getEl('profileUsername'), av = getEl('profileAvatar'), bio = getEl('profileBio'); if (dn) dn.textContent = u.display_name; if (un) un.textContent = '@'+u.username; if (bio) bio.textContent = u.bio||'No bio yet'; if (av) av.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${u.username[0].toUpperCase()}</div>`; } } catch (e) {} }
+    window.openEditProfileModal = () => { const m = getEl('editProfileModal'); if (!m) return; const dn = window.currentUserDisplayName; const un = window.currentUserUsername; const bio = getEl('profileBio')?.textContent || ''; const ed = getEl('editDisplayName'), eu = getEl('editUsername'), eb = getEl('editBio'), cc = getEl('bioCharCount'); if (ed) ed.value = dn; if (eu) eu.value = un; if (eb) { eb.value = bio==='No bio yet'?'':bio; if (cc) { cc.textContent = eb.value.length; eb.addEventListener('input', () => cc.textContent = eb.value.length); } } m.style.display = 'flex'; };
     window.closeEditProfileModal = () => { const m = getEl('editProfileModal'); if (m) m.style.display = 'none'; };
-    window.saveProfile = async () => { const dn = getEl('editDisplayName')?.value.trim() || ''; const un = getEl('editUsername')?.value.trim() || ''; const bio = getEl('editBio')?.value.trim() || ''; if (!dn) { showToast('Display name required', 'error'); return; } if (!un || un.length < 3) { showToast('Username min 3 chars', 'error'); return; } if (!/^[a-zA-Z0-9_]+$/.test(un)) { showToast('Invalid username', 'error'); return; } try { const r = await fetch('/api/profile/update', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ display_name: dn, username: un, bio }) }); const d = await r.json(); if (d.success) { window.currentUserDisplayName = dn; window.currentUserUsername = un; window.currentUserAvatar = un[0].toUpperCase(); updateUI(); closeEditProfileModal(); loadProfileData(); showToast('Profile updated!', 'success'); } else { showToast(d.error || 'Failed', 'error'); } } catch (e) { showToast('Error', 'error'); } };
+    window.saveProfile = async () => { const dn = getEl('editDisplayName')?.value.trim()||''; const un = getEl('editUsername')?.value.trim()||''; const bio = getEl('editBio')?.value.trim()||''; if (!dn) { showToast('Display name required', 'error'); return; } if (!un || un.length<3) { showToast('Username min 3 chars', 'error'); return; } if (!/^[a-zA-Z0-9_]+$/.test(un)) { showToast('Invalid username', 'error'); return; } try { const r = await fetch('/api/profile/update', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({display_name:dn, username:un, bio}) }); const d = await r.json(); if (d.success) { window.currentUserDisplayName = dn; window.currentUserUsername = un; window.currentUserAvatar = un[0].toUpperCase(); updateUI(); closeEditProfileModal(); loadProfileData(); showToast('Profile updated!', 'success'); } else { showToast(d.error||'Failed', 'error'); } } catch (e) { showToast('Error', 'error'); } };
     window.triggerAvatarUpload = () => getEl('avatarInput')?.click();
-    window.uploadAvatar = async (i) => { const f = i.files?.[0]; if (!f) return; if (!hasFeature('videoAvatars') && f.type.startsWith('video/')) { showToast('Video avatars require Premium', 'error'); return; } const fd = new FormData(); fd.append('avatar', f); try { const r = await fetch('/files/upload_avatar', { method: 'POST', body: fd }); const d = await r.json(); if (d.success) { showToast('Avatar updated!', 'success'); window.currentUserAvatar = window.currentUserUsername[0].toUpperCase(); updateUI(); loadProfileData(); } } catch (e) {} };
+    window.uploadAvatar = async (i) => { const f = i.files?.[0]; if (!f) return; const fd = new FormData(); fd.append('avatar', f); try { const r = await fetch('/profile/avatar', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Avatar updated!', 'success'); window.currentUserAvatar = window.currentUserUsername[0].toUpperCase(); updateUI(); loadProfileData(); } } catch (e) {} };
 
     // ========== FILE UPLOAD ==========
     window.triggerFileUpload = () => getEl('fileInput')?.click();
-    window.handleFileSelect = (i) => { const f = i.files; if (!f?.length) return; const fn = getEl('uploadFileName'); const ua = getEl('uploadArea'); if (fn) fn.textContent = f.length === 1 ? f[0].name : `${f.length} files`; if (ua) ua.classList.add('active'); };
-    window.uploadFile = async () => { const i = getEl('fileInput'); const f = i?.files; if (!f?.length || !window.activeChat) { window.cancelUpload(); return; } for (const file of f) { const limit = hasFeature('largeUploads') ? 500 * 1024 * 1024 : 100 * 1024 * 1024; if (file.size > limit) { showToast(`File too large. Max ${limit / 1024 / 1024}MB`, 'error'); continue; } const fd = new FormData(); fd.append('file', file); if (window.activeChat.type === 'personal') fd.append('receiver_id', window.activeChat.id); else fd.append('group_id', window.activeChat.id); try { const r = await fetch('/files/upload_file', { method: 'POST', body: fd }); const d = await r.json(); if (d.success && DOM.messagesContainer) { if (DOM.messagesContainer.querySelector('.empty-state')) DOM.messagesContainer.innerHTML = ''; DOM.messagesContainer.insertAdjacentHTML('beforeend', renderMessage(d.message)); DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight; } } catch (e) {} } window.cancelUpload(); };
+    window.handleFileSelect = (i) => { const f = i.files; if (!f?.length) return; const fn = getEl('uploadFileName'); const ua = getEl('uploadArea'); if (fn) fn.textContent = f.length===1 ? f[0].name : `${f.length} files`; if (ua) ua.classList.add('active'); };
+    window.uploadFile = async () => { const i = getEl('fileInput'); const f = i?.files; if (!f?.length || !window.activeChat) { window.cancelUpload(); return; } for (const file of f) { const fd = new FormData(); fd.append('file', file); if (window.activeChat.type==='personal') fd.append('receiver_id', window.activeChat.id); else fd.append('group_id', window.activeChat.id); try { const r = await fetch('/files/upload_file', { method:'POST', body:fd }); const d = await r.json(); if (d.success && DOM.messagesContainer) { if (DOM.messagesContainer.querySelector('.empty-state')) DOM.messagesContainer.innerHTML = ''; DOM.messagesContainer.insertAdjacentHTML('beforeend', renderMessage(d.message)); DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight; loadChatList(); } } catch (e) {} } window.cancelUpload(); };
     window.cancelUpload = () => { const ua = getEl('uploadArea'); const fi = getEl('fileInput'); if (ua) ua.classList.remove('active'); if (fi) fi.value = ''; };
 
     // ========== CHAT MENU ==========
     window.showChatInfo = () => showToast('Chat info', 'info');
-    window.showChatMenu = () => { if (!window.activeChat) return; const m = document.createElement('div'); m.className = 'modal-overlay'; m.onclick = e => { if (e.target === m) m.remove(); }; m.innerHTML = `<div class="chat-menu-dropdown" style="position:fixed;top:60px;right:20px;background:var(--bg-secondary);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px 0;min-width:200px;z-index:2000"><div class="chat-menu-item" onclick="showChatInfo();this.closest('.modal-overlay').remove()"><span>ℹ️</span> View Info</div><div class="chat-menu-item" onclick="openChatCustomization();this.closest('.modal-overlay').remove()"><span>🎨</span> Customize</div>${hasFeature('chatStats') ? `<div class="chat-menu-item" onclick="showChatStats();this.closest('.modal-overlay').remove()"><span>📊</span> Statistics</div>` : ''}${window.activeChat.type === 'personal' ? `<div class="chat-menu-divider"></div><div class="chat-menu-item danger" onclick="blockUser(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🚫</span> Block</div><div class="chat-menu-item danger" onclick="clearChat(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🗑️</span> Clear</div>` : ''}</div>`; document.body.appendChild(m); };
-    window.blockUser = async (id) => { if (!confirm('Block?')) return; try { await fetch(`/api/block_user/${id}`, { method: 'POST' }); showToast('Blocked', 'success'); window.activeChat = null; if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; if (DOM.chatView) DOM.chatView.style.display = 'none'; loadChatList(); } catch (e) {} };
-    window.clearChat = async (id) => { if (!confirm('Clear?')) return; try { await fetch(`/api/clear_chat/${id}`, { method: 'POST' }); showToast('Cleared', 'success'); if (window.activeChat?.id === id && DOM.messagesContainer) DOM.messagesContainer.innerHTML = '<div class="empty-state"><p>No messages</p></div>'; loadChatList(); } catch (e) {} };
-    window.showChatStats = () => showToast('Chat statistics coming soon!', 'info');
+    window.showChatMenu = () => { if (!window.activeChat) return; const m = document.createElement('div'); m.className = 'modal-overlay'; m.onclick = e => { if (e.target===m) m.remove(); }; m.innerHTML = `<div class="chat-menu-dropdown" style="position:fixed;top:60px;right:20px;background:var(--bg-secondary);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px 0;min-width:200px;z-index:2000"><div class="chat-menu-item" onclick="showChatInfo();this.closest('.modal-overlay').remove()"><span>ℹ️</span> View Info</div><div class="chat-menu-item" onclick="openChatCustomization();this.closest('.modal-overlay').remove()"><span>🎨</span> Customize</div>${window.activeChat.type==='personal'?`<div class="chat-menu-divider"></div><div class="chat-menu-item danger" onclick="blockUser(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🚫</span> Block</div><div class="chat-menu-item danger" onclick="clearChat(${window.activeChat.id});this.closest('.modal-overlay').remove()"><span>🗑️</span> Clear</div>`:''}</div>`; document.body.appendChild(m); };
+    window.blockUser = async (id) => { if (!confirm('Block?')) return; try { await fetch(`/api/block_user/${id}`, { method:'POST' }); showToast('Blocked', 'success'); window.activeChat = null; if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; if (DOM.chatView) DOM.chatView.style.display = 'none'; loadChatList(); } catch (e) {} };
+    window.clearChat = async (id) => { if (!confirm('Clear?')) return; try { await fetch(`/api/clear_chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id: id}) }); showToast('Cleared', 'success'); if (window.activeChat?.id===id && DOM.messagesContainer) DOM.messagesContainer.innerHTML = '<div class="empty-state"><p>No messages</p></div>'; loadChatList(); } catch (e) {} };
 
-    window.showAddContactModal = () => { const m = document.createElement('div'); m.className = 'modal-overlay'; m.style.display = 'flex'; m.onclick = e => { if (e.target === m) m.remove(); }; m.innerHTML = `<div class="modal-container" style="max-width:400px"><div class="modal-header"><h3>Add Contact</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div><div class="modal-body"><input type="text" id="addContactSearch" class="modal-input" placeholder="Search username..."><div id="addContactResults" style="max-height:300px;overflow-y:auto"></div></div></div>`; document.body.appendChild(m); const si = getEl('addContactSearch'); if (si) { si.addEventListener('input', debounce(async () => { const q = si.value.trim(); if (q.length < 2) return; try { const r = await fetch(`/api/users?search=${encodeURIComponent(q)}`); const d = await r.json(); if (d.success) { const res = getEl('addContactResults'); if (res) res.innerHTML = d.users.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id});closeAllModals()"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div></div>`).join(''); } } catch (e) {} }, 300)); si.focus(); } };
+    window.showAddContactModal = () => { const m = document.createElement('div'); m.className = 'modal-overlay'; m.style.display = 'flex'; m.onclick = e => { if (e.target===m) m.remove(); }; m.innerHTML = `<div class="modal-container" style="max-width:400px"><div class="modal-header"><h3>Add Contact</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div><div class="modal-body"><input type="text" id="addContactSearch" class="modal-input" placeholder="Search username..."><div id="addContactResults" style="max-height:300px;overflow-y:auto"></div></div></div>`; document.body.appendChild(m); const si = getEl('addContactSearch'); if (si) { si.addEventListener('input', debounce(async () => { const q = si.value.trim(); if (q.length<2) return; try { const r = await fetch(`/api/users?search=${encodeURIComponent(q)}`); const d = await r.json(); if (d.success) { const res = getEl('addContactResults'); if (res) res.innerHTML = d.users.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id});closeAllModals()"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div></div>`).join(''); } } catch (e) {} }, 300)); si.focus(); } };
     window.closeAllModals = () => { document.querySelectorAll('.modal-overlay').forEach(m => m.remove()); const pm = getEl('profileModal'); if (pm) pm.style.display = 'none'; const em = getEl('editProfileModal'); if (em) em.style.display = 'none'; };
 
     window.showChatsView = () => { hideAllPanels(); if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; };
@@ -924,9 +863,180 @@
     window.showGroups = () => showToast('Groups', 'info');
     window.savePrivacySettings = () => { showToast('Saved', 'success'); window.closePrivacyPanel(); };
     window.toggleMobileSidebar = () => getEl('chatSidebar')?.classList.toggle('mobile-visible');
-    window.logout = () => fetch('/api/auth/logout', { method: 'POST' }).then(() => location.href = '/auth/login');
+    window.logout = () => fetch('/api/auth/logout', { method:'POST' }).then(() => location.href='/auth/login');
     window.triggerGroupAvatarUpload = () => getEl('groupAvatarInput')?.click();
     window.previewGroupAvatar = (i) => { if (i.files?.[0]) { const r = new FileReader(); r.onload = e => { const p = getEl('groupAvatarPreview'); if (p) p.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }; r.readAsDataURL(i.files[0]); } };
     window.triggerChannelAvatarUpload = () => getEl('channelAvatarInput')?.click();
     window.previewChannelAvatar = (i) => { if (i.files?.[0]) { const r = new FileReader(); r.onload = e => { const p = getEl('channelAvatarPreview'); if (p) p.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }; r.readAsDataURL(i.files[0]); } };
+
+    // Offline sync
+    async function syncOfflineMessages() {
+        if (offlineQueue.length === 0) return;
+        const toSync = [...offlineQueue];
+        offlineQueue = [];
+        try {
+            const res = await fetch('/api/sync_messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: toSync })
+            });
+            const data = await res.json();
+            if (data.success) {
+                data.synced.forEach(item => {
+                    const tempEl = document.getElementById(`temp-msg-${item.temp_id}`);
+                    if (tempEl) tempEl.outerHTML = renderMessage(item.message);
+                });
+                loadChatList();
+            }
+        } catch (e) {
+            offlineQueue.push(...toSync);
+        }
+    }
+
+    window.addEventListener('online', () => { isOnline = true; syncOfflineMessages(); });
+    window.addEventListener('offline', () => { isOnline = false; });
+
+    // Push notification subscription
+    async function subscribeToPush() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                const vapidPublicKey = 'YOUR_VAPID_PUBLIC_KEY'; // Replace with actual key
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                });
+            }
+            await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription })
+            });
+        } catch (e) {}
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+    }
+
+    // Profile completion prompt
+    function showProfileCompletionPrompt() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-container">
+                <div class="modal-header"><h3>Complete Your Profile</h3></div>
+                <div class="modal-body">
+                    <p>Add a display name and bio to help friends recognise you.</p>
+                    <input type="text" id="onboardDisplayName" class="modal-input" placeholder="Display name" value="${window.currentUserDisplayName}">
+                    <textarea id="onboardBio" class="modal-input" placeholder="Bio" rows="3"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Skip</button>
+                    <button class="modal-btn modal-btn-primary" id="saveOnboarding">Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('saveOnboarding').onclick = async () => {
+            const dn = document.getElementById('onboardDisplayName').value.trim();
+            const bio = document.getElementById('onboardBio').value.trim();
+            if (dn) {
+                await fetch('/api/profile/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ display_name: dn, bio })
+                });
+                localStorage.setItem('profile_completed', 'true');
+                modal.remove();
+                showToast('Profile updated!', 'success');
+                loadCurrentUser();
+            }
+        };
+    }
+
+    // ========== BOT API (PREMIUM) ==========
+    window.createBot = async (name, usernameBot, description) => {
+        const res = await fetch('/premium/api/bot/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, username: usernameBot, description })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`Bot created! Token: ${data.bot.token}`);
+            loadBotsList();
+        } else {
+            alert(data.error || 'Failed to create bot');
+        }
+    };
+
+    async function loadBotsList() {
+        const container = getEl('botsList');
+        if (!container) return;
+        try {
+            const res = await fetch('/premium/api/bot/list');
+            const data = await res.json();
+            if (data.success && data.bots) {
+                container.innerHTML = data.bots.map(bot => `
+                    <div class="bot-item">
+                        <div class="bot-info">
+                            <div class="bot-avatar">🤖</div>
+                            <div class="bot-details">
+                                <h5>${escapeHtml(bot.name)}</h5>
+                                <p>@${escapeHtml(bot.username)}</p>
+                            </div>
+                        </div>
+                        <div class="bot-token">Token: ${escapeHtml(bot.token || '••••••••')}</div>
+                        <div class="bot-actions">
+                            <button class="btn-small" onclick="regenerateBotToken(${bot.id})">🔄</button>
+                            <button class="btn-small btn-danger" onclick="deleteBot(${bot.id})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('') || '<p>No bots created yet.</p>';
+            }
+        } catch (e) {}
+    }
+
+    window.regenerateBotToken = async (botId) => {
+        if (!confirm('Regenerate token? Old token will stop working.')) return;
+        try {
+            const res = await fetch(`/premium/api/bot/${botId}/regenerate-token`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert(`New token: ${data.token}`);
+                loadBotsList();
+            } else {
+                alert(data.error || 'Failed');
+            }
+        } catch (e) {}
+    };
+
+    window.deleteBot = async (botId) => {
+        if (!confirm('Delete bot? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`/premium/api/bot/${botId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                loadBotsList();
+                showToast('Bot deleted', 'success');
+            } else {
+                alert(data.error || 'Failed to delete bot');
+            }
+        } catch (e) {}
+    };
+
+    // Load bots on page load if premium
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.currentUserId) setTimeout(loadBotsList, 1000);
+    });
+
 })();

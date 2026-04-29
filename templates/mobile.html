@@ -10,18 +10,16 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    <!-- Core CSS (desktop styles overridden where needed) -->
+    <!-- Core CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
 
-
     <style>
-        /* ========== MOBILE OVERRIDES ========== */
+        /* ===== MOBILE OVERRIDES ===== */
         * { box-sizing: border-box; }
 
-        /* Lock page – NO scrolling */
         html, body {
             overflow: hidden !important;
             position: fixed !important;
@@ -32,6 +30,7 @@
             background: var(--bg-primary);
             -webkit-overflow-scrolling: auto !important;
         }
+
         body {
             display: flex;
             flex-direction: column;
@@ -47,7 +46,7 @@
             display: none !important;
         }
 
-        /* Use dynamic viewport height – automatically adjusts when keyboard opens */
+        /* Main container */
         .app-container {
             display: flex;
             flex-direction: column;
@@ -68,7 +67,7 @@
             background: var(--bg-primary);
         }
 
-        /* Header */
+        /* Top header */
         .mobile-header {
             display: flex;
             align-items: center;
@@ -78,12 +77,14 @@
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
+
         .mobile-header h1 {
             font-size: 20px;
             font-weight: 700;
             margin: 0;
             color: var(--text-primary);
         }
+
         .mobile-header-search {
             font-size: 22px;
             cursor: pointer;
@@ -98,7 +99,9 @@
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
+
         .global-search-container.active { display: block; }
+
         .global-search-input {
             width: 100%;
             padding: 10px 16px 10px 40px;
@@ -106,6 +109,15 @@
             background: var(--bg-secondary);
             border: none;
         }
+
+        .search-result-item {
+            cursor: pointer;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .search-results {
             position: absolute;
             top: 100%;
@@ -127,6 +139,7 @@
             border-bottom: 1px solid var(--border-color);
             white-space: nowrap;
         }
+
         .story-item {
             display: inline-flex;
             flex-direction: column;
@@ -134,6 +147,7 @@
             margin: 0 8px;
             cursor: pointer;
         }
+
         .story-avatar {
             width: 60px;
             height: 60px;
@@ -141,7 +155,9 @@
             padding: 2px;
             background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
         }
+
         .story-avatar.viewed { background: var(--border-color); }
+
         .story-avatar img {
             width: 100%;
             height: 100%;
@@ -149,6 +165,7 @@
             object-fit: cover;
             border: 2px solid var(--bg-surface);
         }
+
         .story-avatar-placeholder {
             width: 100%;
             height: 100%;
@@ -162,6 +179,7 @@
             color: white;
             border: 2px solid var(--bg-surface);
         }
+
         .story-username {
             font-size: 11px;
             color: var(--text-secondary);
@@ -179,6 +197,7 @@
             overflow: hidden;
             background: var(--bg-primary);
         }
+
         #emptyChat .empty-chat-icon,
         #emptyChat h3,
         #emptyChat p,
@@ -189,10 +208,12 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
+
         .chat-list {
             width: 100%;
             padding: 0;
         }
+
         .chat-item {
             width: 100%;
             padding: 12px 16px;
@@ -203,6 +224,7 @@
             cursor: pointer;
             background: var(--bg-surface);
         }
+
         .chat-avatar {
             width: 52px;
             height: 52px;
@@ -217,20 +239,24 @@
             font-size: 20px;
             overflow: hidden;
         }
+
         .chat-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+
         .chat-info {
             flex: 1;
             min-width: 0;
         }
+
         .chat-name-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 4px;
         }
+
         .chat-name {
             font-weight: 600;
             font-size: 16px;
@@ -239,11 +265,13 @@
             text-overflow: ellipsis;
             color: var(--text-primary);
         }
+
         .chat-time {
             font-size: 12px;
             color: var(--text-muted);
             flex-shrink: 0;
         }
+
         .chat-preview {
             font-size: 14px;
             color: var(--text-secondary);
@@ -251,6 +279,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .unread-badge {
             background: var(--accent-blue);
             color: white;
@@ -276,7 +305,7 @@
             display: none;
         }
 
-        /* Chat view – full screen overlay (but respects bottom nav) */
+        /* Chat view */
         #chatView {
             position: absolute;
             top: 0;
@@ -289,11 +318,13 @@
             flex-direction: column;
             overflow: hidden;
         }
+
         #chatView .chat-header {
             flex-shrink: 0;
             padding: 8px 16px;
             border-bottom: 1px solid var(--border-color);
         }
+
         #chatView .messages-container {
             flex: 1;
             overflow-y: auto;
@@ -301,6 +332,7 @@
             padding: 16px;
             -webkit-overflow-scrolling: touch;
         }
+
         #chatView .chat-input-area {
             flex-shrink: 0;
             padding: 8px 16px;
@@ -309,7 +341,7 @@
             padding-bottom: max(8px, env(safe-area-inset-bottom));
         }
 
-        /* Bottom navigation - ICONS ONLY */
+        /* Bottom navigation */
         .mobile-bottom-nav {
             display: flex;
             justify-content: space-around;
@@ -322,6 +354,7 @@
             z-index: 90;
             min-height: 60px;
         }
+
         .bottom-nav-item {
             display: flex;
             flex-direction: column;
@@ -334,14 +367,17 @@
             border-radius: 30px;
             transition: all 0.2s;
         }
+
         .bottom-nav-item.active {
             color: var(--accent-blue);
             background: var(--active-bg);
         }
+
         .bottom-nav-item span:first-child {
             font-size: 24px;
             margin: 0;
         }
+
         .bottom-nav-item span:last-child {
             display: none;
         }
@@ -381,40 +417,13 @@
             margin-left: 8px;
         }
 
-        /* Message action sheet */
-        .message-action-sheet {
-            transition: transform 0.3s ease;
-        }
-        .action-sheet-overlay {
-            transition: opacity 0.3s;
-        }
-        .action-sheet-btn {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px;
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: var(--text-primary);
-            cursor: pointer;
-            border-radius: 12px;
-            transition: background 0.2s;
-        }
-        .action-sheet-btn:hover {
-            background: var(--hover-bg);
-        }
-        .action-sheet-btn span:first-child {
-            font-size: 24px;
-            width: 32px;
-        }
-
         /* Modals fit mobile */
         .modal-overlay {
             z-index: 2000 !important;
             align-items: flex-end !important;
             padding-bottom: env(safe-area-inset-bottom, 0);
         }
+
         .modal-container {
             width: 100% !important;
             max-width: 100% !important;
@@ -422,59 +431,7 @@
             border-radius: 20px 20px 0 0 !important;
             max-height: 80vh !important;
         }
-        .story-create-modal .modal-body {
-            padding: 16px !important;
-        }
-        .story-media-upload {
-            aspect-ratio: 1/1 !important;
-            max-height: 300px !important;
-            margin-bottom: 12px !important;
-        }
-        .modal-footer {
-            padding: 12px 16px 20px !important;
-            flex-wrap: wrap !important;
-        }
-        .modal-btn {
-            flex: 1 1 0 !important;
-            min-width: 120px !important;
-        }
     </style>
-
-    <script>
-        (function() {
-            // Wait for DOM to be ready
-            document.addEventListener('DOMContentLoaded', function() {
-                var messageInput = document.getElementById('messageInput');
-                var messagesContainer = document.getElementById('messagesContainer');
-
-                if (!messageInput || !messagesContainer) return;
-
-                // When input is focused, scroll messages to bottom after keyboard appears
-                messageInput.addEventListener('focus', function() {
-                    setTimeout(function() {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    }, 300); // delay to let keyboard animation finish
-                });
-
-                // Also scroll to bottom when new messages are added (already handled in loadMessages, but add a backup)
-                var observer = new MutationObserver(function() {
-                    if (document.getElementById('chatView').style.display === 'flex') {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    }
-                });
-                observer.observe(messagesContainer, { childList: true, subtree: true });
-
-                // Prevent touch events from scrolling the page
-                document.body.addEventListener('touchmove', function(e) {
-                    if (!e.target.closest('.messages-container') &&
-                        !e.target.closest('.mobile-chat-list-container') &&
-                        !e.target.closest('.contacts-list')) {
-                        e.preventDefault();
-                    }
-                }, { passive: false });
-            });
-        })();
-    </script>
 </head>
 <body>
     <!-- Header -->
@@ -614,7 +571,7 @@
             </div>
         </div>
 
-        <!-- Bottom navigation (icons only) -->
+        <!-- Bottom navigation -->
         <nav class="mobile-bottom-nav">
             <a href="#" class="bottom-nav-item" data-view="contacts"><span>👥</span><span>Contacts</span></a>
             <a href="#" class="bottom-nav-item active" data-view="chats"><span>💬</span><span>Chats</span></a>
@@ -623,7 +580,7 @@
         </nav>
     </div>
 
-    <!-- Hidden container for core JS (free.js/prem.js expects #chatList) -->
+    <!-- Hidden container for chat list sync -->
     <div style="display: none;">
         <div id="chatList"></div>
     </div>
@@ -770,7 +727,7 @@
     <script src="{{ url_for('static', filename='js/free.js') }}"></script>
     {% endif %}
 
-    <!-- Mobile-specific initialization (with reply/forward/reaction) -->
+    <!-- Mobile-specific initialisation -->
     <script>
         (function() {
             console.log('📱 Mobile interface active');
@@ -798,7 +755,7 @@
             }
 
             var navItems = document.querySelectorAll('.bottom-nav-item');
-            function setActiveTab(viewId) {
+            window.setActiveTab = function(viewId) {
                 if (isChatOpen && viewId === 'chats') {
                     console.log('Chat open, ignoring switch to chats tab');
                     return;
@@ -840,7 +797,7 @@
                     document.getElementById('globalSearchInput')?.focus();
                 }
                 adjustPanels();
-            }
+            };
 
             navItems.forEach(function(item) {
                 item.addEventListener('click', function(e) {
@@ -861,7 +818,7 @@
             document.getElementById('createGroupBackBtn')?.addEventListener('click', function() { setActiveTab('contacts'); });
             document.getElementById('createChannelBackBtn')?.addEventListener('click', function() { setActiveTab('contacts'); });
 
-            // ========== MESSAGE ACTION SHEET ==========
+            // Message action sheet (for free users, premium handles differently)
             var actionSheet = document.createElement('div');
             actionSheet.id = 'messageActionSheet';
             actionSheet.className = 'message-action-sheet';
@@ -936,13 +893,11 @@
                 });
             }
 
-            // ========== CORRECT OVERRIDE FOR loadMessages ==========
-            // Store original once
+            // Override loadMessages to attach menu
             var originalLoadMessages = window.loadMessages;
             if (originalLoadMessages) {
                 window.loadMessages = async function(type, id) {
                     try {
-                        // Call original with correct context and arguments
                         await originalLoadMessages.call(this, type, id);
                         attachMessageMenu();
                     } catch (e) {
@@ -1014,7 +969,6 @@
                         var id = item.dataset.chatId;
                         if (type && id) item.onclick = () => window.openChat(type, parseInt(id));
                     });
-                    console.log('Chat list synced, items:', mobile.querySelectorAll('.chat-item').length);
                 }
             }
 

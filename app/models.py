@@ -12,7 +12,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(80), unique=True, nullable=True)
     display_name = db.Column(db.String(80), nullable=True)
     password_hash = db.Column(db.String(120), nullable=False)
     telegram_chat_id = db.Column(db.String(50), unique=True, nullable=True)
@@ -23,18 +23,19 @@ class User(db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     is_online = db.Column(db.Boolean, default=False)
 
+    # Premium fields
     is_premium = db.Column(db.Boolean, default=False)
     premium_since = db.Column(db.DateTime, nullable=True)
     premium_expires_at = db.Column(db.DateTime, nullable=True)
     premium_auto_renew = db.Column(db.Boolean, default=False)
     premium_payment_method = db.Column(db.String(50), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
-    premium_plan = db.Column(db.String(20), nullable=True)  # 'monthly' or 'yearly'
+    premium_plan = db.Column(db.String(20), nullable=True)
 
     # Avatar type
-    avatar_type = db.Column(db.String(10), default='image')  # 'image' or 'video'
+    avatar_type = db.Column(db.String(10), default='image')
 
-    # Notification settings (premium)
+    # Notification settings
     notification_sound = db.Column(db.String(50), default='default')
     per_chat_sounds = db.Column(db.JSON, default={})
     mute_all = db.Column(db.Boolean, default=False)
@@ -47,6 +48,31 @@ class User(db.Model):
 
     # Status emoji (Premium)
     status_emoji = db.Column(db.String(10), default='')
+
+    # Privacy settings (from Nexgram)
+    privacy_last_seen = db.Column(db.String(20), default='everyone')
+    privacy_photo = db.Column(db.String(20), default='everyone')
+    privacy_forward = db.Column(db.String(20), default='everyone')
+    privacy_calls = db.Column(db.String(20), default='everyone')
+    privacy_messages = db.Column(db.String(20), default='everyone')
+
+    # Appearance settings
+    theme = db.Column(db.String(10), default='light')
+    font_size = db.Column(db.Integer, default=14)
+    bubble_radius = db.Column(db.Integer, default=18)
+    font_family = db.Column(db.String(100), default="'Inter', sans-serif")
+    my_message_color = db.Column(db.String(20), default='#667eea')
+    their_message_color = db.Column(db.String(20), default='#f3f4f6')
+    wallpaper = db.Column(db.String(50), default='')
+    wallpaper_image = db.Column(db.String(500), nullable=True)
+
+    # Soft delete
+    is_deleted = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    # Google OAuth (existing)
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    profile_pic = db.Column(db.String(200), nullable=True)
 
     # Relationships
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
@@ -61,9 +87,7 @@ class User(db.Model):
     stories = db.relationship('Story', backref='user', lazy='dynamic')
     story_views = db.relationship('StoryView', backref='viewer', lazy='dynamic')
     story_likes = db.relationship('StoryLike', backref='user', lazy='dynamic')
-
-    google_id = db.Column(db.String(100), unique=True, nullable=True)
-    profile_pic = db.Column(db.String(200), nullable=True)
+    story_reactions = db.relationship('StoryReaction', backref='user', lazy='dynamic')
 
     def to_dict(self):
         return {
@@ -113,6 +137,34 @@ class Group(db.Model):
 
     members = db.relationship('GroupMember', backref='group', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='group', lazy='dynamic')
+    permissions = db.relationship('GroupPermission', backref='group', lazy='dynamic', cascade='all, delete-orphan')
+
+
+class GroupMember(db.Model):
+    __tablename__ = 'group_members'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    role = db.Column(db.String(20), default='member')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'group_id', name='unique_group_member'),)
+
+
+class GroupPermission(db.Model):
+    """Role-based permissions for groups (Nexgram)"""
+    __tablename__ = 'group_permissions'
+
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id', ondelete='CASCADE'), primary_key=True)
+    role = db.Column(db.String(20), primary_key=True)  # 'owner', 'admin', 'member'
+    can_send_messages = db.Column(db.Boolean, default=True)
+    can_send_media = db.Column(db.Boolean, default=True)
+    can_add_members = db.Column(db.Boolean, default=False)
+    can_pin_messages = db.Column(db.Boolean, default=False)
+    can_change_info = db.Column(db.Boolean, default=False)
+    can_delete_messages = db.Column(db.Boolean, default=False)
+    can_ban_users = db.Column(db.Boolean, default=False)
 
 
 class Channel(db.Model):
@@ -129,18 +181,7 @@ class Channel(db.Model):
 
     subscribers = db.relationship('ChannelSubscriber', backref='channel', lazy='dynamic', cascade='all, delete-orphan')
     messages = db.relationship('Message', backref='channel', lazy='dynamic')
-
-
-class GroupMember(db.Model):
-    __tablename__ = 'group_members'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=False)
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
-    role = db.Column(db.String(20), default='member')
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'group_id', name='unique_group_member'),)
+    admins = db.relationship('ChannelAdmin', backref='channel', lazy='dynamic', cascade='all, delete-orphan')
 
 
 class ChannelSubscriber(db.Model):
@@ -152,6 +193,19 @@ class ChannelSubscriber(db.Model):
     subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'channel_id', name='unique_channel_subscriber'),)
+
+
+class ChannelAdmin(db.Model):
+    """Channel admins with specific permissions (Nexgram)"""
+    __tablename__ = 'channel_admins'
+
+    channel_id = db.Column(db.Integer, db.ForeignKey('channels.id', ondelete='CASCADE'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    can_post = db.Column(db.Boolean, default=True)
+    can_edit = db.Column(db.Boolean, default=False)
+    can_delete = db.Column(db.Boolean, default=False)
+    can_add_admins = db.Column(db.Boolean, default=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ============ MESSAGE MODELS ============
@@ -178,18 +232,22 @@ class Message(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
     thumbnail_path = db.Column(db.String(500), nullable=True)
     is_encrypted = db.Column(db.Boolean, default=False)
-    encrypted_content = db.Column(db.Text)  # Base64 encrypted data
-    encryption_key_id = db.Column(db.Integer)  # Optional key identifier
+    encrypted_content = db.Column(db.Text)
+    encryption_key_id = db.Column(db.Integer)
 
+    # Soft delete
+    is_deleted = db.Column(db.Boolean, default=False)
+    deleted_for_all = db.Column(db.Boolean, default=False)
+
+    # Edit timestamp
+    edited_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
     reactions = db.relationship('Reaction', backref='message', lazy=True, cascade='all, delete-orphan')
-    replies_to = db.relationship('Reply', foreign_keys='Reply.original_message_id', backref='original_message',
-                                 lazy=True)
-    reply_to = db.relationship('Reply', foreign_keys='Reply.reply_message_id', backref='reply_message', uselist=False,
-                               lazy=True)
-    forwards_from = db.relationship('Forward', foreign_keys='Forward.original_message_id', backref='original_message',
-                                    lazy=True)
-    forwards_to = db.relationship('Forward', foreign_keys='Forward.forwarded_message_id', backref='forwarded_message',
-                                  uselist=False, lazy=True)
+    replies_to = db.relationship('Reply', foreign_keys='Reply.original_message_id', backref='original_message', lazy=True)
+    reply_to = db.relationship('Reply', foreign_keys='Reply.reply_message_id', backref='reply_message', uselist=False, lazy=True)
+    forwards_from = db.relationship('Forward', foreign_keys='Forward.original_message_id', backref='original_message', lazy=True)
+    forwards_to = db.relationship('Forward', foreign_keys='Forward.forwarded_message_id', backref='forwarded_message', uselist=False, lazy=True)
 
 
 class Reaction(db.Model):
@@ -234,10 +292,13 @@ class Story(db.Model):
     media_path = db.Column(db.String(500), nullable=False)
     media_type = db.Column(db.String(20), default='image')
     caption = db.Column(db.Text)
+    music_path = db.Column(db.String(500), nullable=True)          # Nexgram
+    privacy_type = db.Column(db.String(20), default='everyone')   # Nexgram
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     views = db.relationship('StoryView', backref='story', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('StoryLike', backref='story', lazy='dynamic', cascade='all, delete-orphan')
+    reactions = db.relationship('StoryReaction', backref='story', lazy='dynamic', cascade='all, delete-orphan')
 
 
 class StoryView(db.Model):
@@ -258,6 +319,98 @@ class StoryLike(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('story_id', 'user_id', name='unique_story_like'),)
+
+
+class StoryReaction(db.Model):
+    __tablename__ = 'story_reactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reaction = db.Column(db.String(10), nullable=False)   # ❤️, 🔥, 👎, 👍
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('story_id', 'user_id', name='unique_story_reaction'),)
+
+
+class StoryPrivacy(db.Model):
+    """Privacy setting for a story (Nexgram)"""
+    __tablename__ = 'story_privacy'
+
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id', ondelete='CASCADE'), primary_key=True)
+    privacy_type = db.Column(db.String(20), default='everyone')
+
+
+class StoryAllowedUser(db.Model):
+    """Users allowed to view a story with 'selected' privacy"""
+    __tablename__ = 'story_allowed_users'
+
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id', ondelete='CASCADE'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+
+
+# ============ CONTACT MODELS ============
+
+class Contact(db.Model):
+    __tablename__ = 'contacts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    contact_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'contact_id', name='unique_contact'),)
+
+
+class ContactName(db.Model):
+    """Custom name for a contact (Nexgram)"""
+    __tablename__ = 'contact_names'
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    contact_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+
+
+# ============ CALL MODELS ============
+
+class Call(db.Model):
+    __tablename__ = 'calls'
+
+    id = db.Column(db.Integer, primary_key=True)
+    caller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    call_type = db.Column(db.String(10), default='audio')  # 'audio' or 'video'
+    status = db.Column(db.String(20), default='ringing')   # ringing, answered, ended
+    duration = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class VideoCall(db.Model):
+    """Persistent record of a video room session"""
+    __tablename__ = 'video_calls'
+
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.String(50), unique=True, nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    call_type = db.Column(db.String(10), default='video')
+    status = db.Column(db.String(20), default='active')
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    duration = db.Column(db.Integer, default=0)
+    participant_count = db.Column(db.Integer, default=1)
+
+
+class VideoCallParticipant(db.Model):
+    """Participants in a video call"""
+    __tablename__ = 'video_call_participants'
+
+    id = db.Column(db.Integer, primary_key=True)
+    call_id = db.Column(db.Integer, db.ForeignKey('video_calls.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    left_at = db.Column(db.DateTime, nullable=True)
+    audio_only = db.Column(db.Boolean, default=False)
+    screensharing = db.Column(db.Boolean, default=False)
 
 
 # ============ OTHER MODELS ============
@@ -310,3 +463,37 @@ class PushSubscription(db.Model):
     p256dh = db.Column(db.Text, nullable=False)
     auth = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ============ NEXGRAM ADDITIONS ============
+
+class Favorite(db.Model):
+    __tablename__ = 'favorites'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    file_type = db.Column(db.String(20), nullable=True)
+    file_path = db.Column(db.String(500), nullable=True)
+    file_name = db.Column(db.String(255), nullable=True)
+    note = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class RecentSearch(db.Model):
+    __tablename__ = 'recent_searches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    search_query = db.Column(db.String(200), nullable=False)
+    search_type = db.Column(db.String(20), default='all')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PreloadedAvatar(db.Model):
+    """Pre‑loaded avatar images that users can choose during registration"""
+    __tablename__ = 'preloaded_avatars'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(100), unique=True, nullable=False)
+    display_name = db.Column(db.String(50))
+    category = db.Column(db.String(20), default='default')
