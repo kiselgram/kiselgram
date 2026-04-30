@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
 
     <style>
-        /* Free-specific overrides */
         .upgrade-banner {
             background: linear-gradient(135deg, #fb6340, #2dce89);
             color: white;
@@ -58,30 +57,9 @@
         .typing {
             color: var(--accent-green) !important;
         }
-        .message-action-sheet .action-sheet-btn {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px;
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: var(--text-primary);
-            cursor: pointer;
-            border-radius: 12px;
-            transition: background 0.2s;
-            width: 100%;
-        }
-        .message-action-sheet .action-sheet-btn:hover {
-            background: var(--hover-bg);
-        }
-        .reaction-picker span:hover {
-            transform: scale(1.2);
-            transition: transform 0.2s;
-        }
     </style>
 
-    <!-- Mobile redirect for free users (optional) -->
+    <!-- Mobile redirect -->
     <script>
         if (window.innerWidth <= 768) {
             window.location.replace("{{ url_for('chats.mobile') }}");
@@ -125,7 +103,7 @@
         </div>
         <div class="menu-footer-section">
             <button class="logout-btn-sidebar" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
-            <span>🔒 Kiselgram Free v4.2.0</span>
+            <span>🔒 Kiselgram Free v4.2.1</span>
         </div>
     </aside>
 
@@ -229,7 +207,6 @@
                     </div>
                 </div>
                 <div class="profile-section"><div class="profile-section-title">About</div><div class="profile-bio" id="profileBio">No bio yet</div></div>
-                <!-- Status Emoji (Locked for Free) -->
                 <div class="profile-section">
                     <div class="profile-section-title">Status Emoji</div>
                     <div class="locked-feature" onclick="showPremiumModal('custom_status')" style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-surface);border-radius:12px;">
@@ -281,7 +258,6 @@
                 </div>
             </div>
             <div class="stories-row" id="storiesRow">
-                <!-- Stories will be rendered by free.js; initial placeholder: -->
                 <div class="story-item locked" onclick="showPremiumModal('stories')">
                     <div class="story-avatar add-story locked">
                         <div class="add-story-btn">🔒</div>

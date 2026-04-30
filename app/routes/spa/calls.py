@@ -1,14 +1,14 @@
 import secrets
 from datetime import datetime
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 
-from app import db, socketio
+from app import db
 from app.models import User, Call, VideoCall, VideoCallParticipant
 from app.utils.helpers import get_current_user_id, get_current_user
 
 spa_calls_bp = Blueprint('spa_calls', __name__, url_prefix='/api')
 
-# ---- In-memory video rooms (for WebRTC signaling) ----
+# ---- In-memory video room storage (temporary, without sockets) ----
 video_rooms = {}
 
 def generate_room_id():
@@ -42,9 +42,10 @@ def get_call_history():
         })
     return jsonify({'success': True, 'calls': result})
 
+
 @spa_calls_bp.route('/calls/make', methods=['POST'])
 def make_call():
-    """Initiate a call (audio/video) to another user."""
+    """Initiate a call (audio/video) to another user. Stores a Call record, returns call_id."""
     caller_id = get_current_user_id()
     if not caller_id:
         return jsonify({'success': False, 'error': 'Not authenticated'}), 401
@@ -61,15 +62,10 @@ def make_call():
     db.session.add(call)
     db.session.commit()
 
-    # Emit socket event to the receiver
-    socketio.emit('incoming_call', {
-        'call_id': call.id,
-        'caller_id': caller_id,
-        'caller_name': get_current_user().display_name or get_current_user().username,
-        'call_type': call_type
-    }, room=f"user_{receiver_id}")
-
+    # In a real app, we would send a push notification or event via polling.
+    # Since we removed socketio, the receiver can periodically check for new calls.
     return jsonify({'success': True, 'call_id': call.id})
+
 
 @spa_calls_bp.route('/calls/answer', methods=['POST'])
 def answer_call():
@@ -88,6 +84,7 @@ def answer_call():
     db.session.commit()
     return jsonify({'success': True})
 
+
 @spa_calls_bp.route('/calls/end', methods=['POST'])
 def end_call():
     """End a call with optional duration."""
@@ -105,10 +102,11 @@ def end_call():
         db.session.commit()
     return jsonify({'success': True})
 
-# ---- Video room endpoints ----
+
+# ---- Video room endpoints (no socketio, just HTTP) ----
 @spa_calls_bp.route('/video/create_room', methods=['POST'])
 def create_room():
-    """Create a new WebRTC video room."""
+    """Create a new WebRTC video room (returns room_id)."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({'success': False, 'error': 'Not authenticated'}), 401
@@ -134,6 +132,7 @@ def create_room():
 
     return jsonify({'success': True, 'room_id': room_id})
 
+
 @spa_calls_bp.route('/video/join/<room_id>', methods=['POST'])
 def join_room(room_id):
     """Join an existing video room."""
@@ -148,6 +147,7 @@ def join_room(room_id):
     join_call_record(room_id, user_id, audio_only)
 
     return jsonify({'success': True, 'room': video_rooms[room_id]})
+
 
 @spa_calls_bp.route('/video/end/<room_id>', methods=['POST'])
 def end_room(room_id):
@@ -170,9 +170,10 @@ def end_room(room_id):
         vc.duration = (datetime.utcnow() - vc.started_at).seconds if vc.started_at else 0
         db.session.commit()
 
-    socketio.emit('room_ended', {'room_id': room_id}, room=f"video_{room_id}")
+    # No socketio emit; clients poll or use video server events
     del video_rooms[room_id]
     return jsonify({'success': True})
+
 
 # Helper
 def join_call_record(room_id, user_id, audio_only=False):

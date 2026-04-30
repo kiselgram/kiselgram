@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
 from app import db
-from app.models import User, Story, StoryView, StoryLike, StoryReaction, StoryPrivacy, StoryAllowedUser
+from app.models import User, Story, StoryView, StoryLike, StoryReaction, StoryPrivacy, StoryAllowedUser, Message
 from app.utils.helpers import get_current_user_id, get_current_user
 
 spa_stories_bp = Blueprint('spa_stories', __name__, url_prefix='/api')
