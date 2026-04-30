@@ -9,5 +9,6 @@ tmp/
 *.log
 
 
-*.db
+/instance
+/migrations
 
