@@ -1,18 +1,35 @@
+(.venv) dkisel@MacBook-Pro-3 kiselgram-dev % tree
 .
-├── NEW.md
+├── LICENSE
 ├── README.md
 ├── app
 │   ├── __init__.py
+│   ├── __pycache__
 │   ├── config.py
 │   ├── models.py
 │   ├── routes
 │   │   ├── __init__.py
+│   │   ├── __pycache__
 │   │   ├── auth.py
 │   │   ├── chats.py
 │   │   ├── files.py
 │   │   ├── premium.json
 │   │   ├── premium.py
 │   │   ├── premium.toml
+│   │   ├── spa
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py
+│   │   │   ├── calls.py
+│   │   │   ├── channels.py
+│   │   │   ├── chat.py
+│   │   │   ├── contacts.py
+│   │   │   ├── favorites.py
+│   │   │   ├── groups.py
+│   │   │   ├── messages.py
+│   │   │   ├── profile.py
+│   │   │   ├── search.py
+│   │   │   ├── sessions.py
+│   │   │   └── stories.py
 │   │   ├── spa_app.py
 │   │   ├── utils_api.py
 │   │   └── video_integration.py
@@ -22,11 +39,16 @@
 │   │   ├── bot_utils.py
 │   │   └── helpers.py
 │   └── utils.py
+├── bruno.json
 ├── config
 │   ├── banner.png
 │   ├── banner.txt
 │   ├── kis.toml
 │   └── promo.txt
+├── create.sh
+├── echo_bot.py
+├── instance
+│   └── kiselgram.db
 ├── logs
 │   ├── kis_main.log
 │   ├── kis_vid.log
@@ -53,6 +75,7 @@
 │   │   ├── free.js
 │   │   ├── mobile-prem.js
 │   │   ├── mobile-spec.js
+│   │   ├── prem-backup.js
 │   │   ├── prem.js
 │   │   ├── spa_app.js
 │   │   └── spa_app_prem.js
@@ -85,15 +108,31 @@
 │   └── video_integration.html
 ├── tmp
 ├── tree.txt
+├── tree_cleaned.txt
+├── uploads
+│   ├── avatars
+│   ├── channels
+│   ├── documents
+│   ├── images
+│   ├── media
+│   └── stories
 ├── video_server
 │   ├── __init__.py
 │   ├── app.py
 │   ├── auth_client.py
+│   ├── backups
+│   ├── create_restore_script.sh
+│   ├── instance
 │   ├── requirements.txt
+│   ├── restore_files.sh
+│   ├── run.sh
 │   ├── static
+│   │   ├── banner.jpg
 │   │   ├── css
 │   │   │   └── video.css
+│   │   ├── favicon.ico
 │   │   ├── js
+│   │   └── kiselgram-banner.jpg
 │   └── templates
 │       └── video
 │           ├── base.html

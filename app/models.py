@@ -14,7 +14,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(80), unique=True, nullable=True)
     display_name = db.Column(db.String(80), nullable=True)
-    password_hash = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(120), nullable=True)
     telegram_chat_id = db.Column(db.String(50), unique=True, nullable=True)
     telegram_username = db.Column(db.String(80), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -33,7 +33,7 @@ class User(db.Model):
     premium_plan = db.Column(db.String(20), nullable=True)
 
     # Avatar type
-    avatar_type = db.Column(db.String(10), default='image')
+    avatar_type = "image"
 
     # Notification settings
     notification_sound = db.Column(db.String(50), default='default')

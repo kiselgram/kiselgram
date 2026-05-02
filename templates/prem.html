@@ -187,7 +187,6 @@
         .story-nav { display: flex; position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
         .story-nav-left, .story-nav-right { flex: 1; pointer-events: auto; }
 
-        /* Message bubbles */
         .message-bubble { word-break: break-word; overflow-wrap: break-word; white-space: normal; }
         .message-text { word-break: break-word; overflow-wrap: break-word; white-space: normal; }
         .message-input { white-space: pre-wrap; overflow-y: auto; line-height: 1.4; }
@@ -204,7 +203,6 @@
         }
     </style>
 
-    <!-- Mobile redirect (redirect to mobile.html if screen is small, but prem users might also want desktop) -->
     <script>
         if (window.innerWidth <= 768) {
             window.location.replace("{{ url_for('chats.mobile') }}");
@@ -398,7 +396,6 @@
                 </div>
             </div>
 
-            <!-- Contacts, Create Group, Create Channel views (same structure) -->
             <div id="contactsView" class="panel-view" style="display:none">
                 <div class="panel-header"><button class="back-btn" onclick="hideContactsView()">←</button><h2>Contacts</h2><button class="header-action-btn" onclick="showAddContactModal()">➕</button></div>
                 <div class="contacts-search"><input type="text" class="search-input" id="contactSearchInput" placeholder="Search contacts..."></div>

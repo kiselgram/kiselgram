@@ -1,4 +1,4 @@
-// static/js/prem.js — Kiselgram Premium v4.3 Final
+// static/js/prem.js — Kiselgram Premium (full, no sockets, all fixes)
 (function() {
     'use strict';
 
@@ -55,20 +55,6 @@
     window.showToast = showToast;
     function formatFileSize(bytes) { if (!bytes) return ''; if (bytes<1024) return bytes+' B'; if (bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB'; return (bytes/(1024*1024)).toFixed(1)+' MB'; }
     function formatLastSeen(ls) { if (!ls) return ''; const d = new Date(ls), n = new Date(), diff = Math.floor((n - d)/1000); if (diff < 60) return 'just now'; if (diff < 3600) return Math.floor(diff/60)+'m ago'; if (diff < 86400) return Math.floor(diff/3600)+'h ago'; return d.toLocaleDateString(); }
-    function formatChatTime(isoString) {
-        if (!isoString) return '';
-        const d = new Date(isoString);
-        const now = new Date();
-        if (d.toDateString() === now.toDateString()) {
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        if (d.toDateString() === yesterday.toDateString()) {
-            return 'Yesterday';
-        }
-        return d.toLocaleDateString();
-    }
 
     // Initialization
     document.addEventListener('DOMContentLoaded', async () => {
@@ -147,6 +133,7 @@
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); await sendMessage(); }
     }
 
+    // Typing status via polling
     async function fetchTypingStatus() {
         if (!activeChat) return;
         try {
@@ -159,13 +146,13 @@
                 statusEl.classList.add('typing');
             } else {
                 if (activeChat.type === 'personal' && activeChat.last_seen) statusEl.textContent = formatLastSeen(activeChat.last_seen);
-                else if (activeChat.type !== 'personal') statusEl.textContent = '';
+                else if (activeChat.type !== 'personal') statusEl.textContent = ''; // groups/channels don't show last seen
                 statusEl.classList.remove('typing');
             }
         } catch (e) {}
     }
 
-    // Stories
+    // Stories (full)
     async function loadStories() {
         if (!window.currentUserId) return;
         try {
@@ -234,6 +221,7 @@
                 document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
                 showToast('Story posted!', 'success');
                 await loadStories();
+                // After upload, scroll to your story
                 setTimeout(() => {
                     const yourStory = document.querySelector('.story-item .story-avatar-placeholder');
                     yourStory?.scrollIntoView({ behavior: 'smooth' });
@@ -376,7 +364,7 @@
         });
     };
 
-    // Chat List (local time)
+    // Chat List
     async function loadChatList() {
         try {
             const r = await fetch('/api/chat_list'); const d = await r.json();
@@ -401,14 +389,14 @@
                     ${chat.type==='personal'&&chat.is_online?'<span class="online-indicator"></span>':''}
                 </div>
                 <div class="chat-info">
-                    <div class="chat-name-row"><span class="chat-name">${escapeHtml(chat.name)}</span><span class="chat-time">${formatChatTime(chat.timestamp)}</span></div>
+                    <div class="chat-name-row"><span class="chat-name">${escapeHtml(chat.name)}</span><span class="chat-time">${chat.timestamp||''}</span></div>
                     <div class="chat-preview"><span>${escapeHtml(chat.last_message||'')}</span>${chat.unread_count>0?`<span class="unread-badge">${chat.unread_count}</span>`:''}</div>
                 </div>
             </div>`;
         }).join('');
     }
 
-    // Messages (local time in bubbles)
+    // Messages
     async function refreshMessages() {
         if (!activeChat) return;
         let url;
@@ -452,12 +440,11 @@
             else att = `<div class="file-attachment"><span>📎</span><a href="${m.file_url}" target="_blank">${m.file_name || 'File'}</a></div>`;
         }
         let reply = ''; if (m.reply_to_id) reply = `<div class="reply-indicator"><span>↩️ Reply</span><div style="font-size:11px">${escapeHtml(m.reply_to_content||'')}</div></div>`;
-        const msgTime = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
         return `<div class="message-wrapper ${isOwn?'outgoing':'incoming'}" id="msg-${m.id}">
             ${!isOwn?`<div class="message-sender">${escapeHtml(m.sender_name||'User')}</div>`:''}
             <div class="message-bubble">
                 ${reply}${att}${m.content?`<div class="message-text">${escapeHtml(m.content).replace(/\n/g,'<br>')}</div>`:''}
-                <div class="message-meta"><span class="message-time">${msgTime}</span>${isOwn?`<span>${m.is_read?'✓✓':'✓'}</span>`:''}</div>
+                <div class="message-meta"><span class="message-time">${m.timestamp_formatted||''}</span>${isOwn?`<span>${m.is_read?'✓✓':'✓'}</span>`:''}</div>
             </div>
         </div>`;
     }
@@ -469,6 +456,7 @@
         if (w !== 'default') c.classList.add(`wallpaper-${w}`);
     }
 
+    // Send Message
     async function sendMessage() {
         const content = DOM.messageInput?.value.trim();
         if (!content || !activeChat) return;
@@ -500,6 +488,7 @@
         } catch (e) { document.getElementById(`msg-${tempId}`)?.remove(); offlineQueue.push({...payload, temp_id: tempId, target_type: activeChat.type, target_id: activeChat.id}); showToast('Offline – message queued', 'info'); }
     }
 
+    // Open Chat
     window.openChat = async (type, id) => {
         activeChat = { type, id };
         document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
@@ -513,7 +502,7 @@
     async function loadChatInfo(type, id) {
         if (type === 'personal') {
             try {
-                const r = await fetch('/api/users'); const d = await r.json(); const u = d.users?.find(u => u.id === id);
+                const r = await fetch(`/api/users`); const d = await r.json(); const u = d.users?.find(u => u.id === id);
                 if (u) {
                     if (DOM.chatHeaderName) DOM.chatHeaderName.textContent = u.display_name || u.username;
                     if (DOM.chatHeaderStatus) { DOM.chatHeaderStatus.textContent = u.is_online ? 'Online' : 'Offline'; DOM.chatHeaderStatus.classList.toggle('online', u.is_online); }
@@ -527,6 +516,7 @@
                 if (DOM.chatHeaderName) DOM.chatHeaderName.textContent = d.group.name;
                 if (DOM.chatHeaderStatus) DOM.chatHeaderStatus.textContent = `${d.group.member_count || 0} participants`;
                 if (DOM.chatHeaderAvatar) { DOM.chatHeaderAvatar.innerHTML = d.group.avatar_url ? `<img src="${d.group.avatar_url}">` : '👥'; DOM.chatHeaderAvatar.className = 'chat-header-avatar group'; }
+                activeChat.last_seen = null;
             }
         } else if (type === 'channel') {
             const r = await fetch(`/api/channels/${id}`); const d = await r.json();
@@ -534,6 +524,7 @@
                 if (DOM.chatHeaderName) DOM.chatHeaderName.textContent = d.channel.name;
                 if (DOM.chatHeaderStatus) DOM.chatHeaderStatus.textContent = `${d.channel.subscriber_count || 0} subscribers`;
                 if (DOM.chatHeaderAvatar) { DOM.chatHeaderAvatar.innerHTML = d.channel.avatar_url ? `<img src="${d.channel.avatar_url}">` : '📢'; DOM.chatHeaderAvatar.className = 'chat-header-avatar channel'; }
+                activeChat.last_seen = null;
             }
         }
     }
@@ -611,7 +602,7 @@
     async function handleGlobalSearch() { const q = DOM.globalSearchInput?.value.trim(); const r = DOM.searchResults; if (!r) return; if (!q||q.length<2) { r.innerHTML = ''; r.classList.remove('active'); return; } try { const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`); const d = await res.json(); if (d.success) { let h = ''; if (d.results.users?.length) { h += '<div class="search-result-section">Users</div>'; d.results.users.forEach(u => { h += `<div class="search-result-item" onclick="openChat('personal',${u.id});closeSearchResults()"><div class="search-result-avatar">${u.username[0].toUpperCase()}</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(u.display_name)}</div><div class="search-result-type">@${escapeHtml(u.username)}</div></div></div>`; }); } if (d.results.groups?.length) { h += '<div class="search-result-section">Groups</div>'; d.results.groups.forEach(g => { h += `<div class="search-result-item" onclick="openChat('group',${g.id});closeSearchResults()"><div class="search-result-avatar">👥</div><div class="search-result-info"><div class="search-result-name">${escapeHtml(g.name)}</div><div class="search-result-type">Group</div></div></div>`; }); } r.innerHTML = h || '<div class="search-result-item">No results</div>'; r.classList.add('active'); } } catch (e) {} }
     window.closeSearchResults = () => { DOM.searchResults?.classList.remove('active'); if (DOM.globalSearchInput) DOM.globalSearchInput.value = ''; };
 
-    // Create Group / Channel (with member search)
+    // Create Group / Channel (with member search fix)
     window.showCreateGroupView = () => { window.closePopout(); hideAllPanels(); if (DOM.createGroupView) DOM.createGroupView.style.display = 'flex'; selectedMembers = []; const c = getEl('selectedMembers'); if (c) c.innerHTML = ''; };
     window.hideCreateGroupView = () => { if (DOM.createGroupView) DOM.createGroupView.style.display = 'none'; if (activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
     window.createGroup = async () => { const n = getEl('groupName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); fd.append('member_ids', JSON.stringify(selectedMembers||[])); const a = getEl('groupAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/groups/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); hideCreateGroupView(); loadChatList(); openChat('group', d.group.id); } } catch (e) {} };
@@ -619,6 +610,7 @@
     window.hideCreateChannelView = () => { if (DOM.createChannelView) DOM.createChannelView.style.display = 'none'; if (activeChat) { if (DOM.chatView) DOM.chatView.style.display = 'flex'; } else { if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; } };
     window.createChannel = async () => { const n = getEl('channelName')?.value.trim(); if (!n) { showToast('Enter name', 'error'); return; } const fd = new FormData(); fd.append('name', n); const a = getEl('channelAvatarInput'); if (a?.files[0]) fd.append('avatar', a.files[0]); try { const r = await fetch('/api/channels/create', { method:'POST', body:fd }); const d = await r.json(); if (d.success) { showToast('Created!', 'success'); hideCreateChannelView(); loadChatList(); openChat('channel', d.channel.id); } } catch (e) {} };
 
+    // Member search for create group
     async function handleMemberSearch() {
         const q = getEl('memberSearchInput')?.value.trim();
         const container = getEl('userListForGroup');
@@ -650,7 +642,7 @@
         c.innerHTML = selectedMembers.map(id => `<span class="selected-member-tag">User #${id} <button onclick="toggleMemberSelection(${id})">✕</button></span>`).join('');
     }
 
-// Profile
+    // Profile
     window.openProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'flex'; loadProfileData(); };
     window.closeProfileModal = () => { const m = getEl('profileModal'); if (m) m.style.display = 'none'; };
     async function loadProfileData() { try { const r = await fetch('/api/profile'); const d = await r.json(); if (d.success && d.user) { const u = d.user; const dn = getEl('profileDisplayName'), un = getEl('profileUsername'), av = getEl('profileAvatar'), bio = getEl('profileBio'); if (dn) dn.textContent = u.display_name; if (un) un.textContent = '@'+u.username; if (bio) bio.textContent = u.bio||'No bio yet'; if (av) av.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" class="profile-avatar">` : `<div class="profile-avatar-placeholder">${u.username[0].toUpperCase()}</div>`; } } catch (e) {} }
@@ -672,10 +664,8 @@
     window.blockUser = async (id) => { if (!confirm('Block?')) return; try { await fetch(`/api/block_user/${id}`, { method:'POST' }); showToast('Blocked', 'success'); activeChat = null; if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; if (DOM.chatView) DOM.chatView.style.display = 'none'; loadChatList(); } catch (e) {} };
     window.clearChat = async (id) => { if (!confirm('Clear?')) return; try { await fetch(`/api/clear_chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id: id}) }); showToast('Cleared', 'success'); if (activeChat?.id===id && DOM.messagesContainer) DOM.messagesContainer.innerHTML = '<div class="empty-state"><p>No messages</p></div>'; loadChatList(); } catch (e) {} };
 
-
     window.showAddContactModal = () => { const m = document.createElement('div'); m.className = 'modal-overlay'; m.style.display = 'flex'; m.onclick = e => { if (e.target===m) m.remove(); }; m.innerHTML = `<div class="modal-container" style="max-width:400px"><div class="modal-header"><h3>Add Contact</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div><div class="modal-body"><input type="text" id="addContactSearch" class="modal-input" placeholder="Search username..."><div id="addContactResults" style="max-height:300px;overflow-y:auto"></div></div></div>`; document.body.appendChild(m); const si = getEl('addContactSearch'); if (si) { si.addEventListener('input', debounce(async () => { const q = si.value.trim(); if (q.length<2) return; try { const r = await fetch(`/api/users?search=${encodeURIComponent(q)}`); const d = await r.json(); if (d.success) { const res = getEl('addContactResults'); if (res) res.innerHTML = d.users.map(u => `<div class="contact-item" onclick="openChat('personal',${u.id});closeAllModals()"><div class="contact-avatar">${u.username[0].toUpperCase()}</div><div class="contact-info"><div class="contact-name">${escapeHtml(u.display_name)}</div><div class="contact-username">@${escapeHtml(u.username)}</div></div></div>`).join(''); } } catch (e) {} }, 300)); si.focus(); } };
     window.closeAllModals = () => { document.querySelectorAll('.modal-overlay').forEach(m => m.remove()); const pm = getEl('profileModal'); if (pm) pm.style.display = 'none'; const em = getEl('editProfileModal'); if (em) em.style.display = 'none'; };
-
 
     window.showChatsView = () => { hideAllPanels(); if (DOM.emptyChat) DOM.emptyChat.style.display = 'flex'; };
     window.showFollowers = () => showToast('Followers', 'info');
@@ -698,7 +688,7 @@
     window.addEventListener('offline', () => { isOnline = false; });
 
     // Push notifications (stub)
-    async function subscribeToPush() {}
+    async function subscribeToPush() { /* ... */ }
 
     // Profile completion prompt
     function showProfileCompletionPrompt() {

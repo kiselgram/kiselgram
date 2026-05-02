@@ -9,6 +9,9 @@ import time
 import json
 import sys
 from datetime import datetime
+from colorama import Fore, Back, Style, init
+
+init()
 
 # Configuration
 API_BASE_URL = "http://localhost:5000"  # Change to your Kiselgram URL

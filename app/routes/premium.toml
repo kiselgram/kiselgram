@@ -97,6 +97,16 @@ created_by = "Danil Kisel"
 expires_at = "2027-04-11T17:49:01.908796"
 active = true
 
+[promo_codes.SEX_SEVEN]
+duration_days = 30
+max_uses = 5
+used_count = 0
+created_at = "2026-04-11T17:49:01.908485"
+created_by = "Danil Kisel"
+expires_at = "2027-04-11T17:49:01.908796"
+active = true
+
+
 [settings]
 price_monthly = 4.99
 price_yearly = 49.99
