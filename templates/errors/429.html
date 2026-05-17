@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>429 · Too Many Requests</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #f8fafc 0%, #eef2f6 100%);
+            font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .error-container { max-width: 560px; width: 100%; }
+        .error-card {
+            background: rgba(255,255,255,0.96);
+            border-radius: 2rem;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .error-icon { font-size: 4rem; margin-bottom: 1rem; color: #f59e0b; }
+        .error-code { font-size: 5rem; font-weight: 800; background: linear-gradient(135deg, #1e293b, #2d3a4e); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .error-title { font-size: 1.8rem; font-weight: 600; color: #0f172a; margin: 0.5rem 0; }
+        .error-message { background: #f1f5f9; display: inline-block; padding: 0.3rem 1rem; border-radius: 40px; font-weight: 500; margin-bottom: 1.5rem; }
+        .description { color: #334155; margin-bottom: 2rem; line-height: 1.5; }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="error-code">429</div>
+        <div class="error-title">Too Many Requests</div>
+        <div class="error-message">Rate limiting.</div>
+        <div class="description">You have sent too many requests in a given amount of time. Please wait a moment and try again later.</div>
+    </div>
+</div>
+</body>
+</html>

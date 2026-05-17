@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 · Internal Server Error</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #f8fafc 0%, #eef2f6 100%);
+            font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .error-container { max-width: 560px; width: 100%; }
+        .error-card {
+            background: rgba(255,255,255,0.96);
+            border-radius: 2rem;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .error-icon { font-size: 4rem; margin-bottom: 1rem; color: #ef4444; }
+        .error-code { font-size: 5rem; font-weight: 800; background: linear-gradient(135deg, #1e293b, #2d3a4e); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .error-title { font-size: 1.8rem; font-weight: 600; color: #0f172a; margin: 0.5rem 0; }
+        .error-message { background: #f1f5f9; display: inline-block; padding: 0.3rem 1rem; border-radius: 40px; font-weight: 500; margin-bottom: 1.5rem; }
+        .description { color: #334155; margin-bottom: 2rem; line-height: 1.5; }
+        .action-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn-sm { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.4rem; border-radius: 60px; background: white; border: 1px solid #cbd5e1; color: #1e293b; cursor: pointer; 
+font-weight: 500; transition: 0.2s; }
+        .btn-sm:hover { background: #f8fafc; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon"><i class="fas fa-server"></i></div>
+        <div class="error-code">500</div>
+        <div class="error-title">Internal Server Error</div>
+        <div class="error-message">General server error.</div>
+        <div class="description">Something went wrong on our end. We're working to fix it. Please refresh the page or try again later.</div>
+        <div class="action-buttons">
+            <button class="btn-sm" id="reload500"><i class="fas fa-sync-alt"></i> Reload</button>
+            <button class="btn-sm" id="report500"><i class="fas fa-bug"></i> Report</button>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('reload500')?.addEventListener('click', () => window.location.reload());
+    document.getElementById('report500')?.addEventListener('click', () => alert("🐞 Please describe the issue and contact support: grown.dk.up@gmail.com"));
+</script>
+</body>
+</html>
