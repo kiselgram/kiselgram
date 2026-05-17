@@ -1,0 +1,29 @@
+<!-- Story Viewer – exact Nexgram layout, Font Awesome, tap zones, no caption input for reply -->
+<div class="story-viewer-modal" id="storyViewerModal">
+    <div class="story-viewer-content">
+        <!-- Progress bars -->
+        <div class="story-progress-bar" id="storyProgressBar"></div>
+        <!-- Header -->
+        <div class="story-header">
+            <div class="story-user-avatar" id="storyUserAvatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="story-user-info">
+                <div class="story-user-name" id="storyUserName"></div>
+                <div class="story-time" id="storyTime"></div>
+            </div>
+            <button class="story-close-btn" onclick="closeStoryViewer()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- Media container -->
+        <div class="story-media-container">
+            <div class="story-nav story-nav-left" onclick="previousStory()"></div>
+            <div class="story-nav story-nav-right" onclick="nextStory()"></div>
+            <div class="story-media" id="storyMedia"></div>
+            <div class="story-caption" id="storyCaption"></div>
+        </div>
+        <!-- Actions (like, reply, reactions, stats for owner) -->
+        <div class="story-actions" id="storyActions"></div>
+    </div>
+</div>

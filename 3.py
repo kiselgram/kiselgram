@@ -1,83 +1,94 @@
-# migrations/add_premium_feature_fields.py
-"""Add premium feature fields to User table"""
+# migrate_custom.py – Safe custom migration for Kiselgram merge
+# Run anytime: python migrate_custom.py
 
+import sqlite3
 import os
-import sys
 
-# Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DB_PATH = os.path.join(os.path.dirname(__file__), 'instance', 'kiselgram.db')
 
-from app import create_app, db
-from sqlalchemy import text
+def column_exists(cursor, table, column):
+    cursor.execute(f"PRAGMA table_info({table})")
+    return any(row[1] == column for row in cursor.fetchall())
 
+def table_exists(cursor, table):
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+    return cursor.fetchone() is not None
 
-def upgrade():
-    """Add premium fields to User table"""
-    app = create_app()
+def migrate():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    print("🔧 Starting migration…")
 
-    with app.app_context():
-        # Ensure instance folder exists
-        instance_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance')
-        os.makedirs(instance_path, exist_ok=True)
+    # --------- new tables ---------
+    # pinned_chats
+    if not table_exists(cursor, 'pinned_chats'):
+        cursor.execute('''
+            CREATE TABLE pinned_chats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                chat_type VARCHAR(20) NOT NULL,
+                chat_id INTEGER NOT NULL,
+                pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES user(id),
+                UNIQUE(user_id, chat_type, chat_id)
+            )
+        ''')
+        print("✅ Created table: pinned_chats")
+    else:
+        print("⏭️  Table pinned_chats already exists")
 
-        # Create tables if they don't exist
-        db.create_all()
+    # email_verifications
+    if not table_exists(cursor, 'email_verifications'):
+        cursor.execute('''
+            CREATE TABLE email_verifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token VARCHAR(100) UNIQUE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL,
+                verified BOOLEAN DEFAULT 0,
+                FOREIGN KEY(user_id) REFERENCES user(id)
+            )
+        ''')
+        print("✅ Created table: email_verifications")
+    else:
+        print("⏭️  Table email_verifications already exists")
 
-        with db.engine.connect() as conn:
-            # Check existing columns
-            inspector = db.inspect(db.engine)
-            existing_columns = [c['name'] for c in inspector.get_columns('user')]
+    # -------- missing table: user_session --------
+    if not table_exists(cursor, 'user_session'):
+        cursor.execute('''
+            CREATE TABLE user_session (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token VARCHAR(255) UNIQUE NOT NULL,
+                device VARCHAR(200),
+                ip_address VARCHAR(45),
+                user_agent VARCHAR(500),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1,
+                FOREIGN KEY(user_id) REFERENCES user(id)
+            )
+        ''')
+        print("✅ Created table: user_session (with all columns)")
+    else:
+        # user_session exists, just make sure it has the 'device' column
+        if not column_exists(cursor, 'user_session', 'device'):
+            cursor.execute("ALTER TABLE user_session ADD COLUMN device VARCHAR(200)")
+            print("✅ Added column user_session.device")
+        else:
+            print("⏭️  Column user_session.device already exists")
 
-            columns_to_add = [
-                ('is_premium', 'BOOLEAN DEFAULT FALSE'),
-                ('premium_since', 'DATETIME'),
-                ('premium_expires_at', 'DATETIME'),
-                ('premium_auto_renew', 'BOOLEAN DEFAULT FALSE'),
-                ('premium_plan', 'VARCHAR(20)'),
-                ('avatar_type', 'VARCHAR(10) DEFAULT "image"'),
-                ('notification_sound', 'VARCHAR(50) DEFAULT "default"'),
-                ('per_chat_sounds', 'JSON'),
-                ('mute_all', 'BOOLEAN DEFAULT FALSE'),
-                ('do_not_disturb', 'BOOLEAN DEFAULT FALSE'),
-                ('is_bot', 'BOOLEAN DEFAULT FALSE'),
-                ('bot_owner_id', 'INTEGER'),
-                ('bot_token', 'VARCHAR(64)'),
-                ('is_admin', 'BOOLEAN DEFAULT FALSE'),
-            ]
+    # -------- extra column on user --------
+    if not column_exists(cursor, 'user', 'email_verified'):
+        cursor.execute("ALTER TABLE user ADD COLUMN email_verified BOOLEAN DEFAULT 0")
+        print("✅ Added column user.email_verified")
+    else:
+        print("⏭️  Column user.email_verified already exists")
 
-            for col_name, col_type in columns_to_add:
-                if col_name not in existing_columns:
-                    try:
-                        print(f"Adding column: {col_name}")
-                        conn.execute(text(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}"))
-                        conn.commit()
-                        print(f"  ✅ Added {col_name}")
-                    except Exception as e:
-                        print(f"  ⚠️ Could not add {col_name}: {e}")
-                else:
-                    print(f"  ✓ {col_name} already exists")
-
-            print("\n✅ Premium feature fields migration complete!")
-
-
-def downgrade():
-    """Remove premium fields (SQLite doesn't support DROP COLUMN easily)"""
-    print("⚠️ SQLite doesn't support DROP COLUMN.")
-    print("To downgrade, you need to:")
-    print("1. Create a backup of your database")
-    print("2. Create a new table without premium fields")
-    print("3. Copy data over")
-    print("4. Drop old table and rename new one")
-
+    conn.commit()
+    conn.close()
+    print("🎉 Migration completed successfully.")
 
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--downgrade', action='store_true', help='Run downgrade')
-    args = parser.parse_args()
-
-    if args.downgrade:
-        downgrade()
-    else:
-        upgrade()
+    migrate()

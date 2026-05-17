@@ -1,0 +1,1178 @@
+{
+  "info": {
+    "name": "Kiselgram API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "your_username" },
+                { "key": "password", "value": "your_password" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout (SPA)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/logout",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Check Username",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/check_username",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "check_username"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"testuser\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Get Chat List",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/chat_list",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "chat_list"]
+            }
+          }
+        },
+        {
+          "name": "Get Personal Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/messages/2?after=0&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "messages", "2"],
+              "query": [
+                { "key": "after", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Personal Message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/send_message",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "send_message"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"receiver_id\": 2, \"content\": \"Hello from Postman!\", \"reply_to_id\": null}"
+            }
+          }
+        },
+        {
+          "name": "Mark Messages Read",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/mark_read/2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mark_read", "2"]
+            }
+          }
+        },
+        {
+          "name": "Set Typing (personal)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/typing/personal/2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "typing", "personal", "2"]
+            }
+          }
+        },
+        {
+          "name": "Get Typing (personal)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/typing/personal/2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "typing", "personal", "2"]
+            }
+          }
+        },
+        {
+          "name": "Get Users for Chat Header",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "users"]
+            }
+          }
+        },
+        {
+          "name": "Update Last Seen",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/update_last_seen",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "update_last_seen"]
+            }
+          }
+        },
+        {
+          "name": "Get Chat (legacy)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/get_chat/2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "get_chat", "2"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/create",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "create"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "multipart/form-data" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Test Group", "type": "text" },
+                { "key": "description", "value": "A group created via Postman", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Group Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Group Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/group_messages/1?after=0&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "group_messages", "1"],
+              "query": [
+                { "key": "after", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Group Message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/send_group_message",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "send_group_message"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"group_id\": 1, \"content\": \"Hello group!\", \"reply_to_id\": null}"
+            }
+          }
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1/update",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1", "update"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Updated Group\", \"description\": \"Updated description\"}"
+            }
+          }
+        },
+        {
+          "name": "Update Member Role",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1/members/2/role",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1", "members", "2", "role"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\": \"admin\"}"
+            }
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1/members/2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1", "members", "2"]
+            }
+          }
+        },
+        {
+          "name": "Get Permissions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1/permissions",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1", "permissions"]
+            }
+          }
+        },
+        {
+          "name": "Update Permissions",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/groups/1/permissions",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "groups", "1", "permissions"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\": \"admin\", \"permissions\": {\"can_send_messages\": true, \"can_add_members\": true}}"
+            }
+          }
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/leave_group/1",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "leave_group", "1"]
+            }
+          }
+        },
+        {
+          "name": "Join Group (invite link)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/join_group/abc123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "join_group", "abc123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/create",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "create"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Test Channel\", \"description\": \"A channel for testing\", \"is_public\": true}"
+            }
+          }
+        },
+        {
+          "name": "Get Channel Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Channel Messages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channel_messages/1?after=0&limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channel_messages", "1"],
+              "query": [
+                { "key": "after", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Post to Channel",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/send_channel_message",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "send_channel_message"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"channel_id\": 1, \"content\": \"Hello subscribers!\"}"
+            }
+          }
+        },
+        {
+          "name": "Subscribe",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/subscribe",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "subscribe"]
+            }
+          }
+        },
+        {
+          "name": "Unsubscribe",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/unsubscribe",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "unsubscribe"]
+            }
+          }
+        },
+        {
+          "name": "Update Channel",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/update",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "update"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Updated Channel\", \"description\": \"New description\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Admins",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/admins",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "admins"]
+            }
+          }
+        },
+        {
+          "name": "Add Admin",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/admins",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "admins"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"user_id\": 3}"
+            }
+          }
+        },
+        {
+          "name": "Remove Admin",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/admins/3",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "admins", "3"]
+            }
+          }
+        },
+        {
+          "name": "Delete Channel",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/channels/1/delete",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "channels", "1", "delete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "Get Contacts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Add Contact",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "contacts"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contact_id\": 3}"
+            }
+          }
+        },
+        {
+          "name": "Rename Contact",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/contacts/rename",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "contacts", "rename"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contact_id\": 3, \"name\": \"My Buddy\"}"
+            }
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/block_user/3",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "block_user", "3"]
+            }
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/unblock_user/3",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "unblock_user", "3"]
+            }
+          }
+        },
+        {
+          "name": "Get Blocked Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/blocked_users",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "blocked_users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stories",
+      "item": [
+        {
+          "name": "Get Stories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories"]
+            }
+          }
+        },
+        {
+          "name": "Create Story",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/create",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "create"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "multipart/form-data" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "caption", "value": "Test story", "type": "text" },
+                { "key": "media", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "View Story",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1/view",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1", "view"]
+            }
+          }
+        },
+        {
+          "name": "Like Story",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1/like",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1", "like"]
+            }
+          }
+        },
+        {
+          "name": "React to Story",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1/reaction",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1", "reaction"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reaction\": \"❤️\"}"
+            }
+          }
+        },
+        {
+          "name": "Reply to Story",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1/reply",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1", "reply"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reply_text\": \"Nice story!\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Story Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1/stats",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Delete Story",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/api/stories/1",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "stories", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/update",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "update"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"display_name\": \"New Name\", \"bio\": \"Updated bio\"}"
+            }
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/avatar",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "avatar"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "multipart/form-data" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "avatar", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/settings",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/settings",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "settings"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"theme\": \"dark\", \"font_size\": 16}"
+            }
+          }
+        },
+        {
+          "name": "Get Privacy Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/privacy",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "privacy"]
+            }
+          }
+        },
+        {
+          "name": "Update Privacy Settings",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{BASE_URL}}/api/profile/privacy",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "profile", "privacy"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"last_seen\": \"contacts\", \"profile_photo\": \"everyone\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calls",
+      "item": [
+        {
+          "name": "Get Call History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/calls/history",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "calls", "history"]
+            }
+          }
+        },
+        {
+          "name": "Make Call",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/calls/make",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "calls", "make"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"receiver_id\": 2, \"call_type\": \"audio\"}"
+            }
+          }
+        },
+        {
+          "name": "Answer Call",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/calls/answer",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "calls", "answer"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"call_id\": 1}"
+            }
+          }
+        },
+        {
+          "name": "End Call",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/calls/end",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "calls", "end"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"call_id\": 1, \"duration\": 120}"
+            }
+          }
+        },
+        {
+          "name": "Create Video Room",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/video/create_room",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "video", "create_room"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"call_type\": \"video\"}"
+            }
+          }
+        },
+        {
+          "name": "Join Video Room",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/video/join/abc123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "video", "join", "abc123"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"audio_only\": false}"
+            }
+          }
+        },
+        {
+          "name": "End Video Room",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/video/end/abc123",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "video", "end", "abc123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Global Search",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/search/global?q=test",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "search", "global"],
+              "query": [
+                { "key": "q", "value": "test" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Recent Searches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/recent_searches",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "recent_searches"]
+            }
+          }
+        },
+        {
+          "name": "Search in Chat",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/search_in_chat",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "search_in_chat"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"chat_id\": 1, \"query\": \"hello\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Reactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/reactions/5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "reactions", "5"]
+            }
+          }
+        },
+        {
+          "name": "Add Reaction",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/reactions/add",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "reactions", "add"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"message_id\": 5, \"reaction_type\": \"👍\"}"
+            }
+          }
+        },
+        {
+          "name": "Edit Message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/messages/5/edit",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "messages", "5", "edit"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\": \"Edited content\"}"
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/api/messages/5",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "messages", "5"]
+            }
+          }
+        },
+        {
+          "name": "Forward Message",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/messages/forward",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "messages", "forward"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"message_id\": 5, \"target_type\": \"personal\", \"target_id\": 3}"
+            }
+          }
+        },
+        {
+          "name": "Clear Chat",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/clear_chat",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "clear_chat"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"chat_id\": 1}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorites",
+      "item": [
+        {
+          "name": "Get Favorites",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/favorites",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "favorites"]
+            }
+          }
+        },
+        {
+          "name": "Add Favorite",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/favorites",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "favorites"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"file_type\": \"image\", \"file_path\": \"uploads/images/abc.jpg\", \"file_name\": \"abc.jpg\", \"note\": \"Nice pic\"}"
+            }
+          }
+        },
+        {
+          "name": "Delete Favorite",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{BASE_URL}}/api/favorites/1",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "favorites", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Get Sessions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/sessions",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Terminate Session",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/sessions/terminate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "sessions", "terminate"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"session_token\": \"some_token\"}"
+            }
+          }
+        },
+        {
+          "name": "Terminate All Other Sessions",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{BASE_URL}}/api/sessions/terminate_all",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "sessions", "terminate_all"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

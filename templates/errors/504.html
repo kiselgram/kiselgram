@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>504 · Gateway Timeout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #f8fafc 0%, #eef2f6 100%);
+            font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .error-container { max-width: 560px; width: 100%; }
+        .error-card {
+            background: rgba(255,255,255,0.96);
+            border-radius: 2rem;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .error-icon { font-size: 4rem; margin-bottom: 1rem; color: #475569; }
+        .error-code { font-size: 5rem; font-weight: 800; background: linear-gradient(135deg, #1e293b, #2d3a4e); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .error-title { font-size: 1.8rem; font-weight: 600; color: #0f172a; margin: 0.5rem 0; }
+        .error-message { background: #f1f5f9; display: inline-block; padding: 0.3rem 1rem; border-radius: 40px; font-weight: 500; margin-bottom: 1.5rem; }
+        .description { color: #334155; margin-bottom: 2rem; line-height: 1.5; }
+        .action-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn-sm { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.4rem; border-radius: 60px; background: white; border: 1px solid #cbd5e1; color: #1e293b; cursor: pointer; 
+font-weight: 500; transition: 0.2s; }
+        .btn-sm:hover { background: #f8fafc; transform: translateY(-2px); }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-container {
+            background: white;
+            max-width: 520px;
+            width: 90%;
+            border-radius: 2rem;
+            padding: 1.8rem;
+            text-align: left;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+        }
+        .modal-container h3 { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem; }
+        .network-status { background: #f8fafc; padding: 1rem; border-radius: 1.2rem; font-family: monospace; font-size: 0.85rem; margin: 1rem 0; max-height: 280px; overflow-y: auto; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.2rem; }
+        .close-modal { background: #0f172a; color: white; border: none; }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon"><i class="fas fa-hourglass-end"></i></div>
+        <div class="error-code">504</div>
+        <div class="error-title">Gateway Timeout</div>
+        <div class="error-message">Upstream server timed out.</div>
+        <div class="description">The upstream server failed to respond in time. The gateway did not receive a timely response. Please try later.</div>
+        <div class="action-buttons">
+            <button class="btn-sm" id="retry504"><i class="fas fa-redo"></i> Retry request</button>
+            <button class="btn-sm" id="networkTestBtn"><i class="fas fa-wifi"></i> Network test</button>
+        </div>
+    </div>
+</div>
+
+<div id="networkModal" class="modal-overlay">
+    <div class="modal-container">
+        <h3><i class="fas fa-globe"></i> Ping Test · kiselgram.ru</h3>
+        <div class="network-status" id="netStatusMsg">🔄 Initializing ping tests...</div>
+        <div class="modal-buttons">
+            <button class="btn-sm close-modal" id="closeModalBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('retry504')?.addEventListener('click', () => window.location.reload());
+
+    async function pingHost(host, timeoutMs = 5000) {
+        const url = `https://${host}/`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const startTime = performance.now();
+        try {
+            await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-cache', signal: controller.signal });
+            clearTimeout(timeoutId);
+            const elapsed = Math.round(performance.now() - startTime);
+            return { success: true, host, message: `✅ Reachable (${elapsed}ms)` };
+        } catch (err) {
+            clearTimeout(timeoutId);
+            return { success: false, host, message: `❌ ${err.name === 'AbortError' ? 'Timeout' : 'Network error'}` };
+        }
+    }
+
+    async function runPingTest() {
+        const statusDiv = document.getElementById('netStatusMsg');
+        statusDiv.innerHTML = "🏓 Pinging <strong>kiselgram.ru</strong> & <strong>web.kiselgram.ru</strong>...<br>⏳ Please wait (up to 6 seconds).";
+        const results = await Promise.all(['kiselgram.ru', 'web.kiselgram.ru'].map(h => pingHost(h, 5500)));
+        let html = `<div style="font-family: monospace;">📡 Ping results<br><br>`;
+        for (const r of results) {
+            html += `<div><strong>${r.success ? '🌐' : '⚠️'} ${r.host}</strong><br>${r.message}</div><br>`;
+        }
+        html += results.some(r => r.success) ? "<span style='color:#16a34a;'>✔️ At least one host responded.</span>" : "<span style='color:#dc2626;'>⚠️ No response from any host.</span>";
+        html += `</div>`;
+        statusDiv.innerHTML = html;
+    }
+
+    const modal = document.getElementById('networkModal');
+    document.getElementById('networkTestBtn')?.addEventListener('click', async () => {
+        modal.classList.add('active');
+        await runPingTest();
+    });
+    document.getElementById('closeModalBtn')?.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+</script>
+</body>
+</html>

@@ -1,13 +1,31 @@
 # app/routes/auth.py
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify, current_app, flash
 import requests
-from app import db, oauth
-from app.models import User, Message, Channel, ChannelSubscriber, Group, GroupMember, BlockedUser, UserSession, Report
+from app import db, oauth, mail
+from app.models import User, Message, Channel, ChannelSubscriber, Group, GroupMember, BlockedUser, UserSession, Report, EmailVerification
 from app.utils.helpers import hash_password, get_current_user, get_current_user_id
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
+import secrets
+from flask_mail import Message as MailMessage
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+# =========== Send verification emails ===================
+def send_verification_email(user):
+    token = secrets.token_urlsafe(32)
+    expires = datetime.utcnow() + timedelta(hours=24)
+    verification = EmailVerification(user_id=user.id, token=token, expires_at=expires)
+    db.session.add(verification)
+    db.session.commit()
+
+    verify_url = url_for('auth.verify_email', token=token, _external=True)
+    msg = MailMessage(subject='Verify your email – Kiselgram',
+                  sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                  recipients=[user.email])
+    msg.body = f'Welcome to Kiselgram!\n\nPlease verify your email by clicking the link below:\n{verify_url}\n\nThis link expires in 24 hours.'
+    mail.send(msg)
 
 
 
@@ -72,6 +90,8 @@ def register():
             if User.query.filter_by(email=email).first():
                 return render_template('register.html', error='Email already registered', username=username, email=email)
 
+
+
         # Create user
         password_hash = hash_password(password)
         new_user = User(username=username, password_hash=password_hash)
@@ -81,6 +101,8 @@ def register():
         new_user.display_name = username
         if hasattr(new_user, 'profile_completed'):
             new_user.profile_completed = False
+
+        send_verification_email(new_user)
 
         db.session.add(new_user)
         db.session.commit()

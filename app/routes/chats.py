@@ -1,11 +1,14 @@
 # app/routes/chats.py
 # Kiselgram Chat Routes
 
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-from datetime import datetime
+from flask import Blueprint, request, jsonify, render_template, url_for, redirect
+from datetime import datetime, timedelta
 from app import db
-from app.models import User, Message, TelegramBot, GroupMember, ChannelSubscriber, Group, Channel
-from app.utils.helpers import get_current_user, get_current_user_id
+from app.models import (
+    User, Message, GroupMember, ChannelSubscriber,
+)
+from app.utils.helpers import get_current_user, get_current_user_id, format_file_size
+from app.routes.spa_app import get_blocked_user_ids
 
 chats_bp = Blueprint('chats', __name__)
 

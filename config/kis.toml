@@ -6,7 +6,7 @@ version = "2.0.0"
 debug = true
 host = "0.0.0.0"
 port = 5000
-secret_key = "your-secret-key-change-in-production"
+secret_key = "lKbDuXWGDHarGDHqw6N3bRi9vke0Elw54eEENnqnkL8kVxBO2DclhoHXqmZQJ5KTDFjt6ot9LL2Dz3m9HnW8ZYGIV5IB3ovBSHc6GjKP1jCAPVvn5nHppgzWYXnZbNnjzV1I0WZ7dWc0LJHbLzBKdS5Kw0KipegNpho7WH8EXzIce788eHP6ViK4ZzUWFoJg0fveT8yHqBy7U5YSoN9GJWJ56Qbbukeq33FX0DYLzi1Jh9E8oVPCZeBxfaJQ6JDBqYS73CibI1Ief64M1WCuarBOQ2YvOmbsKTYEzCtLzqLVIi5uNGIeEaIOEeqFmuFQ14XBDZCbpqgNWQYNeMZ5QvZXqPnIScd4rj1UrwyYVcVzQZhtlZxuoHqLXD6JLk9S83beVvfAExZYbYlGUhwBU6AbYDv5uBkc0JAg0GMV1H6PzhHAO8wIWDUF4A96MPQ2ZPdb9Fcu9pCS5rtgz0gQI8Ww5bForqO9285NIG1ceG8i6O4qX1HS"
 
 [database]
 url = "sqlite:////Users/dkisel/PycharmProjects/kiselgram-dev/instance/kiselgram.db"

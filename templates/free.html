@@ -10,20 +10,13 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    <!-- Original desktop stylesheets (unchanged) -->
+    <!-- Core CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
 
-    <script>
-        if (window.innerWidth <= 768) {
-            window.location.replace("{{ url_for('chats.mobile') }}");
-        }
-    </script>
-
     <style>
-        /* Original inline styles */
         .upgrade-banner {
             background: linear-gradient(135deg, #fb6340, #2dce89);
             color: white;
@@ -33,8 +26,13 @@
             cursor: pointer;
             margin: 8px 0;
             border-radius: 8px;
+            animation: pulse 2s infinite;
         }
         .upgrade-banner:hover { opacity: 0.9; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 99, 64, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(251, 99, 64, 0); }
+        }
         .locked-feature {
             position: relative;
             cursor: not-allowed;
@@ -48,18 +46,38 @@
             font-size: 12px;
         }
         .font-option.locked { opacity: 0.6; }
+        .font-option.locked::after {
+            content: 'Premium';
+            font-size: 10px;
+            background: #ccc;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin-left: 8px;
+        }
+        .typing {
+            color: var(--accent-green) !important;
+        }
     </style>
+
+    <!-- Mobile redirect -->
+    <script>
+        if (window.innerWidth <= 768) {
+            window.location.replace("{{ url_for('chats.mobile') }}");
+        }
+    </script>
 </head>
 <body>
-    <!-- Original desktop content (kept exactly as before) -->
+    <!-- Upgrade to Premium Banner -->
     <div class="upgrade-banner" onclick="window.location.href='/premium'">
         <span>✨ Upgrade to Kiselgram Premium - Unlock Stories, Fonts & Wallpapers ✨</span>
     </div>
 
+    <!-- Menu Button -->
     <button class="menu-btn" id="menuBtn" aria-label="Menu">
         <span></span><span></span><span></span>
     </button>
 
+    <!-- Popout Menu -->
     <aside class="popout-menu-column" id="popoutMenu">
         <div class="menu-user-header" onclick="openProfileModal(); closePopout();">
             <div class="menu-user-avatar" id="menuUserAvatar">{{ current_user.username[0].upper() if current_user else '?' }}</div>
@@ -85,12 +103,14 @@
         </div>
         <div class="menu-footer-section">
             <button class="logout-btn-sidebar" onclick="logout()"><span>🚪</span><span>Sign Out</span></button>
-            <span>🔒 Kiselgram Free v4.0.0</span>
+            <span>🔒 Kiselgram Free v4.2.1</span>
         </div>
     </aside>
 
+    <!-- Panel Overlay -->
     <div class="panel-overlay" id="panelOverlay" onclick="closeAllPanels()"></div>
 
+    <!-- Settings Panel -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-header"><h2>Settings</h2><button class="settings-close" onclick="closeSettingsPanel()">✕</button></div>
         <div class="settings-content">
@@ -105,17 +125,50 @@
             <div class="settings-section">
                 <h3>Font (2 Free)</h3>
                 <div class="font-options" id="fontOptions">
-                    <div class="font-option active" data-font="'Inter', -apple-system, sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Inter'">Inter</div><div class="font-name">Inter <span class="font-tag">Free</span></div></div>
-                    <div class="font-option locked" data-font="'Satoshi', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Satoshi'">Satoshi</div><div class="font-name">Satoshi <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'DM Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'DM Sans'">DM Sans</div><div class="font-name">DM Sans <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Roboto', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Roboto'">Roboto</div><div class="font-name">Roboto <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Poppins', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Poppins'">Poppins</div><div class="font-name">Poppins <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Public Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Public Sans'">Public Sans</div><div class="font-name">Public Sans <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Work Sans', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Work Sans'">Work Sans</div><div class="font-name">Work Sans <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'SF Pro', -apple-system, sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'SF Pro'">SF Pro</div><div class="font-name">SF Pro <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Nunito', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Nunito'">Nunito</div><div class="font-name">Nunito <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option locked" data-font="'Space Grotesk', sans-serif" onclick="setFont(this)"><div class="font-preview" style="font-family:'Space Grotesk'">Space Grotesk</div><div class="font-name">Space Grotesk <span class="font-tag">Premium</span></div></div>
-                    <div class="font-option" data-font="'Courier New', monospace" onclick="setFont(this)"><div class="font-preview" style="font-family:'Courier New'">Courier</div><div class="font-name">Courier <span class="font-tag">Free</span></div></div>
+                    <div class="font-option active" data-font="'Inter', -apple-system, sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Inter'">Inter</div>
+                        <div class="font-name">Inter <span class="font-tag">Free</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Satoshi', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Satoshi'">Satoshi</div>
+                        <div class="font-name">Satoshi <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'DM Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'DM Sans'">DM Sans</div>
+                        <div class="font-name">DM Sans <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Roboto', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Roboto'">Roboto</div>
+                        <div class="font-name">Roboto <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Poppins', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Poppins'">Poppins</div>
+                        <div class="font-name">Poppins <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Public Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Public Sans'">Public Sans</div>
+                        <div class="font-name">Public Sans <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Work Sans', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Work Sans'">Work Sans</div>
+                        <div class="font-name">Work Sans <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'SF Pro', -apple-system, sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'SF Pro'">SF Pro</div>
+                        <div class="font-name">SF Pro <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Nunito', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Nunito'">Nunito</div>
+                        <div class="font-name">Nunito <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option locked" data-font="'Space Grotesk', sans-serif" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Space Grotesk'">Space Grotesk</div>
+                        <div class="font-name">Space Grotesk <span class="font-tag">Premium</span></div>
+                    </div>
+                    <div class="font-option" data-font="'Courier New', monospace" onclick="setFont(this)">
+                        <div class="font-preview" style="font-family:'Courier New'">Courier</div>
+                        <div class="font-name">Courier <span class="font-tag">Free</span></div>
+                    </div>
                 </div>
             </div>
             <div class="settings-section">
@@ -125,6 +178,7 @@
         </div>
     </div>
 
+    <!-- Privacy Panel -->
     <div class="privacy-panel" id="privacyPanel">
         <div class="privacy-header"><h2>Privacy</h2><button class="privacy-close" onclick="closePrivacyPanel()">✕</button></div>
         <div class="privacy-content">
@@ -133,6 +187,7 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
     <div id="profileModal" class="modal-overlay" style="display:none">
         <div class="modal-container profile-modal">
             <div class="modal-header"><h3>Profile</h3><button class="modal-close" onclick="closeProfileModal()">✕</button></div>
@@ -152,6 +207,12 @@
                     </div>
                 </div>
                 <div class="profile-section"><div class="profile-section-title">About</div><div class="profile-bio" id="profileBio">No bio yet</div></div>
+                <div class="profile-section">
+                    <div class="profile-section-title">Status Emoji</div>
+                    <div class="locked-feature" onclick="showPremiumModal('custom_status')" style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-surface);border-radius:12px;">
+                        <span style="font-size:20px;">🔒</span> Unlock with Premium
+                    </div>
+                </div>
                 <div class="profile-actions">
                     <button class="profile-action-btn" onclick="closeProfileModal();openSettingsPanel()"><span>⚙️</span><span>Settings</span></button>
                     <button class="profile-action-btn" onclick="window.location.href='/premium'"><span>👑</span><span>Upgrade to Premium</span></button>
@@ -161,6 +222,7 @@
         </div>
     </div>
 
+    <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="modal-overlay" style="display:none">
         <div class="modal-container">
             <div class="modal-header"><h3>Edit Profile</h3><button class="modal-close" onclick="closeEditProfileModal()">✕</button></div>
@@ -181,6 +243,7 @@
         </div>
     </div>
 
+    <!-- Main App Container -->
     <div class="app-container">
         <div class="chat-sidebar" id="chatSidebar">
             <div class="sidebar-header">
@@ -194,7 +257,14 @@
                     <div class="search-results" id="searchResults"></div>
                 </div>
             </div>
-            <div class="stories-row" id="storiesRow"></div>
+            <div class="stories-row" id="storiesRow">
+                <div class="story-item locked" onclick="showPremiumModal('stories')">
+                    <div class="story-avatar add-story locked">
+                        <div class="add-story-btn">🔒</div>
+                    </div>
+                    <span class="story-username">Premium</span>
+                </div>
+            </div>
             <div class="chat-list" id="chatList"><div class="loading-spinner"></div></div>
         </div>
 
@@ -203,11 +273,9 @@
                 <div class="empty-chat-icon">💬</div>
                 <h3>Welcome to Kiselgram Free</h3>
                 <p>Select a chat to start messaging</p>
-                <!-- Mobile chat list will be populated by JS -->
                 <div class="mobile-chat-list-container" style="display:none;">
                     <div class="chat-list mobile-chat-list" id="mobileChatList"></div>
                 </div>
-                <button class="upgrade-banner" onclick="window.location.href='/premium'">👑 Upgrade to Premium</button>
             </div>
 
             <div id="chatView" class="panel-view" style="display:none">
@@ -228,7 +296,7 @@
                     <div class="input-wrapper">
                         <button class="attachment-btn" onclick="triggerFileUpload()">📎</button>
                         <textarea class="message-input" id="messageInput" placeholder="Type a message..." rows="1"></textarea>
-                        <button class="send-btn" id="sendBtn" disabled>➤</button>
+                        <button class="send-btn" id="sendBtn" disabled onclick="sendMessage()">➤</button>
                     </div>
                 </div>
             </div>
@@ -264,7 +332,7 @@
         </div>
     </div>
 
-    <!-- Bottom navigation (hidden on desktop, shown on mobile) -->
+    <!-- Mobile bottom nav -->
     <nav class="mobile-bottom-nav" style="display:none;">
         <a href="#" class="bottom-nav-item" data-view="contacts">👥<span>Contacts</span></a>
         <a href="#" class="bottom-nav-item active" data-view="chats">💬<span>Chats</span></a>
@@ -277,7 +345,6 @@
     <div id="modalRoot"></div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="handleFileSelect(this)">
 
-    <!-- Original core JS -->
     <script src="{{ url_for('static', filename='js/free.js') }}"></script>
 </body>
 </html>

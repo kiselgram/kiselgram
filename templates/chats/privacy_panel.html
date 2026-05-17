@@ -1,0 +1,47 @@
+<!-- Full-page Privacy Panel – slides from right, exactly as Kiselgram settings -->
+<div class="privacy-panel" id="privacyPanel">
+    <div class="privacy-header">
+        <h2><i class="fas fa-lock"></i> Privacy</h2>
+        <button class="privacy-close" onclick="closePrivacyPanel()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="privacy-content">
+        <div class="settings-section">
+            <h3>Last Seen & Online</h3>
+            <select id="privacyLastSeen" class="modal-input">
+                <option value="everyone">Everyone</option>
+                <option value="contacts">Contacts Only</option>
+                <option value="nobody">Nobody</option>
+            </select>
+        </div>
+        <div class="settings-section">
+            <h3>Profile Photo</h3>
+            <select id="privacyPhoto" class="modal-input">
+                <option value="everyone">Everyone</option>
+                <option value="contacts">Contacts Only</option>
+                <option value="nobody">Nobody</option>
+            </select>
+        </div>
+        <div class="settings-section">
+            <h3>Calls</h3>
+            <select id="privacyCalls" class="modal-input">
+                <option value="everyone">Everyone</option>
+                <option value="contacts">Contacts Only</option>
+                <option value="nobody">Nobody</option>
+            </select>
+        </div>
+        <div class="settings-section">
+            <h3>Who Can Message Me</h3>
+            <select id="privacyMessages" class="modal-input">
+                <option value="everyone">Everyone</option>
+                <option value="contacts">Contacts Only</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-primary" onclick="savePrivacySettings()">
+                <i class="fas fa-save"></i> Save
+            </button>
+        </div>
+    </div>
+</div>

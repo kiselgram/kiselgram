@@ -1,0 +1,106 @@
+kiselgram-dev/
+├── LICENSE
+├── README.md
+├── app
+│   ├── __init__.py                       # unchanged (SocketIO removed, blueprints registered)
+│   ├── config.py                         # added email config, mail settings
+│   ├── models.py                         # ✨ added EmailVerification, PinnedChat, self-chat logic
+│   └── routes
+│       ├── __init__.py
+│       ├── auth.py                       # ✨ email verification, new register flow, Google OAuth kept
+│       ├── chats.py                      # ✨ serves prem.html, free.html with includes
+│       ├── files.py                      # unchanged
+│       ├── premium.json
+│       ├── premium.py
+│       ├── premium.toml
+│       └── spa                           # all unchanged, but small additions for new features
+│           ├── __init__.py
+│           ├── auth.py
+│           ├── calls.py
+│           ├── channels.py
+│           ├── chat.py
+│           ├── contacts.py
+│           ├── favorites.py
+│           ├── groups.py
+│           ├── messages.py
+│           ├── profile.py               # ✨ added status emoji (premium) endpoint
+│           ├── search.py
+│           ├── sessions.py              # ✨ returns full page data for sessions panel
+│           ├── stories.py               # ✨ no caption, privacy settings, story viewer data
+│       ├── spa_app.py
+│       ├── utils_api.py
+│       └── video_integration.py         # kept but no socketio dependency
+├── config
+│   ├── banner.png
+│   ├── banner.txt
+│   ├── kis.toml                         # ✨ added [mail] section, verification settings
+│   └── promo.txt
+├── instance
+│   └── kiselgram.db
+├── logs
+├── main.py
+├── manage.py
+├── requirements.txt                     # ✨ added Flask-Mail
+├── static
+│   ├── css
+│   │   ├── animations.css
+│   │   ├── chats.css                    # ✨ merged Nexgram styles (story viewer, panels)
+│   │   ├── desktop.css
+│   │   ├── mobile-layout.css
+│   │   └── mobile.css
+│   ├── favicon.ico
+│   ├── js
+│   │   ├── app.js
+│   │   ├── free.js                      # ✨ updated to handle includes, stories, panels
+│   │   ├── premium.js                   # ✨ (renamed from prem.js)
+│   │   ├── mobile-prem.js
+│   │   ├── mobile-spec.js
+│   │   ├── chat_common.js               # ✨ new shared JS for both prem/free (stories, pinned)
+│   │   └── spa_app.js                   # kept for reference
+│   ├── images
+│   ├── manifest.json
+│   ├── sw.js
+│   └── videos
+├── templates
+│   ├── base.html                        # unchanged
+│   ├── chats                            # ✨ new directory for feature partials
+│   │   ├── story_upload.html            # ✨ no caption input
+│   │   ├── story_viewer.html            # ✨ exact Nexgram viewer with Font Awesome
+│   │   ├── saved_messages.html          # ✨ chat‑with‑self intro / list
+│   │   ├── pinned_chats.html            # ✨ pinned chat items in sidebar
+│   │   ├── privacy_panel.html           # ✨ full‑page settings panel (like Kiselgram)
+│   │   ├── sessions_panel.html          # ✨ full‑page sessions panel
+│   │   └── complete_registration.html   # ✨ Nexgram avatar grid, username validation
+│   ├── mobile                            # ✨ new directory for mobile includes
+│   │   ├── story_upload_mobile.html
+│   │   ├── story_viewer_mobile.html
+│   │   └── (similar others)
+│   ├── free.html                        # ✨ updated: includes from chats/, Font Awesome
+│   ├── prem.html                        # ✨ updated: includes from chats/, premium UI
+│   ├── mobile.html                      # ✨ updated: includes from mobile/, mobile layout
+│   ├── index.html                       # landing page
+│   ├── kis_info.html
+│   ├── kiselgram-home.html
+│   ├── login.html
+│   ├── register.html                    # ✨ split: initial registration → email verification → complete_registration
+│   ├── spa_app.html                     # kept for reference
+│   ├── errors
+│   │   └── 404.html
+│   ├── premium
+│   │   ├── index.html
+│   │   └── success.html
+│   └── profile
+│       └── public.html
+└── uploads
+    ├── avatars
+    ├── channels
+    ├── documents
+    ├── images
+    ├── media
+    └── stories
+
+
+
+The new/changed files are shown with a ✨ marker.
+The structure follows kiselgram's existing layout, with feature partials placed inside
+templates/chats/ and mobile versions in templates/mobile/.

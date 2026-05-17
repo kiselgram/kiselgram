@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Users/dkisel/PycharmProjects/kiselgram-dev/.venv/bin/python
 """
 Kiselgram Management Script
 Complete Messaging Platform with Groups, Channels & File Support

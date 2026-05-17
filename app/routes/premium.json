@@ -45,13 +45,67 @@
       "expires_at": "2026-04-20T00:00:00",
       "active": true
     },
-    "WELCOMETOKISELGRAM67": {
-      "duration_days": 1,
+    "THETESTTEAM_2222": {
+      "duration_days": 9999999,
       "max_uses": 1,
-      "used_count": 1,
+      "used_count": 0,
       "created_at": "2026-04-10T00:00:00",
       "created_by": "admin",
       "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "OURBIGBIGFAMILY_228": {
+      "duration_days": 90,
+      "max_uses": 10,
+      "used_count": 0,
+      "created_at": "2026-04-10T00:00:00",
+      "created_by": "admin",
+      "expires_at": "2026-04-20T00:00:00",
+      "active": true
+    },
+    "KISEL-JFEK-HSJW": {
+      "duration_days": 30,
+      "max_uses": 5,
+      "used_count": 0,
+      "created_at": "2026-04-11T17:49:00.815224",
+      "created_by": "Danil Kisel",
+      "expires_at": "2027-04-11T17:49:00.815726",
+      "active": true
+    },
+    "KISEL-M97M-PVHT": {
+      "duration_days": 30,
+      "max_uses": 5,
+      "used_count": 0,
+      "created_at": "2026-04-11T17:49:01.188020",
+      "created_by": "Danil Kisel",
+      "expires_at": "2027-04-11T17:49:01.188528",
+      "active": true
+    },
+    "KISEL-9UPH-J60Q": {
+      "duration_days": 30,
+      "max_uses": 5,
+      "used_count": 0,
+      "created_at": "2026-04-11T17:49:01.537012",
+      "created_by": "Danil Kisel",
+      "expires_at": "2027-04-11T17:49:01.537411",
+      "active": true
+    },
+    "KISEL-KTV9-0GAO": {
+      "duration_days": 30,
+      "max_uses": 5,
+      "used_count": 1,
+      "created_at": "2026-04-11T17:49:01.908485",
+      "created_by": "Danil Kisel",
+      "expires_at": "2027-04-11T17:49:01.908796",
+      "active": true
+    },
+    "SEX_SEVEN": {
+      "duration_days": 30,
+      "max_uses": 5,
+      "used_count": 0,
+      "created_at": "2026-04-11T17:49:01.908485",
+      "created_by": "Danil Kisel",
+      "expires_at": "2027-04-11T17:49:01.908796",
       "active": true
     }
   },
