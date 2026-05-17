@@ -8,9 +8,10 @@ from app import db
 from app.models import User, Group, GroupMember, Message, BlockedUser
 # If you add the GroupPermission model later, import it here:
 # from app.models import GroupPermission
-from app.utils.helpers import get_current_user_id, get_current_user, format_file_size
+from app.utils.helpers import get_current_user_id, get_current_user, format_file_size, message_to_dict
 
 spa_groups_bp = Blueprint('spa_groups', __name__, url_prefix='/api')
+
 
 
 def create_group_permissions(group_id):

@@ -155,6 +155,14 @@ class Config:
     CACHE_TYPE = 'SimpleCache'
     CACHE_DEFAULT_TIMEOUT = 300
 
+    # Inside Config class (or in __init__)
+    MAIL_SERVER = 'mail.kiselgram.ru'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = 'auth@mail.kiselgram.ru'
+    MAIL_PASSWORD = 'KiselgramBackend2026'
+    MAIL_DEFAULT_SENDER = ('Kiselgram', 'auth@mail.kiselgram.ru')
+
     def __init__(self):
         """Load configuration from kis.toml"""
         toml_config = get_toml_config()

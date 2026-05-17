@@ -1,0 +1,101 @@
+<!-- templates/auth/check_email.html -->
+{% extends "base.html" %}
+{% block title %}Verify Email – Kiselgram{% endblock %}
+
+{% block styles %}
+<style>
+    body {
+        background: linear-gradient(135deg, #fb6340 0%, #2dce89 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+    }
+    .auth-card {
+        background: #ffffff;
+        border-radius: 28px;
+        padding: 40px 32px;
+        max-width: 420px;
+        width: 100%;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        text-align: center;
+    }
+    .logo-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #fb6340, #2dce89);
+        border-radius: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: white;
+        margin-bottom: 16px;
+    }
+    .logo h1 {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fb6340, #2dce89);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 8px 0;
+    }
+    .logo p {
+        color: #64748b;
+        font-size: 14px;
+        margin: 0;
+    }
+    .paper-plane {
+        font-size: 48px;
+        color: #fb6340;
+        margin-bottom: 16px;
+    }
+    .btn {
+        display: inline-block;
+        padding: 12px 28px;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 16px;
+        text-decoration: none;
+        transition: all 0.2s;
+        margin-top: 24px;
+    }
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #fb6340;
+        color: #fb6340;
+    }
+    .btn-outline:hover {
+        background: rgba(251, 99, 64, 0.05);
+        transform: translateY(-2px);
+    }
+    p {
+        color: #1e293b;
+        line-height: 1.6;
+    }
+    .text-muted {
+        color: #64748b;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <div class="logo">
+        <div class="logo-icon">K</div>
+        <h1>Kiselgram</h1>
+        <p>Verify your email</p>
+    </div>
+    <div class="paper-plane">
+        <i class="fas fa-paper-plane"></i>
+    </div>
+    <p>We've sent a verification link to your email address.</p>
+    <p class="text-muted">Please check your inbox and click the link to activate your account.</p>
+    <p class="text-muted">The link expires in 24 hours.</p>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-outline">Back to Login</a>
+</div>
+{% endblock %}

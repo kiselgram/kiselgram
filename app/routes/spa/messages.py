@@ -1,9 +1,42 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.models import Message, Reaction, Reply, Forward, User
-from app.utils.helpers import get_current_user_id
+from app.models import Message, Reaction, Reply, Forward, User, BlockedUser
+from app.utils.helpers import get_current_user_id, message_to_dict
+from datetime import datetime
 
 spa_messages_bp = Blueprint('spa_messages', __name__, url_prefix='/api')
+
+@spa_messages_bp.route('/send_message', methods=['POST'])
+def send_personal_message():
+    try:
+        current_user_id = get_current_user_id()
+        if not current_user_id:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+        data = request.get_json()
+        receiver_id = data.get('receiver_id')
+        content = data.get('content', '').strip()
+        reply_to_id = data.get('reply_to_id')
+        if not content:
+            return jsonify({'success': False, 'error': 'Message content required'}), 400
+        receiver = User.query.get(receiver_id)
+        if not receiver:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        if BlockedUser.query.filter_by(user_id=receiver_id, blocked_user_id=current_user_id).first():
+            return jsonify({'success': False, 'error': 'You are blocked'}), 403
+        new_message = Message(content=content, sender_id=current_user_id, receiver_id=receiver_id, timestamp=datetime.utcnow())
+        db.session.add(new_message)
+        db.session.flush()
+        if reply_to_id:
+            original = Message.query.get(reply_to_id)
+            if original:
+                db.session.add(Reply(original_message_id=reply_to_id, reply_message_id=new_message.id))
+        db.session.commit()
+        return jsonify({'success': True, 'message': message_to_dict(new_message, current_user_id)})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in send_personal_message: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @spa_messages_bp.route('/reactions/<int:message_id>', methods=['GET'])
 def get_reactions(message_id):

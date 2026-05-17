@@ -13,6 +13,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(80), unique=True, nullable=True)
+    email_verified = db.Column(db.Boolean, default=False)
     display_name = db.Column(db.String(80), nullable=True)
     password_hash = db.Column(db.String(120), nullable=True)
     telegram_chat_id = db.Column(db.String(50), unique=True, nullable=True)
@@ -433,6 +434,7 @@ class UserSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     session_token = db.Column(db.String(255), unique=True, nullable=False)
+    device = db.Column(db.String(200), nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -497,3 +499,30 @@ class PreloadedAvatar(db.Model):
     filename = db.Column(db.String(100), unique=True, nullable=False)
     display_name = db.Column(db.String(50))
     category = db.Column(db.String(20), default='default')
+
+
+# ============ NEW MODELS FOR MERGED FEATURES ============
+
+class PinnedChat(db.Model):
+    """Pinned chats for a user"""
+    __tablename__ = 'pinned_chats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    chat_type = db.Column(db.String(20), nullable=False)   # 'personal', 'group', 'channel'
+    chat_id = db.Column(db.Integer, nullable=False)
+    pinned_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'chat_type', 'chat_id', name='unique_pin'),)
+
+
+class EmailVerification(db.Model):
+    """Email verification tokens"""
+    __tablename__ = 'email_verifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    verified = db.Column(db.Boolean, default=False)

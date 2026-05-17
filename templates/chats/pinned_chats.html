@@ -1,0 +1,25 @@
+<!-- Pinned Chat Item Template (one per pinned chat) -->
+<div class="chat-item pinned" id="pinned-chat-{{ chat.id }}" data-chat-id="{{ chat.id }}">
+    <div class="pin-button" onclick="event.stopPropagation(); togglePin({{ chat.id }})">
+        <i class="fas fa-thumbtack" style="color: var(--accent-green);"></i>
+    </div>
+    <div class="chat-avatar {{ chat.type }}">
+        {% if chat.avatar_url %}
+            <img src="{{ chat.avatar_url }}" alt="">
+        {% else %}
+            <i class="fas {% if chat.type == 'personal' %}fa-user{% elif chat.type == 'group' %}fa-users{% else %}fa-bullhorn{% endif %}"></i>
+        {% endif %}
+    </div>
+    <div class="chat-info">
+        <div class="chat-name-row">
+            <span class="chat-name">{{ chat.name }}</span>
+            <span class="chat-time">{{ chat.timestamp }}</span>
+        </div>
+        <div class="chat-preview">
+            <span class="chat-message">{{ chat.last_message }}</span>
+            {% if chat.unread_count > 0 %}
+            <span class="chat-badge">{{ chat.unread_count }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>

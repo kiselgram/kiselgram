@@ -4,8 +4,9 @@ import hashlib
 import secrets
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image
+from app.models import Story, BlockedUser, GroupMember, Message, Forward, Reply, Reaction
 
 
 def hash_password(password):
@@ -116,3 +117,86 @@ def create_thumbnail(image_path, thumbnail_path, size=(200, 200)):
     except Exception as e:
         print(f"Thumbnail creation failed: {e}")
         return False
+
+
+
+
+def get_blocked_user_ids(user_id):
+    try:
+        blocks = BlockedUser.query.filter_by(user_id=user_id).all()
+        return [b.blocked_user_id for b in blocks]
+    except:
+        return []
+
+def has_active_story(user_id):
+    try:
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        return Story.query.filter(
+            Story.user_id == user_id,
+            Story.created_at >= cutoff
+        ).count() > 0
+    except:
+        return False
+
+def user_to_dict(user):
+    return {
+        'id': user.id,
+        'username': user.username,
+        'display_name': user.display_name or user.username,
+        'bio': user.bio,
+        'avatar_url': user.avatar_url,
+        'is_online': getattr(user, 'is_online', False),
+        'last_seen': user.last_seen.isoformat() if user.last_seen else None,
+        'created_at': user.created_at.isoformat() if user.created_at else None,
+        'has_story': has_active_story(user.id),
+        'is_premium': getattr(user, 'is_premium', False),
+        'status_emoji': getattr(user, 'status_emoji', ''),
+        'followers_count': 0,
+        'following_count': 0,
+        'groups_count': GroupMember.query.filter_by(user_id=user.id).count()
+    }
+
+def message_to_dict(message, current_user_id):
+    msg_data = {
+        'id': message.id,
+        'content': message.content,
+        'sender_id': message.sender_id,
+        'sender_name': message.sender.username if message.sender else 'Unknown',
+        'timestamp': message.timestamp.isoformat() if message.timestamp else None,
+        'timestamp_formatted': message.timestamp.strftime('%H:%M') if message.timestamp else '',
+        'is_own': message.sender_id == current_user_id,
+        'is_read': message.is_read,
+        'has_attachment': message.has_attachment,
+        'reply_to_id': None,
+        'reply_to_content': None,
+        'reply_to_sender': None,
+        'forwarded_from': None,
+        'reactions': {}
+    }
+
+    if message.has_attachment:
+        msg_data['file_type'] = message.file_type
+        msg_data['file_name'] = message.file_name
+        msg_data['file_size'] = message.file_size
+        msg_data['formatted_size'] = format_file_size(message.file_size) if message.file_size else '0 B'
+        msg_data['file_url'] = f"/uploads/{message.file_path}" if message.file_path else None
+
+    reply = Reply.query.filter_by(reply_message_id=message.id).first()
+    if reply:
+        original = Message.query.get(reply.original_message_id)
+        if original:
+            msg_data['reply_to_id'] = original.id
+            msg_data['reply_to_content'] = original.content[:50] if original.content else ''
+            msg_data['reply_to_sender'] = original.sender.username if original.sender else ''
+
+    forward = Forward.query.filter_by(forwarded_message_id=message.id).first()
+    if forward:
+        msg_data['forwarded_from'] = forward.original_sender_name
+
+    reactions = Reaction.query.filter_by(message_id=message.id).all()
+    for r in reactions:
+        if r.reaction_type not in msg_data['reactions']:
+            msg_data['reactions'][r.reaction_type] = 0
+        msg_data['reactions'][r.reaction_type] += 1
+
+    return msg_data

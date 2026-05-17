@@ -187,8 +187,8 @@ def privacy_settings():
     data = request.get_json()
     if 'last_seen' in data: user.privacy_last_seen = data['last_seen']
     if 'profile_photo' in data: user.privacy_photo = data['profile_photo']
-    if 'calls' in data: user.privacy_calls = data['privacy_calls']
-    if 'messages' in data: user.privacy_messages = data['privacy_messages']
+    if 'calls' in data: user.privacy_calls = data['calls']  # was data['privacy_calls']
+    if 'messages' in data: user.privacy_messages = data['messages']  # was data['privacy_messages']
     if 'forward' in data: user.privacy_forward = data['forward']
     db.session.commit()
     return jsonify({'success': True, 'message': 'Privacy updated'})

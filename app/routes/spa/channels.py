@@ -4,8 +4,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from app import db
-from app.models import User, Channel, ChannelSubscriber, Message
-from app.utils.helpers import get_current_user_id, get_current_user
+from app.models import User, Channel, ChannelSubscriber, Message, BlockedUser
+from app.utils.helpers import get_current_user_id, get_current_user, message_to_dict
 
 spa_channels_bp = Blueprint('spa_channels', __name__, url_prefix='/api')
 

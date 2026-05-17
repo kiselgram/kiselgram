@@ -1,0 +1,20 @@
+<!-- Full-page Sessions Panel – shows active sessions, terminate individual/all -->
+<div class="settings-panel" id="sessionsPanel">
+    <div class="settings-header">
+        <h2><i class="fas fa-shield-alt"></i> Active Sessions</h2>
+        <button class="settings-close" onclick="closeSessionsPanel()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="settings-content">
+        <div class="sessions-list" id="sessionsList">
+            <!-- Populated by JS -->
+            <div class="loading-spinner"></div>
+        </div>
+        <div class="modal-footer" style="margin-top: 16px;">
+            <button class="modal-btn modal-btn-danger" onclick="terminateAllSessions()" style="width: 100%;">
+                <i class="fas fa-door-open"></i> Terminate All Other Sessions
+            </button>
+        </div>
+    </div>
+</div>

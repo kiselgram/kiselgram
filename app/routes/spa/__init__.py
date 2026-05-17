@@ -10,6 +10,7 @@ from .search import spa_search_bp
 from .favorites import spa_favorites_bp
 from .sessions import spa_sessions_bp
 from .messages import spa_messages_bp
+from .pins import spa_pins_bp
 
 def register_spa_blueprints(app):
     app.register_blueprint(spa_auth_bp)
@@ -24,3 +25,4 @@ def register_spa_blueprints(app):
     app.register_blueprint(spa_favorites_bp)
     app.register_blueprint(spa_sessions_bp)
     app.register_blueprint(spa_messages_bp)
+    app.register_blueprint(spa_pins_bp)

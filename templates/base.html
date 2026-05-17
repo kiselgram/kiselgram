@@ -9,13 +9,19 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-    <!-- CSS Files -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Core application CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/desktop.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chats.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+
 
     {% block styles %}{% endblock %}
 </head>
 <body>
 {%block content %}{% endblock %}
+{% block scripts %}{% endblock %}
 </body>
 </html>
